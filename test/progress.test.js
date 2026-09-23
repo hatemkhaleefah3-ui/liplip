@@ -60,7 +60,7 @@ click('mode','supervise');assert.match(app.innerHTML,/محادثة كتابية/
 click('channel','text');assert.match(app.innerHTML,/التوجيه · محادثة كتابية/);
 click('action','return-section');click('action','mode-reset');assert.match(app.innerHTML,/توجيه/);assert.match(app.innerHTML,/تدريب/);
 click('mode','practice');click('channel','call');assert.match(app.innerHTML,/التدريب · مكالمة صوتية/);
-click('nav','خزانتي');assert.match(app.innerHTML,/كلمة محفوظة/);
+click('nav','خزانتي');assert.match(app.innerHTML,/دفتر الكلمات/);assert.match(app.innerHTML,/دفتر القواعد/);
 progress=P.recordStudy(progress,{boxId:1,words:['hello','Hello','world'],pronunciation:70,writing:80});
 assert.equal(P.snapshot(progress).vocabularyCount,2);
 assert.equal(P.snapshot(progress).currentBox,2);

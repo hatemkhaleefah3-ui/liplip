@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const events={},sessions=new Map(),local=new Map(),app={innerHTML:'',addEventListener:(event,handler)=>events[event]=handler};
+const storage=map=>({getItem:key=>map.get(key)||null,setItem:(key,value)=>map.set(key,value),removeItem:key=>map.delete(key)});
+const progress={completedBoxes:[1],vocabulary:[{word:'hello',boxId:1,ar:'مرحباً',example:'Hello, my name is Ali.'},{word:'goodbye',boxId:1,ar:'وداعاً'}],grammar:[{boxId:1,id:'gs',type:'sentenceRule',title:'تقديم النفس',formula:'I + am + الاسم',body:'استعمل am بعد I.',example:'I am Ali.'}],ratings:{}};
+sessions.set('liplip-preview',JSON.stringify({guest:true,progress}));
+const context={document:{getElementById:id=>id==='app'?app:{textContent:''}},window:{scrollTo(){}},sessionStorage:storage(sessions),localStorage:storage(local),Date,Number,String,Object,Set,Map};
+vm.createContext(context);
+for(const name of ['progress.js','content.js','zone.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',name),'utf8'),context);
+vm.runInContext('this.Z=LiplipZone;this.P=LiplipProgress',context);
+const click=(key,value)=>events.click({target:{closest:selector=>selector==='#not-used'?null:selector==='[data-'+key+']'?{dataset:{[key]:value}}:null},preventDefault(){}});
+click('nav','خزانتي');
+assert.match(app.innerHTML,/دفتر الكلمات/);assert.match(app.innerHTML,/دفتر القواعد/);
+assert.match(app.innerHTML,/دفتر الكلمات[\s\S]*?<strong>2<\/strong>/);
+assert.match(app.innerHTML,/دفتر القواعد[\s\S]*?<strong>1<\/strong>/);
+click('action','closet-words');assert.match(app.innerHTML,/مرحباً/);assert.match(app.innerHTML,/Hello, my name is Ali/);assert.match(app.innerHTML,/1 \/ 2/);
+click('action','closet-next');assert.match(app.innerHTML,/goodbye/);assert.match(app.innerHTML,/2 \/ 2/);
+click('action','closet-back');click('action','closet-grammar');assert.match(app.innerHTML,/تقديم النفس/);assert.match(app.innerHTML,/I \+ am \+ الاسم/);assert.match(app.innerHTML,/I am Ali/);
+const Z=context.Z;Z.start(1);
+for(let i=0;i<4;i++){Z.click('flip',{},()=>{});Z.click('next',{},()=>{})}
+const sentence=Z.render({snapshot:{}});
+assert.match(sentence,/zone-sentence/);assert.doesNotMatch(sentence,/mark-sentence|تمّت القراءة|zone-sentence-example|المعنى بالعربية/);
+assert.match(sentence,/data-zone="next" class="zone-primary"/);
+Z.click('next',{},()=>{});assert.match(Z.render({snapshot:{}}),/هل استقرّت الكلمات/);
+console.log('Closet word and grammar views, item paging, and simplified sentence navigation passed');

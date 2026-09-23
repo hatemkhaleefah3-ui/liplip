@@ -21,8 +21,9 @@ const LiplipProgress = (() => {
     {words:7000,boxes:1000,samples:30,score:90}
   ];
   const TOTAL_BOXES = 5 * 10 * 20;
-  const fresh = () => ({completedBoxes:[],vocabulary:[],ratings:Object.fromEntries(METRICS.map(k=>[k,[]]))});
+  const fresh = () => ({completedBoxes:[],vocabulary:[],grammar:[],ratings:Object.fromEntries(METRICS.map(k=>[k,[]]))});
   const validBox = n => Number.isInteger(n)&&n>=1&&n<=TOTAL_BOXES;
+  const limited=(value,max)=>typeof value==='string'?value.trim().slice(0,max):'';
   function hydrate(raw){
     const p=fresh();if(!raw||typeof raw!=='object')return p;
     if(Array.isArray(raw.completedBoxes))p.completedBoxes=[...new Set(raw.completedBoxes.filter(validBox))].sort((a,b)=>a-b);
@@ -31,7 +32,15 @@ const LiplipProgress = (() => {
         if(!item||typeof item.word!=='string')return false;
         const key=item.word.trim().toLocaleLowerCase();if(!key||key.length>80||seen.has(key))return false;
         seen.add(key);return true;
-      }).slice(0,10000).map(item=>({word:item.word.trim(),boxId:validBox(item.boxId)?item.boxId:null}));
+      }).slice(0,10000).map(item=>({word:item.word.trim(),boxId:validBox(item.boxId)?item.boxId:null,ar:limited(item.ar,160),example:limited(item.example,220),image:typeof item.image==='string'&&/^https:\/\//i.test(item.image)?limited(item.image,500):''}));
+    }
+    if(Array.isArray(raw.grammar)){
+      const seen=new Set(),completed=new Set(p.completedBoxes);
+      p.grammar=raw.grammar.filter(item=>{
+        if(!item||!completed.has(item.boxId)||!['sentenceRule','questionRule'].includes(item.type))return false;
+        const id=limited(item.id,40),key=`${item.boxId}:${item.type}:${id}`;
+        if(seen.has(key))return false;seen.add(key);return true;
+      }).slice(0,2000).map(item=>({boxId:item.boxId,id:limited(item.id,40),type:item.type,title:limited(item.title,120),formula:limited(item.formula,220),body:limited(item.body,500),example:limited(item.example,220)}));
     }
     for(const metric of METRICS){const values=raw.ratings?.[metric];if(Array.isArray(values))p.ratings[metric]=values.filter(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=100).slice(-50)}
     return p;
@@ -50,13 +59,19 @@ const LiplipProgress = (() => {
     return {level:LEVELS[index],levelIndex:index,next:REQUIREMENTS[index+1]||null,vocabularyCount:p.vocabulary.length,completedCount:p.completedBoxes.length,currentBox:currentBox<=TOTAL_BOXES?currentBox:null,position,stageName:STAGES[position.stage-1],stepName:STEP_NAMES[position.stage-1][position.step-1],boxName:currentBox<=TOTAL_BOXES?BOX_NAMES[position.box-1]:'اكتملت الرحلة',metrics,stages:STAGES,totalBoxes:TOTAL_BOXES};
   }
   /* Future study/chat features may call these after real assessment. Viewing a box never calls them. */
-  function recordStudy(raw,{boxId,words=[],pronunciation,writing}){
+  function recordStudy(raw,{boxId,words=[],wordItems=[],grammar=[],pronunciation,writing}){
     const p=hydrate(raw);const current=snapshot(p).currentBox;
     if(!validBox(boxId)||boxId!==current)throw new Error('Study boxes must be completed in order');
     if(!Array.isArray(words)||!words.every(w=>typeof w==='string'&&w.trim()&&w.trim().length<=80))throw new Error('Invalid vocabulary');
+    if(!Array.isArray(wordItems)||!Array.isArray(grammar)||grammar.length>30||wordItems.length>60)throw new Error('Invalid study content');
     for(const score of [pronunciation,writing])if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw new Error('Invalid study rating');
-    p.completedBoxes.push(boxId);const seen=new Set(p.vocabulary.map(x=>x.word.toLocaleLowerCase()));
-    for(const word of words){const clean=word.trim();if(!seen.has(clean.toLocaleLowerCase())){p.vocabulary.push({word:clean,boxId});seen.add(clean.toLocaleLowerCase())}}
+    p.completedBoxes.push(boxId);const seen=new Map(p.vocabulary.map((x,i)=>[x.word.toLocaleLowerCase(),i]));
+    for(const word of words){const clean=word.trim(),key=clean.toLocaleLowerCase(),detail=wordItems.find(x=>x?.word?.trim().toLocaleLowerCase()===key&&x.image)||wordItems.find(x=>x?.word?.trim().toLocaleLowerCase()===key)||{};
+      const entry={word:clean,boxId,ar:limited(detail.ar,160),example:limited(detail.example,220),image:typeof detail.image==='string'&&/^https:\/\//i.test(detail.image)?limited(detail.image,500):''};
+      if(!seen.has(key)){p.vocabulary.push(entry);seen.set(key,p.vocabulary.length-1)}
+      else {const previous=p.vocabulary[seen.get(key)];if(!previous.ar&&entry.ar)Object.assign(previous,{ar:entry.ar,example:entry.example,image:entry.image})}
+    }
+    for(const item of grammar){if(!item||!['sentenceRule','questionRule'].includes(item.type))continue;p.grammar.push({boxId,id:limited(item.id,40),type:item.type,title:limited(item.title,120),formula:limited(item.formula,220),body:limited(item.body,500),example:limited(item.example,220)})}
     p.ratings.pronunciation.push(pronunciation);p.ratings.writing.push(writing);
     return hydrate(p);
   }
