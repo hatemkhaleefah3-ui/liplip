@@ -4,7 +4,7 @@ A responsive, static concept for a language learning site made for people in Ira
 
 ## Flow
 
-Landing → Join → sign-up/sign-in preview → profile → optional five-question English check → personalized home. Study, Closet, Chat / Speak, and Settings show coming-soon pages. The navigation is under the header on desktop, a sidebar on tablets, and a fixed bottom bar on phones. English and Arabic interface toggles are provided; the landing and forms currently retain English copy.
+Landing → Join → sign-up/sign-in preview → profile → optional five-question English check → personalized home. Study, Closet, Chat / Speak, and Settings show coming-soon pages. The navigation is under the header on desktop, a sidebar on tablets, and a fixed bottom bar on phones. The interface copy is currently in English.
 
 ## Authentication and privacy
 
