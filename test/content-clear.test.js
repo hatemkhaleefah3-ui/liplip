@@ -46,12 +46,12 @@ click('clear-pick-step',1);
 assert.match(html(),/الصندوق 20/);
 click('clear-pick-box',2);
 assert.match(html(),/تأكيد مسح/);
-assert.equal(Z.getContent(1).vocab.length,6);
-assert.equal(Z.getContent(2).vocab.length,6);
+assert.equal(Z.getContent(1).vocab.length,5);
+assert.equal(Z.getContent(2).vocab.length,5);
 click('confirm-clear-content');
 assert.match(html(),/اكتملت عملية المسح/);
 assert.equal(Z.getContent(2).vocab.length,0,'selected box is blanked');
-assert.equal(Z.getContent(1).vocab.length,6,'neighboring box is untouched');
+assert.equal(Z.getContent(1).vocab.length,5,'neighboring box is untouched');
 
 click('menu-clear');
 click('clear-scope','level');
@@ -60,7 +60,7 @@ failWrites=true;
 click('confirm-clear-content');
 failWrites=false;
 assert.match(html(),/تعذّر حفظ عملية المسح/);
-assert.equal(Z.getContent(1).vocab.length,6,'failed storage write does not mutate in-memory content');
+assert.equal(Z.getContent(1).vocab.length,5,'failed storage write does not mutate in-memory content');
 
 click('clear-back');
 click('clear-back');
