@@ -1,23 +1,17 @@
 # liplip
 
-A responsive, static concept for a language learning site made for people in Iraq. Open `index.html` in a browser, or serve this directory with any static host.
+واجهة عربية باتجاه من اليمين إلى اليسار لموقع تعلّم لغات موجّه للمستخدمين في العراق. الموقع ثابت ويمكن عرضه مباشرة من `index.html` أو نشره عبر Cloudflare Pages. لا يحتاج إلى خطوة بناء؛ ملفات النشر في جذر المستودع.
 
-## Flow
+## المسار التجريبي
 
-Landing → Join → sign-up/sign-in preview → profile → optional five-question English check → personalized home. Study, Closet, Chat / Speak, and Settings show coming-soon pages. The navigation is under the header on desktop, a sidebar on tablets, and a fixed bottom bar on phones. The interface copy is currently in English.
+الصفحة التعريفية ← إنشاء حساب / تسجيل الدخول ← بيانات المستخدم ← اختبار إنجليزي اختياري من خمسة أسئلة ← الصفحة الرئيسية. يوجد زر **دخول سريع كضيف** في تبويب تسجيل الدخول لفتح الصفحة الرئيسية مباشرة، دون بريد إلكتروني أو بيانات شخصية. أقسام الدراسة والخزانة والتحدّث والإعدادات تعرض صفحات «قريباً». شريط التنقّل تحت الشريط العلوي على الحاسوب، جانبي على الجهاز اللوحي، وأسفل الشاشة على الهاتف.
 
-## Authentication and privacy
+## الحسابات والخصوصية
 
-This is a **front-end preview**, not production authentication. The email step grants local preview access without verifying an account. Google, Facebook, and WhatsApp buttons explicitly explain that they require configuration; they do not sign users in. Profile details live in `sessionStorage` in the current browser tab and are cleared when the tab is closed or the user logs out. Do not use this preview to collect real user data.
+هذه **نسخة واجهة تجريبية**، وليست نظام حسابات حقيقياً. إدخال البريد يمنح وصولاً تجريبياً ولا يتحقق من الهوية. أزرار Google وFacebook وWhatsApp توضّح أن الربط غير مفعّل بعد. تبقى بيانات الملف الشخصي وحالة الضيف في `sessionStorage` داخل تبويب المتصفح، وتُحذف عند تسجيل الخروج. لا تستخدم النسخة لجمع بيانات مستخدمين حقيقيين.
 
-To launch with real accounts, integrate an auth provider and server-side profile storage, configure Google/Facebook OAuth client IDs and allowed redirect URLs, and choose a supported WhatsApp verification flow (for example, a business messaging OTP service with server-side verification). WhatsApp is not a generic OAuth identity provider. Add consent, data retention, deletion, and access controls before collecting birth dates, gender, and location. Replace the quick check with a validated assessment before claiming formal CEFR proficiency.
+قبل الإطلاق بحسابات حقيقية: اربط مزوّد هوية وخزناً آمناً على الخادم، واضبط OAuth لـ Google وFacebook، وحدّد وسيلة تحقق مناسبة عبر WhatsApp مع تحقق من جهة الخادم. أضف سياسة خصوصية وموافقة وحذف بيانات وضوابط وصول قبل جمع تاريخ الميلاد والجنس والموقع. نتيجة الأسئلة الخمسة تقدير أولي وليست شهادة CEFR.
 
-## Structure
+## النشر
 
-- `index.html` — document shell and font loading
-- `styles.css` — design system and responsive layouts
-- `app.js` — preview flow, form validation, and local state
-
-## Publishing
-
-The included GitHub Actions workflow deploys the site on pushes to `main` once **Settings → Pages → Build and deployment → Source** is set to **GitHub Actions**. The expected Pages address is `https://hatemkhaleefah3-ui.github.io/liplip/`; confirm a successful deployment before sharing it as live.
+في Cloudflare Pages اختر `main`، وإعداد إطار العمل `None`، واترك أمر البناء فارغاً، واجعل مجلد المخرجات `.`. كما يوجد سير عمل منفصل للنشر على GitHub Pages إذا كان مصدر النشر في إعدادات المستودع مضبوطاً على GitHub Actions.
