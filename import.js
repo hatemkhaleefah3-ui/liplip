@@ -3,19 +3,49 @@ const LiplipImporter = (() => {
  const HEADERS=['Item process','Item level','Item step','Item box','Item type','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body'];
  const PROCESSES=['vocab','checkpointVocab','listen','checkpointListen','grammar','exam'];
  const blank=()=>Object.fromEntries(PROCESSES.map(key=>[key,[]]));
- let scriptPromise;
- function library(){
-  if(typeof XLSX!=='undefined')return Promise.resolve(XLSX);
-  if(scriptPromise)return scriptPromise;
-  scriptPromise=new Promise((resolve,reject)=>{
-   const tag=document.createElement('script');
-   tag.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-   tag.async=true;
-   tag.onload=()=>typeof XLSX!=='undefined'?resolve(XLSX):reject(Error('تعذّر تحميل قارئ Excel. جرّب لاحقاً.'));
-   tag.onerror=()=>reject(Error('تعذّر تحميل قارئ Excel. تحقّق من اتصال الإنترنت.'));
-   document.head.appendChild(tag);
-  }).catch(error=>{scriptPromise=null;throw error});
-  return scriptPromise;
+ const XML='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+ const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+ function xml(string){const doc=new DOMParser().parseFromString(string,'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('ملف Excel يحتوي بيانات غير صالحة.');return doc}
+ function nodes(parent,name){return [...parent.getElementsByTagNameNS(XML,name)]}
+ function column(ref){const letters=/^[A-Z]+/.exec(ref)?.[0];if(!letters)return -1;return [...letters].reduce((index,char)=>index*26+char.charCodeAt(0)-64,0)-1}
+ async function sheetRows(file){
+  if(typeof JSZip==='undefined')throw Error('تعذّر فتح قارئ Excel. أعد تحميل الصفحة وحاول مجدداً.');
+  let zip;try{zip=await JSZip.loadAsync(await file.arrayBuffer())}catch{throw Error('تعذّر فتح الملف. تأكد أنه ملف .xlsx صالح.')}
+  const read=async name=>{const entry=zip.file(name);return entry?entry.async('string'):null};
+  const workbookText=await read('xl/workbook.xml'),relationshipsText=await read('xl/_rels/workbook.xml.rels');
+  if(!workbookText||!relationshipsText)throw Error('تعذّر فتح الملف. تأكد أنه ملف .xlsx صالح.');
+  const book=xml(workbookText),relationships=xml(relationshipsText);
+  const content=nodes(book,'sheet').find(sheet=>sheet.getAttribute('name')==='Content');
+  if(!content)throw Error('يجب أن يحتوي الملف على ورقة باسم Content.');
+  const relationId=content.getAttributeNS(REL,'id');
+  const relation=[...relationships.getElementsByTagName('*')].find(element=>element.localName==='Relationship'&&element.getAttribute('Id')===relationId);
+  const target=relation?.getAttribute('Target');
+  const path=target?.startsWith('/')?target.slice(1):'xl/'+target;
+  if(!path||!/^xl\/worksheets\/[a-zA-Z0-9_.-]+\.xml$/.test(path))throw Error('تعذّر العثور على ورقة Content في الملف.');
+  const sheetText=await read(path);
+  if(!sheetText)throw Error('تعذّر العثور على ورقة Content في الملف.');
+  const sharedText=await read('xl/sharedStrings.xml');
+  const shared=sharedText?nodes(xml(sharedText),'si').map(si=>nodes(si,'t').map(t=>t.textContent).join('')):[];
+  const rows=[];
+  for(const row of nodes(xml(sheetText),'row')){
+   const number=Number(row.getAttribute('r'));
+   if(!Number.isInteger(number)||number<1||number>30001)throw Error('الملف يتجاوز ٣٠٬٠٠٠ صف أو يحتوي صفوفاً غير صحيحة.');
+   const result=[];
+   for(const cell of [...row.children].filter(element=>element.localName==='c')){
+    if([...cell.children].some(child=>child.localName==='f'))throw Error(`الصف ${number}: يحتوي معادلة. استبدل الصيغ بالقيم قبل الاستيراد.`);
+    const index=column(cell.getAttribute('r')||'');
+    if(index<0||index>100)throw Error(`الصف ${number}: عنوان العمود غير صحيح.`);
+    const kind=cell.getAttribute('t'),v=[...cell.children].find(child=>child.localName==='v')?.textContent;
+    let resultValue='';
+    if(kind==='s'){const id=Number(v);if(!Number.isInteger(id)||id<0||id>=shared.length)throw Error(`الصف ${number}: نص مشترك غير صحيح.`);resultValue=shared[id]}
+    else if(kind==='inlineStr'){const inline=[...cell.children].find(child=>child.localName==='is');resultValue=inline?nodes(inline,'t').map(t=>t.textContent).join(''):''}
+    else if(v!==undefined)resultValue=kind==='n'||(!kind&&v!==''&&Number.isFinite(Number(v)))?Number(v):v;
+    result[index]=resultValue;
+   }
+   if(rows.length===0&&number!==1)throw Error('يجب أن تكون أسماء الأعمدة في الصف الأول.');
+   if(result.some(value=>String(value??'').trim()))rows.push(result);
+  }
+  return rows;
  }
  const value=x=>String(x??'').trim();
  function positive(value,max){
@@ -53,14 +83,7 @@ const LiplipImporter = (() => {
  async function read(file,validateItem){
   if(!file||!/\.xlsx$/i.test(file.name||''))throw Error('اختر ملف Excel بصيغة .xlsx.');
   if(file.size>12*1024*1024)throw Error('الحد الأقصى لحجم الملف ١٢ ميغابايت.');
-  const parser=await library();
-  let book;
-  try{book=parser.read(await file.arrayBuffer(),{type:'array',sheetRows:30002,cellFormula:true})}catch{throw Error('تعذّر فتح الملف. تأكد أنه ملف .xlsx صالح.')}
-  const sheet=book.Sheets?.Content;
-  if(!sheet)throw Error('يجب أن يحتوي الملف على ورقة باسم Content.');
-  if(parser.utils.decode_range(sheet['!ref']||'A1').e.r>30000)throw Error('الملف يتجاوز ٣٠٬٠٠٠ صف.');
-  if(Object.values(sheet).some(cell=>cell&&typeof cell==='object'&&cell.f))throw Error('تحتوي الورقة على صيغ. استبدلها بالقيم قبل الاستيراد.');
-  return parseRows(parser.utils.sheet_to_json(sheet,{header:1,raw:true,defval:'',blankrows:false}),validateItem);
+  return parseRows(await sheetRows(file),validateItem);
  }
  return {HEADERS,parseRows,read};
 })();

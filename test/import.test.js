@@ -13,16 +13,10 @@ vm.runInContext('this.P=LiplipProgress;this.Z=LiplipZone;this.I=LiplipImporter;'
 const {Z,I}=context;
 const heading=Array.from(I.HEADERS);
 const vocab=(stage,step,box,en='hello')=>['vocab',stage,step,box,'word',en,'مرحباً','Hello, I am Ali.'];
-function menu(){Z.start(1);Z.click('control',{},()=>{});Z.click('menu-import',{},()=>{})}
-function choose(scope,stage=1,step=1,box=1){
- Z.click('import-scope',{dataset:{value:scope}},()=>{});
- if(scope!=='language')Z.click('import-stage',{dataset:{value:String(stage)}},()=>{});
- if(scope==='step'||scope==='box')Z.click('import-step',{dataset:{value:String(step)}},()=>{});
- if(scope==='box')Z.click('import-box',{dataset:{value:String(box)}},()=>{});
-}
+function menu(box=1){Z.start(box);Z.click('control',{},()=>{});assert.match(Z.render({snapshot:{}}),/id="zone-import-file"/);assert.doesNotMatch(Z.render({snapshot:{}}),/data-zone="import-scope"/)}
 async function upload(rows){
  const parsed=I.parseRows([heading,...rows],Z.validateItem);
- context.XLSX={read:()=>({Sheets:{Content:{'!ref':'A1:S15'}}}),utils:{decode_range:()=>({e:{r:rows.length}}),sheet_to_json:()=>[heading,...rows]}};
+ I.read=async()=>parsed;
  await Z.importFile({name:'lessons.xlsx',size:400,arrayBuffer:async()=>new ArrayBuffer(1)},()=>{});
  return parsed;
 }
@@ -31,26 +25,23 @@ async function main(){
  assert.throws(()=>I.parseRows([heading,vocab(1,11,1)],Z.validateItem),/الصف 2/);
  assert.throws(()=>I.parseRows([heading,['exam',1,1,1,'choice','','','','السؤال','','أ','ب','ج',4,'شرح']],Z.validateItem),/الإجابة الصحيحة/);
  assert.throws(()=>I.parseRows([heading,['listen',1,1,1,'word','hello','']],Z.validateItem),/الصف 2/);
- menu();choose('box',1,1,2);await upload([vocab(1,1,2,'first')]);Z.click('import-apply',{},()=>{});
- assert.equal(Z.getContent(2).vocab[0].en,'first');
- menu();choose('box',1,1,2);await upload([vocab(1,1,2,'second')]);Z.click('import-apply',{},()=>{});
- assert.equal(Z.getContent(2).vocab.length,1,'replace does not append');
- assert.equal(Z.getContent(2).vocab[0].en,'second');
- menu();choose('step',1,1);await upload([vocab(1,1,1)]);Z.click('import-apply',{},()=>{});
- assert.equal(Z.getContent(2).vocab.length,0,'unlisted box is cleared in step');
- assert.equal(Z.getContent(1).vocab.length,1);
- menu();choose('level',2);await upload([vocab(2,1,1)]);Z.click('import-apply',{},()=>{});
- assert.equal(Z.getContent(201).vocab.length,1);
- assert.equal(Z.getContent(1).vocab.length,1,'other level untouched');
- menu();choose('language');await upload([vocab(5,10,20)]);Z.click('import-apply',{},()=>{});
- assert.equal(Z.getContent(1000).vocab.length,1);
- assert.equal(Z.getContent(1).vocab.length,0,'whole language clears unlisted boxes');
- menu();choose('box',1,1,1);await upload([vocab(2,1,1)]);
- assert.match(Z.render({snapshot:{}}),/خارج النطاق/);
+ menu(2);await upload([vocab(1,1,1,'first')]);
+ assert.match(Z.render({snapshot:{}}),/المستوى 1، الخطوة 1، الصندوق 1/);
+ assert.equal(Z.getContent(1).vocab[0].en,'first');
+ assert.equal(Z.getContent(2).vocab.length,5,'unlisted box content stays intact');
+ Z.click('view-imported',{},()=>{});assert.match(Z.render({snapshot:{}}),/first/,'success link shows the imported box');
+ menu();await upload([vocab(1,1,1,'second'),vocab(2,1,1,'third')]);
+ assert.equal(Z.getContent(1).vocab.length,1,'import replaces each listed box');
+ assert.equal(Z.getContent(1).vocab[0].en,'second');
+ assert.equal(Z.getContent(201).vocab[0].en,'third');
+ assert.equal(Z.getContent(2).vocab.length,5,'unlisted box still intact');
  const before=data.get('liplip-zone-content-v1');
- menu();choose('box',5,10,20);await upload([vocab(5,10,20,'third')]);failWrites=true;Z.click('import-apply',{},()=>{});failWrites=false;
+ menu();failWrites=true;await upload([vocab(1,1,1,'fourth')]);failWrites=false;
+ assert.match(Z.render({snapshot:{}}),/لم يُستبدل أي صندوق/);
  assert.equal(data.get('liplip-zone-content-v1'),before,'failed write rolls back everything');
- assert.equal(Z.getContent(1000).vocab[0].en,'hello');
- console.log('Excel import scopes, validation and rollback passed');
+ assert.equal(Z.getContent(1).vocab[0].en,'second');
+ menu();I.read=async()=>{throw Error('broken workbook')};await Z.importFile({name:'bad.xlsx'},()=>{});
+ assert.match(Z.render({snapshot:{}}),/broken workbook/,'read failure is displayed in sheet');
+ console.log('Direct Excel import, targeted replacement, result visibility and rollback passed');
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
