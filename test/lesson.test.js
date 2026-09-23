@@ -33,6 +33,16 @@ submit('zone-quiz-form',{cv1:'0',cv2:'1'});assert.match(app.innerHTML,/اسمع�
 click('zone','mic',{index:'0'});assert.match(app.innerHTML,/غير مدعوم/);
 for(let i=0;i<4;i++){click('zone','manual',{index:String(i)});if(i<3)click('zone','next')}
 click('zone','advance');assert.match(app.innerHTML,/هل سمعت المعنى/);
+assert.match(app.innerHTML,/class="zone-question-play /,'Listening questions have a dedicated player');
+assert.match(app.innerHTML,/استمع إلى السؤال/);
+click('zone','audio-question',{process:'checkpointListen',index:'0'});
+assert.equal(heard.text,'hello');
+assert.match(app.innerHTML,/aria-pressed="true"/);
+heard.onend();assert.match(app.innerHTML,/aria-pressed="false"/);
+click('zone','audio-question',{process:'checkpointListen',index:'1'});
+assert.equal(heard.text,'goodbye');
+click('zone','audio-question',{process:'checkpointListen',index:'1'});
+assert.match(app.innerHTML,/aria-pressed="false"/);
 submit('zone-quiz-form',{cl1:'0',cl2:'1'});assert.match(app.innerHTML,/ابنِ الجملة/);
 assert.match(app.innerHTML,/قانون الجملة/);submit('zone-quiz-form',{gt:'0'});
 assert.match(app.innerHTML,/أثبت ما تعلّمته/);
