@@ -2,7 +2,15 @@
 const LiplipProgress = (() => {
   const STAGES = ['التأسيس','بناء المفردات','التعبير','التفاعل','الإتقان'];
   const LEVELS = ['A0','A1','A2','B1','B2','C1','C2'];
-  const METRICS = ['pronunciation','writing','communication','accent','fluency'];
+  const METRICS = ['pronunciation','writing','listening','reading','communication','accent','fluency'];
+  const STEP_NAMES = [
+    ['أول الطريق','التعارف','كلمات من يومك','أسئلة بسيطة','الوقت والمكان','أشياء حولنا','عبارات مفيدة','مواقف مألوفة','نرتّب الكلمات','نراجع وننطلق'],
+    ['المعاني الجديدة','وصف الأشياء','حكاية يومية','اختيار الكلمات','سؤال أوضح','جمل أطول','نسمع ونفهم','نقرأ ونكتشف','تعبير بسيط','نجمع ما تعلّمنا'],
+    ['الفكرة الأساسية','التفاصيل المهمّة','تبادل الآراء','القصص القصيرة','السبب والنتيجة','تواصل أعمق','نصوص متنوعة','نبرة المعنى','كتابة مترابطة','مراجعة التعبير'],
+    ['الحديث المطوّل','فهم السياق','وجهات النظر','حجّة واضحة','لغة العمل','ثقافة ومجتمع','قراءة نقدية','استماع متقدّم','أسلوبك الخاص','مراجعة التفاعل'],
+    ['الدقة في المعنى','المعاني الضمنية','لغة متخصصة','تعبير مرن','نقاش متقدّم','أسلوب وإيقاع','نصوص عميقة','طلاقة ووضوح','تحدّي الإتقان','حصيلة الرحلة']
+  ];
+  const BOX_NAMES = ['البداية','كلمات جديدة','المعنى','في جملة','اسمعها','قلها','اكتبها','اقرأها','سؤال وجواب','في الحياة','مراجعة قصيرة','اكتشف أكثر','بناء الجملة','اختيار صحيح','تعبيرك','استمع مجدداً','تحدّث بثقة','اقرأ بتركيز','تحدٍّ صغير','خلاصة الخطوة'];
   const REQUIREMENTS = [
     {words:0,boxes:0,samples:0,score:0},
     {words:100,boxes:50,samples:1,score:20},
@@ -39,7 +47,7 @@ const LiplipProgress = (() => {
       if(p.vocabulary.length>=req.words&&p.completedBoxes.length>=req.boxes&&METRICS.every(k=>metrics[k].count>=req.samples&&metrics[k].average>=req.score))index=i;
       else break;
     }
-    return {level:LEVELS[index],levelIndex:index,next:REQUIREMENTS[index+1]||null,vocabularyCount:p.vocabulary.length,completedCount:p.completedBoxes.length,currentBox:currentBox<=TOTAL_BOXES?currentBox:null,position,metrics,stages:STAGES,totalBoxes:TOTAL_BOXES};
+    return {level:LEVELS[index],levelIndex:index,next:REQUIREMENTS[index+1]||null,vocabularyCount:p.vocabulary.length,completedCount:p.completedBoxes.length,currentBox:currentBox<=TOTAL_BOXES?currentBox:null,position,stageName:STAGES[position.stage-1],stepName:STEP_NAMES[position.stage-1][position.step-1],boxName:currentBox<=TOTAL_BOXES?BOX_NAMES[position.box-1]:'اكتملت الرحلة',metrics,stages:STAGES,totalBoxes:TOTAL_BOXES};
   }
   /* Future study/chat features may call these after real assessment. Viewing a box never calls them. */
   function recordStudy(raw,{boxId,words=[],pronunciation,writing}){
@@ -59,5 +67,10 @@ const LiplipProgress = (() => {
     }
     return hydrate(p);
   }
-  return {STAGES,LEVELS,METRICS,REQUIREMENTS,TOTAL_BOXES,hydrate,snapshot,location,recordStudy,recordChat};
+  function recordReception(raw,{kind,score}){
+    if(kind!=='watching'&&kind!=='reading')throw new Error('Invalid reception activity');
+    if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw new Error('Invalid reception rating');
+    const p=hydrate(raw);p.ratings[kind==='watching'?'listening':'reading'].push(score);return hydrate(p);
+  }
+  return {STAGES,STEP_NAMES,BOX_NAMES,LEVELS,METRICS,REQUIREMENTS,TOTAL_BOXES,hydrate,snapshot,location,recordStudy,recordChat,recordReception};
 })();
