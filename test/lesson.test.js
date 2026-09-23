@@ -26,7 +26,7 @@ assert.ok(!app.innerHTML.includes('class="topbar"'),'Zone replaces site header')
 assert.equal(P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress).vocabularyCount,0);
 let heard=null;context.window.speechSynthesis={cancel(){},speak:u=>heard=u};context.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};
 click('zone','flip');assert.match(app.innerHTML,/مرحباً/);
-click('zone','next');click('zone','exit');assert.match(app.innerHTML,/افتح درس الصندوق/);
+click('zone','next');click('zone','exit');assert.match(app.innerHTML,/ادخل صندوق التعلّم/);
 click('action','study-box');assert.match(app.innerHTML,/البطاقة 2 من 5/,'Exit resumes current card');
 for(let i=1;i<5;i++){click('zone','flip');click('zone','next')}
 assert.match(app.innerHTML,/هل استقرّت الكلمات/,'Last next opens the vocabulary check');
