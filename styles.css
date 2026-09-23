@@ -335,3 +335,66 @@
  .study-path-track{grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;margin:19px 0}.study-path-node{height:27px;font-size:9px;border-radius:7px}.study-path-footer{flex-wrap:wrap;font-size:9px}
  .study-inside{margin-top:17px}.study-inside-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}.study-inside-grid article{padding:11px}.study-inside-icon{width:35px;height:35px}.study-inside-icon svg{width:19px;height:19px}.study-inside-grid article>strong{font-size:19px}.study-peek{padding:13px 15px}.study-peek>div{gap:8px}.study-peek strong{font-size:20px}
 }
+
+
+/* Content studio hierarchy controls */
+.zone-sheet{width:min(760px,calc(100vw - 28px));border:1px solid #e7e1ea;border-radius:30px;padding:18px 28px 30px}
+.zone-sheet-handle{display:none;width:44px;height:5px;border-radius:9px;background:#d8d2dc;margin:0 auto 15px}
+.zone-sheet-head{margin-bottom:14px;padding-top:2px}
+.zone-sheet-head h2{margin:5px 0 17px;font-size:29px;letter-spacing:-.02em}
+.zone-sheet-context{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0 0 18px;padding:8px;background:#f6f3f8;border:1px solid #e8e2ec;border-radius:16px}
+.zone-sheet-context span{display:grid;gap:3px;padding:8px 10px;border-left:1px solid #e2dce7;min-width:0}
+.zone-sheet-context span:last-child{border-left:0}
+.zone-sheet-context small{font-size:9px;color:#8d8494}
+.zone-sheet-context strong{font-size:12px;color:#352f43;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zone-sheet-intro{padding:5px 2px 14px}
+.zone-sheet-intro>span,.zone-clear-head>span{font:800 10px 'DM Sans',sans-serif;letter-spacing:.08em;color:#8a68aa}
+.zone-sheet-intro h3,.zone-clear-head h3{font-size:21px;margin:6px 0;color:#312a40}
+.zone-sheet-intro p,.zone-clear-head p{font-size:12px;line-height:1.8;color:#7c7383;margin:0}
+.zone-menu-primary{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.zone-menu .zone-menu-card{position:relative;min-height:120px;padding:20px 19px;text-align:right;border:1px solid #e1dbe6;border-radius:19px;background:#fbf9fc;color:#443a53;cursor:pointer;transition:transform .16s,border-color .16s,background .16s}
+.zone-menu .zone-menu-card:hover,.zone-menu .zone-menu-card:focus-visible{transform:translateY(-2px);border-color:#a98cc6;background:#f8f2fd;outline:0}
+.zone-menu-card .zone-menu-index{display:inline-grid;place-items:center;min-width:34px;height:27px;padding:0 8px;border-radius:20px;background:#eee8f3;color:#73558f;font:800 10px 'DM Sans',sans-serif;margin-bottom:13px}
+.zone-menu-card strong{display:block;font-size:15px}
+.zone-menu-card small{line-height:1.65}
+.zone-menu .zone-menu-clear{border-color:#edcfd3;background:#fff8f8;color:#773b45}
+.zone-menu .zone-menu-clear .zone-menu-index{background:#fbe5e7;color:#a14a58}
+.zone-menu .zone-import-direct.zone-menu-card{padding:20px 19px;border-color:#d6c9e2;background:#faf6fd}
+.zone-menu .zone-import-direct.zone-menu-card:hover,.zone-menu .zone-import-direct.zone-menu-card:focus-within{border-color:#9f7bbc;background:#f5eefb;outline:0}
+.zone-clear-head{margin:4px 0 17px}
+.zone-clear-scopes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.zone-clear-scopes button,.zone-clear-language button{border:1px solid #ded7e4;border-radius:18px;background:#fbfafc;padding:20px;text-align:right;color:#43394f;cursor:pointer}
+.zone-clear-scopes button:hover,.zone-clear-scopes button:focus-visible,.zone-clear-language button:hover,.zone-clear-language button:focus-visible{border-color:#9d7db9;background:#f7f1fb;outline:0}
+.zone-clear-scopes strong,.zone-clear-language strong{display:block;font-size:14px}
+.zone-clear-scopes small,.zone-clear-language small{display:block;color:#817789;line-height:1.7;margin-top:6px}
+.zone-clear-trail{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 17px}
+.zone-clear-trail span{padding:7px 10px;border:1px solid #e4dfe7;border-radius:20px;background:#faf9fb;color:#aaa2ae;font-size:10px;font-weight:700}
+.zone-clear-trail span.is-set{background:#eee7f7;border-color:#d9c9e9;color:#624a7a}
+.zone-clear-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.zone-clear-grid button{min-height:67px;border:1px solid #ded8e3;border-radius:14px;background:#fff;color:#42394d;padding:9px 7px;cursor:pointer}
+.zone-clear-grid button:hover,.zone-clear-grid button:focus-visible{border-color:#8d68ad;background:#f1e8fa;outline:0}
+.zone-clear-grid strong{display:grid;gap:4px;font-size:12px}
+.zone-clear-grid small{display:block;font-size:9px;line-height:1.35;color:#887e90;font-weight:600}
+.zone-clear-confirm{border:1px solid #edc5cb;background:#fff7f7;border-radius:20px;padding:24px}
+.zone-clear-confirm>span{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#f5dfe2;color:#9b4050;font-weight:900}
+.zone-clear-confirm h3{font-size:19px;margin:12px 0 7px;color:#5d2e37}
+.zone-clear-confirm p{font-size:12px;line-height:1.9;color:#715d62}
+.zone-clear-confirm>small{display:block;color:#8c7479;font-size:10px}
+.zone-clear-confirm-button{background:#9f4050!important;color:#fff!important;border-color:#9f4050!important}
+.zone-clear-done{text-align:center;border:1px solid #cce3d6;background:#f4fbf6;border-radius:20px;padding:28px;color:#2d664c}
+.zone-clear-done>span{display:grid;place-items:center;width:42px;height:42px;margin:0 auto;border-radius:50%;background:#dcefe4;font-size:20px}
+.zone-clear-done h3{margin:10px 0 6px}
+.zone-clear-done p{font-size:12px;line-height:1.8}
+.zone-clear-done small{color:#668173}
+@media(max-width:700px){
+ .zone-sheet{padding:10px 16px max(20px,env(safe-area-inset-bottom,18px));border-radius:26px 26px 0 0}
+ .zone-sheet-handle{display:block}
+ .zone-sheet-head h2{font-size:24px}
+ .zone-sheet-context{grid-template-columns:repeat(4,minmax(58px,1fr));overflow:auto}
+ .zone-sheet-context span{padding:7px}
+ .zone-menu-primary,.zone-clear-scopes{grid-template-columns:1fr}
+ .zone-menu .zone-menu-card{min-height:94px}
+ .zone-clear-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .zone-clear-grid button{min-height:62px}
+ .zone-editor-actions{flex-wrap:wrap}
+}
