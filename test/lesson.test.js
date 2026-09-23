@@ -17,22 +17,28 @@ function click(key,value,extra={}){const prop=key.replace(/-([a-z])/g,(_,c)=>c.t
 function submit(id,values={}){events.submit({target:{id,values,reportValidity:()=>true},preventDefault(){}})}
 click('action','auth');click('action','signin');click('action','guest');click('nav','الدراسة');click('action','study-box');
 assert.match(app.innerHTML,/كلمة جديدة، مساحة أكبر/);
+assert.match(app.innerHTML,/zone-simple-nav/);
+assert.ok(!app.innerHTML.includes('data-zone="advance"'),'Vocabulary has no separate advance control');
+assert.ok(!app.innerHTML.includes('data-zone="audio"'),'Vocabulary card controls are previous and next only');
 assert.ok(!app.innerHTML.includes('class="mainnav"'),'Zone removes main navigation');
 assert.ok(!app.innerHTML.includes('class="topbar"'),'Zone replaces site header');
 assert.equal(P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress).vocabularyCount,0);
-click('zone','audio',{index:'0'});assert.match(app.innerHTML,/الصوت غير متاح/);
 let heard=null;context.window.speechSynthesis={cancel(){},speak:u=>heard=u};context.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};
-click('zone','audio',{index:'0'});assert.equal(heard.text,'hello');assert.equal(heard.lang,'en-US');
 click('zone','flip');assert.match(app.innerHTML,/مرحباً/);
 click('zone','next');click('zone','exit');assert.match(app.innerHTML,/افتح درس الصندوق/);
 click('action','study-box');assert.match(app.innerHTML,/البطاقة 2 من 5/,'Exit resumes current card');
 for(let i=1;i<5;i++){click('zone','flip');click('zone','next')}
-click('zone','advance');assert.match(app.innerHTML,/هل استقرّت الكلمات/);
+assert.match(app.innerHTML,/هل استقرّت الكلمات/,'Last next opens the vocabulary check');
 submit('zone-quiz-form',{cv1:'2',cv2:'2'});assert.match(app.innerHTML,/تحتاج 70%/);
-submit('zone-quiz-form',{cv1:'0',cv2:'1'});assert.match(app.innerHTML,/اسمعها/);
+submit('zone-quiz-form',{cv1:'0',cv2:'1'});assert.match(app.innerHTML,/اسمع ثم قلها/);
+assert.match(app.innerHTML,/zone-pronounce-pair/);
+assert.match(app.innerHTML,/zone-hear/);
+assert.match(app.innerHTML,/zone-say/);
+assert.ok(!app.innerHTML.includes('data-zone="advance"'),'Listening has no separate advance control');
+click('zone','audio',{index:'0'});assert.equal(heard.text,'hello');assert.equal(heard.lang,'en-US');
 click('zone','mic',{index:'0'});assert.match(app.innerHTML,/غير مدعوم/);
-for(let i=0;i<4;i++){click('zone','manual',{index:String(i)});if(i<3)click('zone','next')}
-click('zone','advance');assert.match(app.innerHTML,/هل سمعت المعنى/);
+for(let i=0;i<4;i++){click('zone','manual',{index:String(i)});click('zone','next')}
+assert.match(app.innerHTML,/هل سمعت المعنى/,'Last next opens listening check');
 assert.match(app.innerHTML,/class="zone-question-play /,'Listening questions have a dedicated player');
 assert.match(app.innerHTML,/استمع إلى السؤال/);
 click('zone','audio-question',{process:'checkpointListen',index:'0'});
@@ -43,8 +49,8 @@ click('zone','audio-question',{process:'checkpointListen',index:'1'});
 assert.equal(heard.text,'goodbye');
 click('zone','audio-question',{process:'checkpointListen',index:'1'});
 assert.match(app.innerHTML,/aria-pressed="false"/);
-submit('zone-quiz-form',{cl1:'0',cl2:'1'});assert.match(app.innerHTML,/ابنِ الجملة/);
-assert.match(app.innerHTML,/قانون الجملة/);submit('zone-quiz-form',{gt:'0'});
+submit('zone-quiz-form',{cl1:'0',cl2:'1'});assert.match(app.innerHTML,/التحية والسؤال عن الحال/);
+assert.match(app.innerHTML,/بناء الجملة/);submit('zone-quiz-form',{gt:'0'});
 assert.match(app.innerHTML,/أثبت ما تعلّمته/);
 submit('zone-quiz-form',{e1:'1',e2:'0',e3:'hello'});
 assert.match(app.innerHTML,/تم إنجاز الصندوق/);
@@ -68,5 +74,12 @@ editorForm={values:{en:'I am prepared.',ar:'أنا جاهز.',example:'I am prep
 assert.equal(Z.getContent(2).vocab.at(-1).en,'I am prepared.');
 click('zone','select-item',{process:'vocab',id:added.id});click('zone','delete-item');assert.match(app.innerHTML,/هل تريد حذف/);
 click('zone','confirm-delete');assert.equal(Z.getContent(2).vocab.length,5);
+const grammarRule=Z.getContent(2).grammar.find(x=>x.type==='sentenceRule');
+click('zone','select-item',{process:'grammar',id:grammarRule.id});
+editorForm={values:{title:'التعريف بالنفس باستخدام I am',formula:grammarRule.formula,body:grammarRule.body,example:grammarRule.example}};
+submit('zone-item-form');
+drafts.set('liplip-zone-state-v1',JSON.stringify({boxId:2,phase:4,card:0,reviewed:[],spoken:{},answers:{},attempts:{}}));
+Z.start(2);
+assert.match(Z.render({snapshot:P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress)}),/التعريف بالنفس باستخدام I am/,'Grammar heading follows editable box content');
 assert.throws(()=>Z.validateItem('listen',{type:'word',en:'',ar:'x'}),/أكمل الحقول/);
 console.log('Focused zone, resume, checks, completion, and content CRUD passed');

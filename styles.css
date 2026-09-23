@@ -43,3 +43,55 @@
 @keyframes zone-audio-wave{to{transform:scaleY(.45)}}
 @media(prefers-reduced-motion:reduce){.zone-question-play.is-playing .zone-question-wave i{animation:none}}
 @media(max-width:700px){.zone-question-audio{margin:18px 0;padding:12px}.zone-question-audio-top{flex-wrap:wrap;gap:3px}.zone-question-play{min-height:78px;gap:10px;padding:11px}.zone-question-speaker{width:48px;height:48px}.zone-question-play-copy strong{font-size:14px}.zone-question-play-copy small{font-size:10px}}
+
+/* Card-only navigation for vocabulary and speaking. */
+.zone-simple-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:30px}
+.zone-simple-nav button{min-width:125px;border:1px solid #d9d5e2;border-radius:100px;padding:14px 24px;background:#fff;color:#38344f;font-weight:800;font-size:13px}
+.zone-simple-nav button.zone-primary{background:#302c52;color:white;border-color:#302c52}
+.zone-simple-nav button:disabled{opacity:.42;cursor:not-allowed}
+.zone-card-progress{font-size:11px;color:#8a8296;line-height:1.8;margin:17px 0 0;text-align:center}
+.zone-pronounce-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.zone-pronounce-tile{min-width:0;min-height:305px;border:1.5px solid #b9d8d1;border-radius:23px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:22px;text-align:center;transition:transform .2s,box-shadow .2s,border-color .2s;overflow-wrap:anywhere}
+.zone-pronounce-tile:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 12px 25px #1f6b5720}
+.zone-pronounce-tile:disabled{opacity:.7;cursor:wait}
+.zone-hear{background:#e6f5f0;color:#245c54}
+.zone-say{background:#f0eafb;color:#584280;border-color:#d8c7eb}
+.zone-say.is-done{background:#e9f6ee;border-color:#a6d8bf}
+.zone-tile-step{align-self:stretch;text-align:right;font-size:11px;font-weight:800;letter-spacing:.01em}
+.zone-tile-icon{width:64px;height:64px;border-radius:19px;background:#fff9;display:grid;place-items:center;margin-top:2px}
+.zone-pronounce-tile strong{font:800 clamp(18px,2.8vw,31px) 'DM Sans','Readex Pro',sans-serif;line-height:1.45}
+.zone-tile-meaning{font-size:12px;line-height:1.8;color:#617a73;max-width:100%}
+.zone-say .zone-tile-meaning{color:#7b6e91}
+.zone-tile-command{margin-top:auto;padding:8px 12px;border-radius:100px;background:#fff9;font-size:11px;font-weight:700}
+.zone-pronounce-assist{border:1px dashed #c3d8d6;border-radius:15px;padding:14px 16px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#667d7b;font-size:11px;line-height:1.8}
+.zone-pronounce-assist button{background:transparent;border:0;color:#3e6173;text-decoration:underline;text-underline-offset:4px;white-space:nowrap;font-size:11px;font-weight:700}
+/* Contextual grammar guide. */
+.zone-grammar-head{max-width:none}
+.zone-grammar-head h1{overflow-wrap:anywhere}
+.zone-grammar-journey{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+.zone-grammar-journey span{background:#eee6fa;border:1px solid #d9c7ee;color:#6c4f92;border-radius:100px;padding:10px 14px;font-size:11px;font-weight:700}
+.zone-rule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.zone-rule{border-radius:22px;border:1px solid #ddd0ec;background:#f2ebfd;padding:25px;min-width:0}
+.zone-rule:nth-child(even){background:#ebeefa;border-color:#d0d7e9}
+.zone-rule-top{display:flex;align-items:center;justify-content:space-between;color:#8064a5;font-size:11px;font-weight:800}
+.zone-rule h2{font-size:clamp(19px,2.5vw,27px);line-height:1.5;margin:18px 0 8px;overflow-wrap:anywhere}
+.zone-rule>p{font-size:11px;color:#766986;line-height:1.8}
+.zone-rule-formula{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;padding:16px;border-radius:15px;min-height:95px;margin:17px 0;color:#302947}
+.zone-rule-formula span{background:#f1eafa;border:1px solid #e4d5f5;border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.zone-rule-formula b{font:700 15px 'DM Sans',sans-serif;color:#9a81b9}
+.zone-rule-example{border-top:1px solid #d9c9e6;padding-top:17px}
+.zone-rule-example small{display:block;font-size:10px;color:#81699d;font-weight:700;margin-bottom:8px}
+.zone-rule-example strong{display:block;text-align:left;font:700 17px 'DM Sans',sans-serif;line-height:1.5;overflow-wrap:anywhere}
+.zone-rule-example p{font-size:11px;color:#73677e;line-height:1.8;margin:10px 0 0}
+.zone-grammar-supports{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:16px}
+.zone-grammar-support{border:1px solid #e2dce9;background:#fff;border-radius:16px;padding:18px;min-width:0}
+.zone-grammar-support.note{background:#fff7e8;border-color:#ecdabb}
+.zone-grammar-support.addition{background:#eaf5f0;border-color:#cde7d7}
+.zone-grammar-support>span{font-size:10px;font-weight:800;color:#865caa}
+.zone-grammar-support h3{font-size:15px;margin:9px 0}
+.zone-grammar-support p,.zone-grammar-support small{font-size:11px;color:#756f82;line-height:1.9}
+.zone-grammar-support strong{display:block;font:700 15px 'DM Sans',sans-serif;text-align:left;overflow-wrap:anywhere}
+.zone-grammar-support small{display:block;margin-top:5px}
+.zone-grammar-test{margin-top:26px;border:1px solid #d9c9e9;border-radius:20px;padding:24px;background:#fbf9ff}
+.zone-grammar-test>p{color:#776e89;font-size:11px;line-height:1.8}
+@media(max-width:700px){.zone-simple-nav{margin-top:21px}.zone-simple-nav button{min-width:105px;padding:12px 17px}.zone-pronounce-pair{gap:9px}.zone-pronounce-tile{min-height:245px;padding:14px 9px;border-radius:17px}.zone-tile-icon{width:49px;height:49px;border-radius:14px}.zone-pronounce-tile strong{font-size:clamp(16px,4vw,22px)}.zone-tile-meaning,.zone-tile-command{font-size:10px}.zone-pronounce-assist{align-items:flex-start;flex-direction:column}.zone-rule-grid{grid-template-columns:1fr}.zone-rule{padding:20px}.zone-grammar-supports{grid-template-columns:1fr}.zone-grammar-test{padding:18px}.zone-grammar-journey span{font-size:10px;padding:7px 10px}}
