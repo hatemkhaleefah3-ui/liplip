@@ -1,6 +1,6 @@
 /* One worksheet / one table: all box content types use these columns. */
 const LiplipImporter = (() => {
- const HEADERS=['Item process','Item level','Item step','Item box','Item type','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body'];
+ const HEADERS=['Item process','Item level','Item step','Item box','Item type','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body','Image link'];
  const PROCESSES=['vocab','checkpointVocab','listen','checkpointListen','grammar','exam'];
  const blank=()=>Object.fromEntries(PROCESSES.map(key=>[key,[]]));
  const XML='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -56,15 +56,15 @@ const LiplipImporter = (() => {
  }
  function parseRows(rows,validateItem){
   if(!Array.isArray(rows)||!rows.length)throw Error('لم نجد جدول المحتوى.');
-  if(HEADERS.some((heading,i)=>value(rows[0]?.[i])!==heading)||rows[0].slice(HEADERS.length).some(x=>value(x)))throw Error('أسماء الأعمدة غير مطابقة للقالب. استخدم ملف liplip الأصلي.');
+  const legacy=value(rows[0]?.[19])==='';if(HEADERS.slice(0,legacy?19:20).some((heading,i)=>value(rows[0]?.[i])!==heading)||rows[0].slice(legacy?19:20).some(x=>value(x)))throw Error('أسماء الأعمدة غير مطابقة للقالب. استخدم ملف liplip الأصلي.');
   if(rows.length>30001)throw Error('الملف يتجاوز ٣٠٬٠٠٠ صف. قسّمه إلى مستويات أو خطوات.');
   const boxes=new Map();let count=0;
   rows.slice(1).forEach((row,index)=>{
    if(!row?.some(cell=>value(cell)))return;
    const line=index+2,process=value(row[0]),stage=positive(row[1],5),step=positive(row[2],10),box=positive(row[3],20),type=value(row[4]);
    if(!PROCESSES.includes(process)||!stage||!step||!box)throw Error(`الصف ${line}: العملية أو المستوى أو الخطوة أو الصندوق غير صحيح.`);
-   const fields={type,en:value(row[5]),ar:value(row[6]),example:value(row[7]),prompt:value(row[8]),audio:value(row[9]),options:[value(row[10]),value(row[11]),value(row[12])],explanation:value(row[14]),answer:value(row[15]),title:value(row[16]),formula:value(row[17]),body:value(row[18])};
-   if(type==='choice'||type==='audioChoice'){
+   const fields={type,en:value(row[5]),ar:value(row[6]),example:value(row[7]),prompt:value(row[8]),audio:value(row[9]),options:[value(row[10]),value(row[11]),value(row[12])],explanation:value(row[14]),answer:value(row[15]),title:value(row[16]),formula:value(row[17]),body:value(row[18]),image:value(row[19])};
+   if(['choice','audioChoice','imageChoice'].includes(type)){
     const correct=positive(row[13],3);
     if(!correct)throw Error(`الصف ${line}: الإجابة الصحيحة يجب أن تكون 1 أو 2 أو 3.`);
     fields.correct=correct-1;
