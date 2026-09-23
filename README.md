@@ -17,3 +17,7 @@ To launch with real accounts, integrate an auth provider and server-side profile
 - `index.html` — document shell and font loading
 - `styles.css` — design system and responsive layouts
 - `app.js` — preview flow, form validation, and local state
+
+## Publishing
+
+The included GitHub Actions workflow deploys the site on pushes to `main` once **Settings → Pages → Build and deployment → Source** is set to **GitHub Actions**. The expected Pages address is `https://hatemkhaleefah3-ui.github.io/liplip/`; confirm a successful deployment before sharing it as live.
