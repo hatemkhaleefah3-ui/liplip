@@ -15,6 +15,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
 const P=context.P,Z=context.Z;
 function click(key,value,extra={}){const prop=key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase());events.click({target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[prop]:value,...extra}}:null},preventDefault(){}})}
 function submit(id,values={}){events.submit({target:{id,values,reportValidity:()=>true},preventDefault(){}})}
+async function main(){
 click('action','auth');click('action','signin');click('action','guest');click('nav','الدراسة');click('action','study-box');
 assert.match(app.innerHTML,/كلمة جديدة، مساحة أكبر/);
 assert.match(app.innerHTML,/zone-simple-nav/);
@@ -30,14 +31,29 @@ click('action','study-box');assert.match(app.innerHTML,/البطاقة 2 من 5/
 for(let i=1;i<5;i++){click('zone','flip');click('zone','next')}
 assert.match(app.innerHTML,/هل استقرّت الكلمات/,'Last next opens the vocabulary check');
 submit('zone-quiz-form',{cv1:'2',cv2:'2'});assert.match(app.innerHTML,/تحتاج 70%/);
-submit('zone-quiz-form',{cv1:'0',cv2:'1'});assert.match(app.innerHTML,/اسمع ثم قلها/);
+submit('zone-quiz-form',{cv1:'0',cv2:'1'});assert.match(app.innerHTML,/اسمع ثم سجّل صوتك/);
 assert.match(app.innerHTML,/zone-pronounce-pair/);
 assert.match(app.innerHTML,/zone-hear/);
 assert.match(app.innerHTML,/zone-say/);
 assert.ok(!app.innerHTML.includes('data-zone="advance"'),'Listening has no separate advance control');
 click('zone','audio',{index:'0'});assert.equal(heard.text,'hello');assert.equal(heard.lang,'en-US');
-click('zone','mic',{index:'0'});assert.match(app.innerHTML,/غير مدعوم/);
-for(let i=0;i<4;i++){click('zone','manual',{index:String(i)});click('zone','next')}
+let streamsStopped=0, permissionRequests=0;
+context.navigator={mediaDevices:{getUserMedia:async()=>{permissionRequests++;return {getTracks:()=>[{stop:()=>streamsStopped++}]}}}};
+context.Blob=Blob;
+context.MediaRecorder=class {constructor(){this.state='inactive';this.mimeType='audio/webm'}start(){this.state='recording'}stop(){this.state='inactive';this.ondataavailable?.({data:new Blob(['test voice'])});this.onstop?.()}};
+for(let i=0;i<4;i++){
+ click('zone','mic',{index:String(i)});await new Promise(resolve=>setImmediate(resolve));
+ assert.match(app.innerHTML,/aria-pressed="true"/,'Mic tile is actively recording');
+ assert.match(app.innerHTML,/data-zone="next" class="zone-primary" disabled/,'Next stays locked while recording');
+ click('zone','mic',{index:String(i)});
+ assert.match(app.innerHTML,/aria-pressed="false"/,'Second tap stops recording');
+ if(i===0){click('zone','mic',{index:'0'});await new Promise(resolve=>setImmediate(resolve));assert.match(app.innerHTML,/data-zone="next" class="zone-primary" disabled/,'Retake locks Next');click('zone','mic',{index:'0'})}
+ click('zone','next');
+}
+assert.equal(permissionRequests,5);
+assert.equal(streamsStopped,5);
+assert.equal(JSON.parse(drafts.get('liplip-zone-state-v1')).spoken[0].method,'recorded');
+assert.ok(!drafts.get('liplip-zone-state-v1').includes('test voice'),'Raw audio is not persisted');
 assert.match(app.innerHTML,/هل سمعت المعنى/,'Last next opens listening check');
 assert.match(app.innerHTML,/class="zone-question-play /,'Listening questions have a dedicated player');
 assert.match(app.innerHTML,/استمع إلى السؤال/);
@@ -81,5 +97,27 @@ submit('zone-item-form');
 drafts.set('liplip-zone-state-v1',JSON.stringify({boxId:2,phase:4,card:0,reviewed:[],spoken:{},answers:{},attempts:{}}));
 Z.start(2);
 assert.match(Z.render({snapshot:P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress)}),/التعريف بالنفس باستخدام I am/,'Grammar heading follows editable box content');
+drafts.set('liplip-zone-state-v1',JSON.stringify({boxId:2,phase:2,card:0,reviewed:[],spoken:{},answers:{},attempts:{}}));
+Z.start(2);
+click('zone','mic',{index:'0'});await new Promise(resolve=>setImmediate(resolve));
+assert.match(app.innerHTML,/aria-pressed="true"/);
+click('zone','exit');
+assert.equal(streamsStopped,6,'Leaving closes the microphone stream');
+click('action','study-box');
+context.navigator.mediaDevices.getUserMedia=async()=>{throw Object.assign(new Error('blocked'),{name:'NotAllowedError'})};
+drafts.set('liplip-zone-state-v1',JSON.stringify({boxId:2,phase:2,card:0,reviewed:[],spoken:{},answers:{},attempts:{}}));
+Z.start(2);
+click('zone','mic',{index:'0'});await new Promise(resolve=>setImmediate(resolve));
+assert.match(app.innerHTML,/لم يُسمح باستخدام الميكروفون/);
+assert.match(app.innerHTML,/data-zone="next" class="zone-primary" disabled/,'Denied permission does not unlock Next');
+let grantPermission;
+context.navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>{grantPermission=resolve});
+click('zone','mic',{index:'0'});
+click('zone','exit');
+grantPermission({getTracks:()=>[{stop:()=>streamsStopped++}]});
+await new Promise(resolve=>setImmediate(resolve));
+assert.equal(streamsStopped,7,'A late permission grant is closed after exit');
 assert.throws(()=>Z.validateItem('listen',{type:'word',en:'',ar:'x'}),/أكمل الحقول/);
-console.log('Focused zone, resume, checks, completion, and content CRUD passed');
+console.log('Focused zone, recording toggle, resume, checks, completion, and content CRUD passed');
+}
+main().catch(error=>{console.error(error);process.exitCode=1});

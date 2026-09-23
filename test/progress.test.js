@@ -45,6 +45,8 @@ assert.ok(navigation.indexOf('data-nav=\"شاهد واقرأ\"')<navigation.inde
 click('nav','الدراسة');
 assert.ok(!app.innerHTML.includes('مسار واحد، أربع طرق للتعلّم.'));
 assert.ok(app.innerHTML.includes('أول الطريق')&&app.innerHTML.includes('البداية'));
+assert.match(app.innerHTML,/study-masthead/);
+assert.match(app.innerHTML,/study-current-grid/);
 assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
 click('action','study-box');assert.ok(app.innerHTML.includes('كلمة جديدة'));
 click('zone','exit');assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
