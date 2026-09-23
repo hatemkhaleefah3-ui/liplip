@@ -62,14 +62,16 @@ const LiplipZone = (() => {
  function norm(text){return String(text||'').toLocaleLowerCase().trim().replace(/[.,!?;:]+$/g,'').replace(/\s+/g,' ')}
  let progress={boxId:null,phase:0,card:0,flipped:false,reviewed:[],spoken:{},answers:{},attempts:{},feedback:'',revision:0};
  let ui={sheet:false,screen:'menu',process:'vocab',type:'word',targetBox:null,selectedId:null,draft:null,notice:'',deleteConfirm:false,micBusy:false,recording:false,playingQuestion:null};
+ let importing={scope:null,stage:null,step:null,box:null,review:null,error:'',busy:false};
+ let importToken=0;
  let capture=null,captureToken=0;
  const recordings=new Map();
  let playbackToken=0;
  function persist(){try{localStorage.setItem(STATE_KEY,JSON.stringify(progress));return true}catch{return false}}
  function cancelCapture(){captureToken++;if(capture){const {recorder,release}=capture;capture=null;try{if(recorder.state==='recording')recorder.stop()}catch{}release()}ui.micBusy=false;ui.recording=false}
- function start(boxId){if(!Number.isInteger(boxId)||boxId<1||boxId>1000)return;cancelCapture();recordings.clear();progress={boxId,phase:0,card:0,flipped:false,reviewed:[],spoken:{},answers:{},attempts:{},feedback:'',revision:0};try{const saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null');if(saved?.boxId===boxId&&Number.isInteger(saved.phase)&&saved.phase>=0&&saved.phase<PHASES.length){progress={...progress,...saved,boxId};progress.reviewed=Array.isArray(saved.reviewed)?saved.reviewed.filter(Number.isInteger):[];progress.spoken=saved.spoken&&typeof saved.spoken==='object'?saved.spoken:{};progress.answers=saved.answers&&typeof saved.answers==='object'?saved.answers:{};progress.attempts=saved.attempts&&typeof saved.attempts==='object'?saved.attempts:{}}}catch{}ui={sheet:false,screen:'menu',process:'vocab',type:'word',targetBox:boxId,selectedId:null,draft:null,notice:'',deleteConfirm:false,micBusy:false,recording:false,playingQuestion:null}}
+ function start(boxId){if(!Number.isInteger(boxId)||boxId<1||boxId>1000)return;cancelCapture();recordings.clear();importToken++;importing={scope:null,stage:null,step:null,box:null,review:null,error:'',busy:false};progress={boxId,phase:0,card:0,flipped:false,reviewed:[],spoken:{},answers:{},attempts:{},feedback:'',revision:0};try{const saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null');if(saved?.boxId===boxId&&Number.isInteger(saved.phase)&&saved.phase>=0&&saved.phase<PHASES.length){progress={...progress,...saved,boxId};progress.reviewed=Array.isArray(saved.reviewed)?saved.reviewed.filter(Number.isInteger):[];progress.spoken=saved.spoken&&typeof saved.spoken==='object'?saved.spoken:{};progress.answers=saved.answers&&typeof saved.answers==='object'?saved.answers:{};progress.attempts=saved.attempts&&typeof saved.attempts==='object'?saved.attempts:{}}}catch{}ui={sheet:false,screen:'menu',process:'vocab',type:'word',targetBox:boxId,selectedId:null,draft:null,notice:'',deleteConfirm:false,micBusy:false,recording:false,playingQuestion:null}}
  function resetAfterEdit(id){if(id===progress.boxId){cancelCapture();recordings.clear();progress={boxId:id,phase:0,card:0,flipped:false,reviewed:[],spoken:{},answers:{},attempts:{},feedback:'تغيّر محتوى الصندوق؛ بدأت مراحله من جديد.',revision:progress.revision+1};persist()}}
- function clear(){try{localStorage.removeItem(STATE_KEY)}catch{}cancelCapture();recordings.clear();progress.boxId=null;ui.playingQuestion=null;playbackToken++;window.speechSynthesis?.cancel?.()}
+ function clear(){try{localStorage.removeItem(STATE_KEY)}catch{}cancelCapture();recordings.clear();importToken++;importing.review=null;progress.boxId=null;ui.playingQuestion=null;playbackToken++;window.speechSynthesis?.cancel?.()}
  function speak(text,onfinish){if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){progress.feedback='الصوت غير متاح؛ اقرأ النص بصوت مرتفع.';return false}try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.85;if(onfinish){u.onend=onfinish;u.onerror=onfinish}window.speechSynthesis.speak(u);return true}catch{progress.feedback='تعذّر تشغيل الصوت في هذا المتصفح.';return false}}
  async function mic(index,update){
   if(capture?.index===index&&capture.recorder.state==='recording'){
@@ -107,9 +109,40 @@ const LiplipZone = (() => {
  function canAdvance(content){const phase=PHASES[progress.phase].key;if(phase==='vocab')return content.vocab.length>0&&progress.reviewed.length>=content.vocab.length;if(phase==='listen')return content.listen.length>0&&content.listen.every((_,i)=>progress.spoken[i]?.method==='recorded');return false}
  function completedData(){const content=getContent(progress.boxId);const pronunciation=0; // A recording does not establish pronunciation accuracy.
   const examWrite=content.exam.filter(x=>x.type==='write');const writing=examWrite.length?Math.round(examWrite.reduce((sum,x)=>sum+100/(progress.attempts[x.id]||1),0)/examWrite.length):0;return {words:content.vocab.filter(x=>x.type==='word').map(x=>x.en),pronunciation,writing}}
- function click(action,el,update){const content=getContent(progress.boxId);const phase=PHASES[progress.phase].key;progress.feedback='';if(action==='exit'){persist();ui.playingQuestion=null;playbackToken++;window.speechSynthesis?.cancel?.();cancelCapture();recordings.clear();return {exit:true}}
-  if(action==='control'){ui.sheet=!ui.sheet;ui.screen='menu';update();return {}}
-  if(action==='close-sheet'){ui.sheet=false;update();return {}}
+ function importIds(){
+  const {scope,stage,step,box}=importing;
+  if(scope==='box')return [(stage-1)*200+(step-1)*20+box];
+  if(scope==='step')return Array.from({length:20},(_,i)=>(stage-1)*200+(step-1)*20+i+1);
+  if(scope==='level')return Array.from({length:200},(_,i)=>(stage-1)*200+i+1);
+  return Array.from({length:1000},(_,i)=>i+1);
+ }
+ async function importFile(file,update){
+  if(!ui.sheet||ui.screen!=='import-file')return;
+  const token=++importToken;importing.error='';importing.busy=true;importing.review=null;update();
+  try{
+   const result=await LiplipImporter.read(file,validateItem);
+   if(token!==importToken)return;
+   const allowed=new Set(importIds());
+   for(const id of result.boxes.keys())if(!allowed.has(id)){const location=LiplipProgress.location(id);throw Error(`الملف يتضمن الصندوق ${location.box} من الخطوة ${location.step} والمستوى ${location.stage} خارج النطاق المختار.`)}
+   importing.review=result;ui.screen='import-preview'
+  }catch(error){if(token===importToken)importing.error=error.message||'تعذّرت قراءة الملف.'}
+  finally{if(token===importToken){importing.busy=false;update()}}
+ }
+ function applyImport(){
+  const review=importing.review;if(!review)return;
+  const ids=importIds(),next={...contentEdits};
+  for(const id of ids)next[id]=review.boxes.get(id)||blank();
+  try{localStorage.setItem(CONTENT_KEY,JSON.stringify(next))}
+  catch{importing.error='لم تتسع مساحة التخزين المحلية لهذا المحتوى. لم يُستبدل أي صندوق.';return false}
+  contentEdits=next;
+  if(ids.includes(progress.boxId))resetAfterEdit(progress.boxId);
+  importing.review=null;ui.screen='import-result';
+  ui.notice=`استُبدل ${ids.length} صندوقاً؛ ${review.boxes.size} منها تحتوي ${review.count} عنصراً.`;
+  return true
+ }
+ function click(action,el,update){const content=getContent(progress.boxId);const phase=PHASES[progress.phase].key;progress.feedback='';if(action==='exit'){importToken++;importing.review=null;persist();ui.playingQuestion=null;playbackToken++;window.speechSynthesis?.cancel?.();cancelCapture();recordings.clear();return {exit:true}}
+  if(action==='control'){if(ui.sheet){importToken++;importing.review=null}ui.sheet=!ui.sheet;ui.screen='menu';update();return {}}
+  if(action==='close-sheet'){ui.sheet=false;importToken++;importing.review=null;update();return {}}
   if(action==='flip'){progress.flipped=!progress.flipped;persist();update();return {}}
   if(action==='audio'){const index=Number(el.dataset.index);const process=el.dataset.process||phase;const item=content[process]?.[index];if(item)speak(item.en||item.audio||item.example);update();return {}}
   if(action==='audio-question'){const index=Number(el.dataset.index),process=el.dataset.process;const questions=content[process]?.filter(x=>['choice','audioChoice','write'].includes(x.type));const item=questions?.[index];if(phase!==process||item?.type!=='audioChoice')return {};const key=process+':'+item.id;if(ui.playingQuestion===key){ui.playingQuestion=null;playbackToken++;window.speechSynthesis?.cancel?.();update();return {}}ui.playingQuestion=key;const boxId=progress.boxId,token=++playbackToken;const started=speak(item.audio,()=>{if(token===playbackToken&&ui.playingQuestion===key&&progress.boxId===boxId){ui.playingQuestion=null;update()}});if(!started)ui.playingQuestion=null;update();return {}}
@@ -127,7 +160,13 @@ const LiplipZone = (() => {
   }
   if(action==='menu-add'){ui.screen='add-select';ui.notice='';update();return {}}
   if(action==='menu-edit'){ui.screen='edit-select';ui.notice='';update();return {}}
-  if(action==='back-menu'){ui.screen='menu';ui.draft=null;update();return {}}
+  if(action==='menu-import'){importToken++;importing={scope:null,stage:null,step:null,box:null,review:null,error:'',busy:false};ui.screen='import-menu';ui.notice='';update();return {}}
+  if(action==='import-scope'){const scope=el.dataset.value;if(!['language','level','step','box'].includes(scope))return {};importToken++;importing={scope,stage:null,step:null,box:null,review:null,error:'',busy:false};ui.screen=scope==='language'?'import-file':'import-stage';update();return {}}
+  if(action==='import-stage'){const stage=Number(el.dataset.value);if(stage<1||stage>5)return {};importing.stage=stage;ui.screen=importing.scope==='level'?'import-file':'import-step';update();return {}}
+  if(action==='import-step'){const step=Number(el.dataset.value);if(step<1||step>10)return {};importing.step=step;ui.screen=importing.scope==='step'?'import-file':'import-box';update();return {}}
+  if(action==='import-box'){const box=Number(el.dataset.value);if(box<1||box>20)return {};importing.box=box;ui.screen='import-file';update();return {}}
+  if(action==='import-apply'){if(importing.review)applyImport();update();return {}}
+  if(action==='back-menu'){importToken++;importing.review=null;ui.screen='menu';ui.draft=null;update();return {}}
   if(action==='process'){ui.process=el.dataset.value;ui.type=TYPES[ui.process][0][0];ui.draft=null;update();return {}}
   if(action==='type'){ui.type=el.dataset.value;ui.draft=null;update();return {}}
   if(action==='add-form'){ui.screen='form';ui.selectedId=null;ui.draft=null;update();return {}}
@@ -164,12 +203,19 @@ const LiplipZone = (() => {
   else if(type==='example')inputs=field('en','المثال بالإنجليزية',d.en)+field('ar','ترجمته بالعربية',d.ar)+field('body','شرح المثال',d.body,'textarea');
   return `<form id="zone-item-form" class="zone-editor-form">${inputs}<div class="zone-editor-actions"><button type="submit" class="zone-primary">حفظ العنصر</button>${ui.selectedId?btn('delete-item','حذف العنصر','class="zone-danger"'):''}</div></form>${ui.deleteConfirm?`<div class="zone-confirm"><p>هل تريد حذف هذا العنصر؟</p>${btn('confirm-delete','نعم، احذف','class="zone-danger"')}${btn('cancel-delete','إلغاء')}</div>`:''}`}
  function editor(){if(!ui.sheet)return '';const target=ui.targetBox||progress.boxId,content=getContent(target);let body='';
-  if(ui.screen==='menu')body=`<p>خصّص محتوى التعلّم في متصفحك.</p><div class="zone-menu">${btn('menu-add','إضافة محتوى تعليمي <small>اختر العملية ونوع العنصر</small>')}${btn('menu-edit','تعديل عنصر <small>اختر المرحلة والخطوة والصندوق</small>')}</div>`;
+  if(ui.screen==='menu')body=`<p>خصّص محتوى التعلّم في متصفحك.</p><div class="zone-menu">${btn('menu-add','إضافة محتوى تعليمي <small>اختر العملية ونوع العنصر</small>')}${btn('menu-edit','تعديل عنصر <small>اختر المرحلة والخطوة والصندوق</small>')}${btn('menu-import','استيراد محتوى من Excel <small>استبدل لغة أو مستوى أو خطوة أو صندوقاً</small>')}</div>`;
+  if(ui.screen==='import-menu')body=`<div class="zone-import-intro"><strong>اختر حجم الاستبدال</strong><p>يمكنك تنزيل الجدول، تعديل صفوفه، ثم استيراده. الصف الواحد يمثل عنصراً تعليمياً، ويجب أن تقع جميع الصفوف داخل النطاق الذي تختاره.</p><a href="liplip-content-template.xlsx" download class="zone-import-template">تنزيل قالب Excel الجاهز <span aria-hidden="true">↓</span></a></div><div class="zone-menu zone-import-scopes">${btn('import-scope','اللغة الإنجليزية كاملة <small>المستويات الخمسة · ١٠٠٠ صندوق</small>','data-value="language"')}${btn('import-scope','مستوى واحد <small>اختر المستوى ١–٥ · ٢٠٠ صندوق</small>','data-value="level"')}${btn('import-scope','خطوة واحدة <small>اختر المستوى والخطوة · ٢٠ صندوقاً</small>','data-value="step"')}${btn('import-scope','صندوق واحد <small>اختر المستوى والخطوة والصندوق</small>','data-value="box"')}</div>`;
+  if(ui.screen==='import-stage')body=`<p>اختر المستوى الذي تريد ${importing.scope==='level'?'استبداله':'الوصول إليه'}.</p><div class="zone-import-grid">${Array.from({length:5},(_,i)=>btn('import-stage',`المستوى ${i+1}`,`data-value="${i+1}"`)).join('')}</div>`;
+  if(ui.screen==='import-step')body=`<p>المستوى ${importing.stage} · اختر الخطوة.</p><div class="zone-import-grid">${Array.from({length:10},(_,i)=>btn('import-step',`الخطوة ${i+1}`,`data-value="${i+1}"`)).join('')}</div>`;
+  if(ui.screen==='import-box')body=`<p>المستوى ${importing.stage} · الخطوة ${importing.step} · اختر الصندوق.</p><div class="zone-import-grid">${Array.from({length:20},(_,i)=>btn('import-box',`الصندوق ${i+1}`,`data-value="${i+1}"`)).join('')}</div>`;
+  if(ui.screen==='import-file')body=`<div class="zone-import-intro"><strong>ارفع ملف المحتوى</strong><p>${importing.scope==='language'?'اللغة الإنجليزية كاملة':`المستوى ${importing.stage}${importing.step?` · الخطوة ${importing.step}`:''}${importing.box?` · الصندوق ${importing.box}`:''}`} · ستُراجع الصفوف قبل حفظ أي تغيير.</p></div><label class="zone-import-drop" for="zone-import-file"><span aria-hidden="true">↑</span><strong>اختر ملف Excel بصيغة .xlsx</strong><small>ورقة Content · نفس أعمدة القالب · حجم أقصى ١٢ ميغابايت</small><input id="zone-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ${importing.busy?'disabled':''}></label>${importing.busy?'<p role="status" class="zone-import-status">جارٍ فحص جميع الصفوف…</p>':''}${importing.error?`<p role="alert" class="zone-import-error">${safe(importing.error)}</p>`:''}<a class="zone-import-template" href="liplip-content-template.xlsx" download>تنزيل قالب المحتوى ↓</a>`;
+  if(ui.screen==='import-preview'){const total=importIds().length,filled=importing.review?.boxes.size||0,items=importing.review?.count||0;body=`<div class="zone-import-intro"><strong>مراجعة الاستيراد</strong><p>كل العناصر الموجودة في النطاق المحدد ستُستبدل بمحتوى الملف.</p></div><div class="zone-import-stats"><div><strong>${total}</strong><span>صندوقاً سيُستبدل</span></div><div><strong>${filled}</strong><span>صندوقاً به محتوى جديد</span></div><div><strong>${items}</strong><span>عنصراً تعليمياً</span></div></div><p class="zone-import-warning">${total-filled} صندوقاً غير مذكور في الملف سيصبح فارغاً. لا تتغير الصناديق خارج هذا النطاق. يُحفظ الاستبدال في هذا المتصفح.</p>${importing.error?`<p role="alert" class="zone-import-error">${safe(importing.error)}</p>`:''}${btn('import-apply','تأكيد الاستبدال وحفظ المحتوى','class="zone-primary zone-import-confirm"')}`}
+  if(ui.screen==='import-result')body=`<div class="zone-import-done" role="status"><span aria-hidden="true">✓</span><h3>اكتمل الاستيراد</h3><p>${safe(ui.notice)}</p><small>محتوى التعلّم محفوظ على هذا الجهاز وفي هذا المتصفح.</small></div>`;
   if(ui.screen==='add-select')body=`<p>اختر الجزء، ثم نوع المحتوى.</p><div class="zone-editor-tabs">${Object.keys(TYPES).map(key=>btn('process',PROCESS_LABEL[key],`data-value="${key}" class="${ui.process===key?'selected':''}"`)).join('')}</div><div class="zone-editor-tabs">${TYPES[ui.process].map(([key,label])=>btn('type',label,`data-value="${key}" class="${ui.type===key?'selected':''}"`)).join('')}</div>${btn('add-form','متابعة إلى النموذج','class="zone-primary"')}`;
   if(ui.screen==='edit-select'){const n=target-1,stage=Math.floor(n/200)+1,step=Math.floor(n%200/20)+1,box=n%20+1;body=`<p>اختر موقع الصندوق الذي تريد تحريره.</p><form id="zone-jump-form" class="zone-location">${[['stage','المرحلة',5,stage],['step','الخطوة',10,step],['box','الصندوق',20,box]].map(([key,label,max,current])=>`<label>${label}<select name="${key}">${Array.from({length:max},(_,i)=>`<option value="${i+1}" ${i+1===current?'selected':''}>${i+1}</option>`).join('')}</select></label>`).join('')}<button class="zone-primary" type="submit">عرض العناصر</button></form>`}
   if(ui.screen==='edit-list')body=`<p>المرحلة ${Math.floor((target-1)/200)+1} · الخطوة ${Math.floor((target-1)%200/20)+1} · الصندوق ${(target-1)%20+1}</p><div class="zone-item-list">${Object.keys(TYPES).map(key=>`<h3>${PROCESS_LABEL[key]}</h3>${content[key].length?content[key].map(item=>btn('select-item',safe(item.title||item.en||item.prompt||item.audio||item.type),`data-process="${key}" data-id="${safe(item.id)}"`)).join(''):'<p>لا توجد عناصر بعد.</p>'}`).join('')}</div>${btn('menu-edit','تغيير الصندوق')}`;
   if(ui.screen==='form')body=`<p>${ui.selectedId?'تعديل العنصر المحدد':'عنصر جديد'} · ${PROCESS_LABEL[ui.process]} · الصندوق ${(target-1)%20+1}</p>${editorForm()}`;
   return `<div class="zone-overlay"><button type="button" class="zone-backdrop" data-zone="close-sheet" aria-label="إغلاق إدارة المحتوى"></button><section class="zone-sheet" role="dialog" aria-modal="true" aria-label="إدارة محتوى التعلّم"><div class="zone-sheet-head"><div><small>STUDIO / LIPLIP</small><h2>إدارة المحتوى</h2></div>${btn('close-sheet','إغلاق','class="zone-close" aria-label="إغلاق نافذة المحتوى"')}</div>${ui.screen!=='menu'?btn('back-menu','القائمة الرئيسية','class="zone-back"'):''}${ui.notice?`<p class="zone-notice" role="status">${safe(ui.notice)}</p>`:''}${body}</section></div>`}
  function render({snapshot}){const content=getContent(progress.boxId),phase=PHASES[progress.phase];const body=phase.key==='vocab'?vocabulary(content):phase.key==='listen'?listening(content):phase.key==='grammar'?grammar(content):quiz(content,phase.key,phase.key==='exam'?'أثبت ما تعلّمته.':phase.key==='checkpointVocab'?'هل استقرّت الكلمات؟':'هل سمعت المعنى؟',phase.key==='exam'?'أسئلة مفردات وقواعد وكتابة؛ تحتاج ٧٥٪ وإجابة الكتابة الصحيحة.':'اختبار قصير قبل الجزء التالي؛ تحتاج ٧٠٪.');return `<div class="zone zone-${phase.key}"><header class="zone-header">${btn('exit','الخروج من الصندوق','class="zone-exit"')}<div class="zone-brand" dir="ltr">lip<span>lip</span></div><span class="zone-save">تقدّمك يُحفظ تلقائياً</span></header><main class="zone-main"><div class="zone-context"><span>${safe(snapshot?.level||'A0')} · المرحلة ${safe(snapshot?.position?.stage||1)} / الخطوة ${safe(snapshot?.position?.step||1)}</span><strong>${safe(snapshot?.boxName||'صندوق التعلّم')}</strong></div><nav class="zone-track" aria-label="مراحل الصندوق">${PHASES.map((p,i)=>`<span class="${i===progress.phase?'current':i<progress.phase?'done':''}" ${i===progress.phase?'aria-current="step"':''}><i>${String(i+1).padStart(2,'0')}</i>${p.name}</span>`).join('')}</nav>${body}${progress.feedback?`<p class="zone-feedback" role="status">${safe(progress.feedback)}</p>`:''}</main>${btn('control','إدارة المحتوى','class="zone-control" aria-label="إدارة المحتوى التعليمي"')}${editor()}</div>`}
- return {start,render,click,submit,remember,clear,getContent,validateItem,PHASES,TYPES};
+ return {start,render,click,submit,remember,clear,importFile,getContent,validateItem,PHASES,TYPES};
 })();

@@ -127,6 +127,7 @@ app.addEventListener('click',e=>{
  render();
 });
 app.addEventListener('input',e=>{if(state.page==='zone'&&e.target.closest?.('#zone-quiz-form'))LiplipZone.remember(e.target);if(e.target.id==='birth'){const age=ageFromBirth(e.target.value);document.getElementById('age-display').textContent=age===null?'سنحسب عمرك تلقائياً.':`العمر: ${age} سنة`}});
+app.addEventListener('change',e=>{if(state.page==='zone'&&e.target.id==='zone-import-file'&&e.target.files?.length)LiplipZone.importFile(e.target.files[0],()=>render(false))});
 app.addEventListener('submit',e=>{
  e.preventDefault();if(!e.target.reportValidity())return;
  if(state.page==='zone'){const result=LiplipZone.submit(e.target.id,e.target,()=>render(false));if(result.complete){const snap=LiplipProgress.snapshot(state.progress);try{const before=snap.vocabularyCount;state.progress=LiplipProgress.recordStudy(state.progress,{boxId:snap.currentBox,...result.complete});save();LiplipZone.clear();state.justCompleted={title:snap.boxName,newWords:LiplipProgress.snapshot(state.progress).vocabularyCount-before,writingScore:result.complete.writing};state.page='lesson-finish';render()}catch{render(false)}}return}
