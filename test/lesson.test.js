@@ -5,64 +5,58 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const events={},sessions=new Map(),drafts=new Map();
 let editorForm=null;
-const app={innerHTML:'',addEventListener:(name,fn)=>{events[name]=fn}};
+const app={innerHTML:'',addEventListener:(name,fn)=>events[name]=fn};
 const storage=map=>({getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)});
-const context={
-  document:{getElementById:id=>id==='app'?app:id==='lesson-editor-form'?editorForm:{textContent:''}},
-  window:{scrollTo(){}},sessionStorage:storage(sessions),localStorage:storage(drafts),
-  FormData:class{constructor(form){this.values=form.values||{}}[Symbol.iterator](){return Object.entries(this.values)[Symbol.iterator]()}get(k){return this.values[k]}},
-  Date,Number,String,Object,Set,Math
-};
+const context={document:{getElementById:id=>id==='app'?app:id==='zone-item-form'?editorForm:{textContent:''}},window:{scrollTo(){}},sessionStorage:storage(sessions),localStorage:storage(drafts),FormData:class{constructor(form){this.values=form.values||{}}get(k){return this.values[k]}has(k){return Object.hasOwn(this.values,k)}[Symbol.iterator](){return Object.entries(this.values)[Symbol.iterator]()}},Date,Number,String,Object,Set,Math};
 vm.createContext(context);
-for(const name of ['progress.js','content.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context);
-vm.runInContext('this.P=LiplipProgress;this.C=LiplipContent;',context);
+for(const name of ['progress.js','content.js','zone.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context);
+vm.runInContext('this.P=LiplipProgress;this.Z=LiplipZone;',context);
 vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
-const P=context.P,C=context.C;
-function click(key,value){const prop=key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase());events.click({target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[prop]:value}}:null},preventDefault(){}})}
-function submit(id,values={},dataset={}){events.submit({target:{id,values,dataset,reportValidity:()=>true},preventDefault(){}})}
-click('action','auth');click('action','signin');click('action','guest');click('nav','الدراسة');
-click('action','study-box');
-assert.ok(app.innerHTML.includes('أول تحية'),'First seeded lesson opens');
-assert.equal(P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress).vocabularyCount,0,'Opening does not earn words');
-assert.ok(app.innerHTML.includes('data-action="complete-lesson" disabled'),'Completion gated');
-click('audio','0');assert.ok(app.innerHTML.includes('الصوت غير متاح'));
-let spokenUtterance=null;context.window.speechSynthesis={cancel(){},speak:u=>{spokenUtterance=u}};context.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};
-click('audio','0');assert.equal(spokenUtterance.text,'hello');assert.equal(spokenUtterance.lang,'en-US');
-for(let i=0;i<4;i++)click('review',String(i));
-click('lesson-tab','write');
-submit('lesson-writing-form',{answer0:'wrong'});
-assert.ok(app.innerHTML.includes('تلميح: تبدأ بحرف H'),'Wrong answer produces hint');
-submit('lesson-writing-form',{answer0:'Hello',answer1:'goodbye',answer2:'please',answer3:'thank you'});
-click('lesson-tab','speak');
-for(let i=0;i<4;i++)click('spoken',String(i));
-click('rating','70');
-assert.ok(!app.innerHTML.includes('data-action="complete-lesson" disabled'),'Completion unlocked');
-click('action','complete-lesson');
-assert.ok(app.innerHTML.includes('تم إنجاز الصندوق'),'Completion view');
+const P=context.P,Z=context.Z;
+function click(key,value,extra={}){const prop=key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase());events.click({target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[prop]:value,...extra}}:null},preventDefault(){}})}
+function submit(id,values={}){events.submit({target:{id,values,reportValidity:()=>true},preventDefault(){}})}
+click('action','auth');click('action','signin');click('action','guest');click('nav','الدراسة');click('action','study-box');
+assert.match(app.innerHTML,/كلمة جديدة، مساحة أكبر/);
+assert.ok(!app.innerHTML.includes('class="mainnav"'),'Zone removes main navigation');
+assert.ok(!app.innerHTML.includes('class="topbar"'),'Zone replaces site header');
+assert.equal(P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress).vocabularyCount,0);
+click('zone','audio',{index:'0'});assert.match(app.innerHTML,/الصوت غير متاح/);
+let heard=null;context.window.speechSynthesis={cancel(){},speak:u=>heard=u};context.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};
+click('zone','audio',{index:'0'});assert.equal(heard.text,'hello');assert.equal(heard.lang,'en-US');
+click('zone','flip');assert.match(app.innerHTML,/مرحباً/);
+click('zone','next');click('zone','exit');assert.match(app.innerHTML,/افتح درس الصندوق/);
+click('action','study-box');assert.match(app.innerHTML,/البطاقة 2 من 5/,'Exit resumes current card');
+for(let i=1;i<5;i++){click('zone','flip');click('zone','next')}
+click('zone','advance');assert.match(app.innerHTML,/هل استقرّت الكلمات/);
+submit('zone-quiz-form',{cv1:'2',cv2:'2'});assert.match(app.innerHTML,/تحتاج 70%/);
+submit('zone-quiz-form',{cv1:'0',cv2:'1'});assert.match(app.innerHTML,/اسمعها/);
+click('zone','mic',{index:'0'});assert.match(app.innerHTML,/غير مدعوم/);
+for(let i=0;i<4;i++){click('zone','manual',{index:String(i)});if(i<3)click('zone','next')}
+click('zone','advance');assert.match(app.innerHTML,/هل سمعت المعنى/);
+submit('zone-quiz-form',{cl1:'0',cl2:'1'});assert.match(app.innerHTML,/ابنِ الجملة/);
+assert.match(app.innerHTML,/قانون الجملة/);submit('zone-quiz-form',{gt:'0'});
+assert.match(app.innerHTML,/أثبت ما تعلّمته/);
+submit('zone-quiz-form',{e1:'1',e2:'0',e3:'hello'});
+assert.match(app.innerHTML,/تم إنجاز الصندوق/);
 let progress=JSON.parse(sessions.get('liplip-preview')).progress;
 assert.equal(P.snapshot(progress).currentBox,2);
 assert.equal(P.snapshot(progress).vocabularyCount,4);
-assert.equal(P.snapshot(progress).metrics.writing.average,88);
-assert.equal(P.snapshot(progress).metrics.pronunciation.average,70);
-assert.ok(drafts.has('liplip-progress-v1'),'Progress persists on this device');
-click('action','next-lesson');assert.ok(app.innerHTML.includes('تعرّف إلى شخص'));
-click('action','toggle-editor');assert.ok(app.innerHTML.includes('استوديو المحتوى'));
-const seed=C.get(2);
-const formValues={title:seed.title,goal:seed.goal};
-seed.words.forEach((w,i)=>{formValues[`term${i}`]=w.term;formValues[`meaning${i}`]=w.meaning;formValues[`example${i}`]=w.example});
-editorForm={values:formValues,dataset:{wordCount:'4'}};
-click('action','add-word');assert.ok(app.innerHTML.includes('بطاقة 05'));
-const extended={...formValues,term4:'friend',meaning4:'صديق',example4:'My friend is kind.'};
-editorForm={values:extended,dataset:{wordCount:'5'}};
-submit('lesson-editor-form');assert.equal(C.get(2).words.length,5);
-assert.ok(drafts.has('liplip-content-v1'),'Editor persisted locally');
-click('delete-word','4');assert.ok(app.innerHTML.includes('بطاقة 04'));
-editorForm={values:formValues,dataset:{wordCount:'4'}};submit('lesson-editor-form');assert.equal(C.get(2).words.length,4);
-click('action','delete-lesson');assert.ok(app.innerHTML.includes('تأكيد الحذف'));
-click('action','confirm-delete');assert.equal(C.get(2).words.length,0);
-click('action','restore-lesson');assert.equal(C.get(2).words.length,4);
-assert.throws(()=>C.save(6,{title:'bad',goal:'goal',words:[{term:'x',meaning:'',example:''}]}),/أكمل الكلمة/);
-click('nav','الإعدادات');click('action','reset-progress');assert.ok(app.innerHTML.includes('نعم، امسح التقدّم'));
-click('action','confirm-reset');assert.equal(P.snapshot(JSON.parse(drafts.get('liplip-progress-v1'))).vocabularyCount,0);
-assert.equal(C.get(2).words.length,4,'Reset does not delete authored content');
-console.log('Lesson review, writing, speaking, completion, and content editing passed');
+assert.equal(P.snapshot(progress).metrics.pronunciation.average,0,'Manual repetition is not a measured pronunciation rating');
+assert.equal(P.snapshot(progress).metrics.writing.average,100);
+assert.ok(!drafts.has('liplip-zone-state-v1'),'Completed zone state cleared');
+click('action','next-lesson');
+click('zone','control');assert.match(app.innerHTML,/إدارة المحتوى/);
+click('zone','menu-add');click('zone','process',{value:'vocab'});click('zone','type',{value:'sentence'});click('zone','add-form');
+editorForm={values:{en:'I am ready.',ar:'أنا مستعد.',example:'I am ready to learn.'}};submit('zone-item-form');
+assert.equal(Z.getContent(2).vocab.length,6);
+assert.ok(drafts.has('liplip-zone-content-v1'));
+click('zone','menu-edit');submit('zone-jump-form',{stage:'1',step:'1',box:'2'});
+assert.match(app.innerHTML,/I am ready/);
+const added=Z.getContent(2).vocab.at(-1);
+click('zone','select-item',{process:'vocab',id:added.id});
+editorForm={values:{en:'I am prepared.',ar:'أنا جاهز.',example:'I am prepared now.'}};submit('zone-item-form');
+assert.equal(Z.getContent(2).vocab.at(-1).en,'I am prepared.');
+click('zone','select-item',{process:'vocab',id:added.id});click('zone','delete-item');assert.match(app.innerHTML,/هل تريد حذف/);
+click('zone','confirm-delete');assert.equal(Z.getContent(2).vocab.length,5);
+assert.throws(()=>Z.validateItem('listen',{type:'word',en:'',ar:'x'}),/أكمل الحقول/);
+console.log('Focused zone, resume, checks, completion, and content CRUD passed');

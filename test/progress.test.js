@@ -18,6 +18,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root,'progress.js'),'utf8')+'\nthis.P=LiplipProgress;',context);
 vm.runInContext(fs.readFileSync(path.join(root,'content.js'),'utf8')+'\nthis.C=LiplipContent;',context);
+vm.runInContext(fs.readFileSync(path.join(root,'zone.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
 const P = context.P;
 const click = (key,value) => events.click({
@@ -45,8 +46,8 @@ click('nav','الدراسة');
 assert.ok(!app.innerHTML.includes('مسار واحد، أربع طرق للتعلّم.'));
 assert.ok(app.innerHTML.includes('أول الطريق')&&app.innerHTML.includes('البداية'));
 assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
-click('action','study-box');assert.ok(app.innerHTML.includes('أول تحية'));
-click('action','return-study');assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
+click('action','study-box');assert.ok(app.innerHTML.includes('كلمة جديدة'));
+click('zone','exit');assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
 click('nav','شاهد واقرأ');assert.ok(app.innerHTML.includes('ابدأ المشاهدة')&&app.innerHTML.includes('ابدأ القراءة'));
 assert.ok(app.innerHTML.includes('أول الطريق')&&app.innerHTML.includes('البداية'));
 click('experience','watching');assert.ok(app.innerHTML.includes('قريباً · مشاهدة')&&app.innerHTML.includes('أول الطريق'));
