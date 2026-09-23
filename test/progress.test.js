@@ -5,16 +5,19 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const events = {};
 const store = new Map();
+const contentStore = new Map();
 const app = {innerHTML:'', addEventListener:(name,handler)=>{events[name]=handler}};
 const context = {
   document:{getElementById:id=>id==='app'?app:{textContent:''}},
   window:{scrollTo(){}},
   sessionStorage:{getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value),removeItem:key=>store.delete(key)},
+  localStorage:{getItem:key=>contentStore.get(key)||null,setItem:(key,value)=>contentStore.set(key,value),removeItem:key=>contentStore.delete(key)},
   FormData:class {constructor(form){this.values=form.values||{}}[Symbol.iterator](){return Object.entries(this.values)[Symbol.iterator]()}get(key){return this.values[key]}},
   Date,Number,String,Object,Set,Math
 };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root,'progress.js'),'utf8')+'\nthis.P=LiplipProgress;',context);
+vm.runInContext(fs.readFileSync(path.join(root,'content.js'),'utf8')+'\nthis.C=LiplipContent;',context);
 vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
 const P = context.P;
 const click = (key,value) => events.click({
@@ -41,9 +44,9 @@ assert.ok(navigation.indexOf('data-nav=\"شاهد واقرأ\"')<navigation.inde
 click('nav','الدراسة');
 assert.ok(!app.innerHTML.includes('مسار واحد، أربع طرق للتعلّم.'));
 assert.ok(app.innerHTML.includes('أول الطريق')&&app.innerHTML.includes('البداية'));
-assert.match(app.innerHTML,/ادرس الصندوق الحالي/);
-click('action','study-box');assert.ok(app.innerHTML.includes('درس الصندوق 1 · قريباً'));
-click('action','return-section');assert.match(app.innerHTML,/ادرس الصندوق الحالي/);
+assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
+click('action','study-box');assert.ok(app.innerHTML.includes('أول تحية'));
+click('action','return-study');assert.ok(app.innerHTML.includes('افتح درس الصندوق'));
 click('nav','شاهد واقرأ');assert.ok(app.innerHTML.includes('ابدأ المشاهدة')&&app.innerHTML.includes('ابدأ القراءة'));
 assert.ok(app.innerHTML.includes('أول الطريق')&&app.innerHTML.includes('البداية'));
 click('experience','watching');assert.ok(app.innerHTML.includes('قريباً · مشاهدة')&&app.innerHTML.includes('أول الطريق'));
