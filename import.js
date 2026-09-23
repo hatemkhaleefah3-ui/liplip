@@ -5,7 +5,7 @@ const LiplipImporter = (() => {
  const blank=()=>Object.fromEntries(PROCESSES.map(key=>[key,[]]));
  const XML='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
  const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
- function xml(string){const doc=new DOMParser().parseFromString(string,'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('ملف Excel يحتوي بيانات غير صالحة.');return doc}
+ function xml(string){const doc=new DOMParser().parseFromString(string.replace(/^\uFEFF/,''),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('ملف Excel يحتوي بيانات غير صالحة.');return doc}
  function nodes(parent,name){return [...parent.getElementsByTagNameNS(XML,name)]}
  function column(ref){const letters=/^[A-Z]+/.exec(ref)?.[0];if(!letters)return -1;return [...letters].reduce((index,char)=>index*26+char.charCodeAt(0)-64,0)-1}
  async function sheetRows(file){

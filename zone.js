@@ -116,14 +116,35 @@ const LiplipZone = (() => {
    const result=await LiplipImporter.read(file,validateItem);
    if(token!==importToken)return;
    const next={...contentEdits};
-   for(const [id,box] of result.boxes)next[id]=box;
-   try{localStorage.setItem(CONTENT_KEY,JSON.stringify(next))}
-   catch{throw Error('لم تتسع مساحة التخزين المحلية للمحتوى. لم يُستبدل أي صندوق.')}
-   contentEdits=next;
-   if(result.boxes.has(progress.boxId))resetAfterEdit(progress.boxId);
+   let added=0,already=0;
+   const changed=[];
+   for(const [id,box] of result.boxes){
+    const current=getContent(id);
+    let boxChanged=false;
+    for(const process of Object.keys(TYPES)){
+     const list=current[process];
+     const signature=item=>JSON.stringify(Object.entries(item).filter(([key])=>key!=='id'));
+     const signatures=new Set(list.map(signature));
+     const ids=new Set(list.map(item=>item.id));
+     for(const item of box[process]){
+      const key=signature(item);
+      if(signatures.has(key)){already++;continue}
+      if(list.length>=30)throw Error(`الصندوق ${id}: وصل الجزء «${PROCESS_LABEL[process]}» إلى ٣٠ عنصراً. لم يُضف شيء.`);
+      while(ids.has(item.id))item.id=`i${Math.random().toString(36).slice(2,12)}`;
+      list.push(item);ids.add(item.id);signatures.add(key);added++;boxChanged=true;
+     }
+    }
+    if(boxChanged){next[id]=current;changed.push(id)}
+   }
+   if(added){
+    try{localStorage.setItem(CONTENT_KEY,JSON.stringify(next))}
+    catch{throw Error('لم تتسع مساحة التخزين المحلية للمحتوى. لم يُضف أي عنصر.')}
+    contentEdits=next;
+    if(changed.includes(progress.boxId))resetAfterEdit(progress.boxId);
+   }
    importing.firstBox=Math.min(...result.boxes.keys());
    const location=LiplipProgress.location(importing.firstBox);
-   ui.notice=`تم حفظ ${result.count} عنصراً في ${result.boxes.size} صندوق. أول موقع: المستوى ${location.stage}، الخطوة ${location.step}، الصندوق ${location.box}.`;
+   ui.notice=`أُضيف ${added} عنصر جديد في ${changed.length} صندوق. ${already?`${already} عنصر موجود مسبقاً لم يُكرّر. `:''}أول موقع في الملف: المستوى ${location.stage}، الخطوة ${location.step}، الصندوق ${location.box}.`;
    ui.screen='import-result';
   }catch(error){if(token===importToken)importing.error=error.message||'تعذّرت قراءة الملف.'}
   finally{if(token===importToken){importing.busy=false;update()}}
@@ -186,8 +207,8 @@ const LiplipZone = (() => {
   else if(type==='example')inputs=field('en','المثال بالإنجليزية',d.en)+field('ar','ترجمته بالعربية',d.ar)+field('body','شرح المثال',d.body,'textarea');
   return `<form id="zone-item-form" class="zone-editor-form">${inputs}<div class="zone-editor-actions"><button type="submit" class="zone-primary">حفظ العنصر</button>${ui.selectedId?btn('delete-item','حذف العنصر','class="zone-danger"'):''}</div></form>${ui.deleteConfirm?`<div class="zone-confirm"><p>هل تريد حذف هذا العنصر؟</p>${btn('confirm-delete','نعم، احذف','class="zone-danger"')}${btn('cancel-delete','إلغاء')}</div>`:''}`}
  function editor(){if(!ui.sheet)return '';const target=ui.targetBox||progress.boxId,content=getContent(target);let body='';
-  if(ui.screen==='menu')body=`<p>خصّص محتوى التعلّم في متصفحك.</p><div class="zone-menu">${btn('menu-add','إضافة محتوى تعليمي <small>اختر العملية ونوع العنصر</small>')}${btn('menu-edit','تعديل عنصر <small>اختر المرحلة والخطوة والصندوق</small>')}<label class="zone-import-direct" for="zone-import-file"><strong>استيراد محتوى من Excel</strong><small>اختر ملف .xlsx · تُحدّث الصناديق المذكورة فيه مباشرة</small><input id="zone-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="استيراد محتوى من ملف Excel" ${importing.busy?'disabled':''}></label></div>${importing.busy?'<p role="status" class="zone-import-status">جارٍ قراءة الملف وحفظ المحتوى…</p>':''}${importing.error?`<p role="alert" class="zone-import-error">${safe(importing.error)}</p>`:''}<a class="zone-import-template" href="liplip-content-template.xlsx" download>تنزيل قالب Excel ↓</a>`;
-  if(ui.screen==='import-result')body=`<div class="zone-import-done" role="status"><span aria-hidden="true">✓</span><h3>اكتمل الاستيراد</h3><p>${safe(ui.notice)}</p><small>تغيرت الصناديق الموجودة في الملف فقط. حُفظ محتواها في هذا المتصفح.</small></div><div class="zone-editor-actions">${btn('view-imported','عرض العناصر المستوردة','class="zone-primary"')}${btn('back-menu','استيراد ملف آخر')}</div>`;
+  if(ui.screen==='menu')body=`<p>خصّص محتوى التعلّم في متصفحك.</p><div class="zone-menu">${btn('menu-add','إضافة محتوى تعليمي <small>اختر العملية ونوع العنصر</small>')}${btn('menu-edit','تعديل عنصر <small>اختر المرحلة والخطوة والصندوق</small>')}<label class="zone-import-direct" for="zone-import-file"><strong>استيراد محتوى من Excel</strong><small>اختر ملف .xlsx · إضافة العناصر الجديدة دون حذف الموجود</small><input id="zone-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="استيراد محتوى من ملف Excel" ${importing.busy?'disabled':''}></label></div>${importing.busy?'<p role="status" class="zone-import-status">جارٍ قراءة الملف وإضافة العناصر…</p>':''}${importing.error?`<p role="alert" class="zone-import-error">${safe(importing.error)}</p>`:''}<a class="zone-import-template" href="liplip-content-template.xlsx" download>تنزيل قالب Excel ↓</a>`;
+  if(ui.screen==='import-result')body=`<div class="zone-import-done" role="status"><span aria-hidden="true">✓</span><h3>اكتمل الاستيراد</h3><p>${safe(ui.notice)}</p><small>لم يُحذف أو يُستبدل أي عنصر موجود. الإضافات محفوظة في هذا المتصفح.</small></div><div class="zone-editor-actions">${btn('view-imported','عرض عناصر أول صندوق','class="zone-primary"')}${btn('back-menu','استيراد ملف آخر')}</div>`;
   if(ui.screen==='add-select')body=`<p>اختر الجزء، ثم نوع المحتوى.</p><div class="zone-editor-tabs">${Object.keys(TYPES).map(key=>btn('process',PROCESS_LABEL[key],`data-value="${key}" class="${ui.process===key?'selected':''}"`)).join('')}</div><div class="zone-editor-tabs">${TYPES[ui.process].map(([key,label])=>btn('type',label,`data-value="${key}" class="${ui.type===key?'selected':''}"`)).join('')}</div>${btn('add-form','متابعة إلى النموذج','class="zone-primary"')}`;
   if(ui.screen==='edit-select'){const n=target-1,stage=Math.floor(n/200)+1,step=Math.floor(n%200/20)+1,box=n%20+1;body=`<p>اختر موقع الصندوق الذي تريد تحريره.</p><form id="zone-jump-form" class="zone-location">${[['stage','المرحلة',5,stage],['step','الخطوة',10,step],['box','الصندوق',20,box]].map(([key,label,max,current])=>`<label>${label}<select name="${key}">${Array.from({length:max},(_,i)=>`<option value="${i+1}" ${i+1===current?'selected':''}>${i+1}</option>`).join('')}</select></label>`).join('')}<button class="zone-primary" type="submit">عرض العناصر</button></form>`}
   if(ui.screen==='edit-list')body=`<p>المرحلة ${Math.floor((target-1)/200)+1} · الخطوة ${Math.floor((target-1)%200/20)+1} · الصندوق ${(target-1)%20+1}</p><div class="zone-item-list">${Object.keys(TYPES).map(key=>`<h3>${PROCESS_LABEL[key]}</h3>${content[key].length?content[key].map(item=>btn('select-item',safe(item.title||item.en||item.prompt||item.audio||item.type),`data-process="${key}" data-id="${safe(item.id)}"`)).join(''):'<p>لا توجد عناصر بعد.</p>'}`).join('')}</div>${btn('menu-edit','تغيير الصندوق')}`;
