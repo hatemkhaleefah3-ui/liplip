@@ -9,8 +9,11 @@ const word=base('vocab','imageWord');word[5]='book';word[6]='كتاب';word[7]='
 const choice=base('checkpointVocab','imageChoice');choice[8]='ما هذا؟';choice[10]='book';choice[11]='pen';choice[12]='bag';choice[13]=1;choice[14]='It is a book.';
 const write=base('checkpointVocab','imageWrite');write[8]='اكتب ما في الصورة';write[15]='book';write[14]='It is a book.';
 const speak=base('checkpointVocab','imageSpeak');speak[8]='انطق ما في الصورة';speak[15]='book';speak[14]='It is a book.';
-assert.equal(I.parseRows([header,word,choice,write,speak],Z.validateItem).count,4);
-assert.equal(I.parseRows([header.slice(0,19),['vocab',1,1,1,'word','book','كتاب','This book is new.']],Z.validateItem).count,1);
+assert.equal(I.parseRows([[...header.slice(0,5),...header.slice(6),'Image link'],word,choice,write,speak],Z.validateItem).count,4);
+assert.equal(I.parseRows([header.slice(0,5).concat(header.slice(6,20).slice(0,14)),['vocab',1,1,1,'word','book','كتاب','This book is new.']],Z.validateItem).count,1);
+const previous=[...header.slice(0,5),...header.slice(6),'Image link'];
+const oldImage=['vocab',1,1,1,'imageWord','book','كتاب','This book is new.',...Array(11).fill(''),'https://liplip.pages.dev/images/book.svg'];
+assert.equal(I.parseRows([previous,oldImage],Z.validateItem).count,1);
 assert.throws(()=>Z.validateItem('vocab',{type:'imageWord',en:'book',ar:'كتاب',example:'This book is new.',image:'javascript:alert(1)'}),/رابط الصورة/);
 Z.start(1);
 assert.match(Z.render({snapshot:{}}),/replay-word/);

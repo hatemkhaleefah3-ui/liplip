@@ -1,6 +1,7 @@
 /* One worksheet / one table: all box content types use these columns. */
 const LiplipImporter = (() => {
- const HEADERS=['Item process','Item level','Item step','Item box','Item type','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body','Image link'];
+ const HEADERS=['Item process','Item level','Item step','Item box','Item type','Image link','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body'];
+ const PREVIOUS_HEADERS=[...HEADERS.slice(0,5),...HEADERS.slice(6),'Image link'];
  const PROCESSES=['vocab','checkpointVocab','listen','checkpointListen','grammar','exam'];
  const blank=()=>Object.fromEntries(PROCESSES.map(key=>[key,[]]));
  const XML='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -56,10 +57,13 @@ const LiplipImporter = (() => {
  }
  function parseRows(rows,validateItem){
   if(!Array.isArray(rows)||!rows.length)throw Error('لم نجد جدول المحتوى.');
-  const legacy=value(rows[0]?.[19])==='';if(HEADERS.slice(0,legacy?19:20).some((heading,i)=>value(rows[0]?.[i])!==heading)||rows[0].slice(legacy?19:20).some(x=>value(x)))throw Error('أسماء الأعمدة غير مطابقة للقالب. استخدم ملف liplip الأصلي.');
+  const headings=rows[0].map(value),same=expected=>expected.every((heading,i)=>headings[i]===heading)&&headings.slice(expected.length).every(x=>!x);
+  const imageFirst=same(HEADERS),imageLast=same(PREVIOUS_HEADERS),legacy=same(PREVIOUS_HEADERS.slice(0,19));
+  if(!imageFirst&&!imageLast&&!legacy)throw Error('أسماء الأعمدة غير مطابقة للقالب. استخدم ملف liplip الأصلي.');
   if(rows.length>30001)throw Error('الملف يتجاوز ٣٠٬٠٠٠ صف. قسّمه إلى مستويات أو خطوات.');
   const boxes=new Map();let count=0;
-  rows.slice(1).forEach((row,index)=>{
+  rows.slice(1).forEach((source,index)=>{
+   const row=imageFirst?[...source.slice(0,5),...source.slice(6),source[5]]:source;
    if(!row?.some(cell=>value(cell)))return;
    const line=index+2,process=value(row[0]),stage=positive(row[1],5),step=positive(row[2],10),box=positive(row[3],20),type=value(row[4]);
    if(!PROCESSES.includes(process)||!stage||!step||!box)throw Error(`الصف ${line}: العملية أو المستوى أو الخطوة أو الصندوق غير صحيح.`);

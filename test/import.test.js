@@ -11,7 +11,7 @@ vm.createContext(context);
 for(const file of ['progress.js','content.js','zone.js','import.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context);
 vm.runInContext('this.P=LiplipProgress;this.Z=LiplipZone;this.I=LiplipImporter;',context);
 const {Z,I}=context;
-const heading=Array.from(I.HEADERS);
+const heading=[...I.HEADERS.slice(0,5),...I.HEADERS.slice(6),'Image link'];
 const vocab=(stage,step,box,en='hello')=>['vocab',stage,step,box,'word',en,'مرحباً','Hello, I am Ali.'];
 function menu(box=1){Z.start(box);Z.click('control',{},()=>{});assert.match(Z.render({snapshot:{}}),/id="zone-import-file"/);assert.doesNotMatch(Z.render({snapshot:{}}),/data-zone="import-scope"/)}
 async function upload(rows){
