@@ -55,6 +55,11 @@ async function main(){
  assert.equal(Z.getContent(1).vocab.at(-1).en,'second');
  menu();I.read=async()=>{throw Error('broken workbook')};await Z.importFile({name:'bad.xlsx'},()=>{});
  assert.match(Z.render({snapshot:{}}),/broken workbook/,'read failure is displayed in sheet');
+ const fullBox=Array.from({length:20},(_,index)=>[vocab(1,1,10,`term${index}`),['vocab',1,1,10,'sentence',`I see term${index}.`,'أرى كلمة.','I see a word.'],['listen',1,1,10,'word',`term${index}`,'كلمة'],['listen',1,1,10,'sentence',`I see term${index}.`,'أرى كلمة.']]).flat();
+ menu(10);await upload(fullBox);
+ assert.equal(Z.getContent(10).vocab.length,40,'20 words and 20 sentences fit when supplied in the workbook');
+ assert.equal(Z.getContent(10).listen.length,40);
+ assert.throws(()=>I.parseRows([heading,...Array.from({length:61},(_,i)=>vocab(1,1,11,`extra${i}`))],Z.validateItem),/60/);
  console.log('Direct Excel import, additive merge, repeat dedupe, result visibility and rollback passed');
 }
 main().catch(error=>{console.error(error);process.exitCode=1});

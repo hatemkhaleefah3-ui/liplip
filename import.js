@@ -74,7 +74,8 @@ const LiplipImporter = (() => {
    const id=(stage-1)*200+(step-1)*20+box;
    if(!boxes.has(id))boxes.set(id,blank());
    const bucket=boxes.get(id)[process];
-   if(bucket.length>=30)throw Error(`الصف ${line}: الحد الأقصى ٣٠ عنصراً لكل عملية في الصندوق.`);
+   const limit=process==='vocab'||process==='listen'?60:30;
+   if(bucket.length>=limit)throw Error(`الصف ${line}: الحد الأقصى ${limit} عنصراً لعملية ${process} في الصندوق.`);
    bucket.push(item);count++;
   });
   if(!count)throw Error('الملف لا يحتوي عناصر تعليمية.');
