@@ -73,7 +73,7 @@ assert.match(app.innerHTML,/تم إنجاز الصندوق/);
 let progress=JSON.parse(sessions.get('liplip-preview')).progress;
 assert.equal(P.snapshot(progress).currentBox,2);
 assert.equal(P.snapshot(progress).vocabularyCount,4);
-assert.equal(progress.grammar.length,2,'Completed box saves its sentence and question rules');
+assert.equal(progress.grammar.length,3,'Completed box saves its sentence, question, and negative rules');
 assert.equal(progress.vocabulary[0].ar,'مرحباً','Learned words retain their translation');
 assert.equal(P.snapshot(progress).metrics.pronunciation.average,0,'Manual repetition is not a measured pronunciation rating');
 assert.equal(P.snapshot(progress).metrics.writing.average,100);
