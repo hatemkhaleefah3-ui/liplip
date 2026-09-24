@@ -18,7 +18,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'progress.js'),'utf8')+'\nthis.P=
 vm.runInContext(fs.readFileSync(path.join(root,'content.js'),'utf8')+'\nthis.C=LiplipContent;',context);
 vm.runInContext(fs.readFileSync(path.join(root,'zone.js'),'utf8')+'\nthis.Z=LiplipZone;',context);
 vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
-const click=(key,value)=>events.click({target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[key]:value}}:null},preventDefault(){}});
+const click=(key,value)=>{const prop=key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return events.click({target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[prop]:value}}:null},preventDefault(){}})};
 click('action','auth');click('action','signin');click('action','guest');click('nav','الدراسة');
 assert.match(app.innerHTML,/خريطة كنوز الدراسة/);
 assert.match(app.innerHTML,/data-study-level="1"/);
