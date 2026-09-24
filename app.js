@@ -75,8 +75,8 @@ function closetData(){
   const original=matches.find(item=>item.image)||matches[0];
   return {word:entry.word,boxId:entry.boxId,ar:entry.ar||original?.ar||'',example:entry.example||original?.example||'',image:entry.image||original?.image||''}
  });
- const grammar=[...(state.progress.grammar||[])],saved=new Set(grammar.map(item=>item.boxId));
- for(const boxId of state.progress.completedBoxes)if(!saved.has(boxId))for(const item of getBox(boxId)?.grammar||[])if(['sentenceRule','questionRule','negativeRule'].includes(item.type))grammar.push({boxId,id:item.id,type:item.type,title:item.title,formula:item.formula,en:item.en,ar:item.ar,body:item.body,example:item.example});
+ const grammar=[...(state.progress.grammar||[])],saved=new Set(grammar.map(item=>`${item.boxId}:${item.type}:${item.id}`));
+ for(const boxId of state.progress.completedBoxes)for(const item of getBox(boxId)?.grammar||[])if(['sentenceRule','questionRule','negativeRule'].includes(item.type)){const key=`${boxId}:${item.type}:${item.id}`;if(!saved.has(key)){grammar.push({boxId,id:item.id,type:item.type,title:item.title,formula:item.formula,en:item.en,ar:item.ar,body:item.body,example:item.example});saved.add(key)}}
  return {words,grammar}
 }
 function closetPosition(boxId){if(!boxId)return '';const p=LiplipProgress.location(boxId);return `المرحلة ${p.stage} · الخطوة ${p.step} · الصندوق ${p.box}`}
