@@ -24,6 +24,7 @@ async function main(){
   I.read=async()=>parsed;
 
   Z.start(10);
+  Z.click('control',{dataset:{}},()=>{});
   await Z.importFile({name:'vocab.xlsx',size:500,arrayBuffer:async()=>new ArrayBuffer(1)},()=>{});
   Z.start(10);
 
