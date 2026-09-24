@@ -1,6 +1,7 @@
 /* One worksheet / one table: all box content types use these columns. */
 const LiplipImporter = (() => {
  const HEADERS=['Item process','Item level','Item step','Item box','Item type','Image link','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body'];
+ const EXTENDED_HEADERS=[...HEADERS,'Option 4','Image link 2','Image link 3','Image link 4'];
  const PREVIOUS_HEADERS=[...HEADERS.slice(0,5),...HEADERS.slice(6),'Image link'];
  const PROCESSES=['vocab','checkpointVocab','listen','checkpointListen','grammar','exam'];
  const blank=()=>Object.fromEntries(PROCESSES.map(key=>[key,[]]));
@@ -58,20 +59,25 @@ const LiplipImporter = (() => {
  function parseRows(rows,validateItem){
   if(!Array.isArray(rows)||!rows.length)throw Error('لم نجد جدول المحتوى.');
   const headings=rows[0].map(value),same=expected=>expected.every((heading,i)=>headings[i]===heading)&&headings.slice(expected.length).every(x=>!x);
-  const imageFirst=same(HEADERS),imageLast=same(PREVIOUS_HEADERS),legacy=same(PREVIOUS_HEADERS.slice(0,19));
-  if(!imageFirst&&!imageLast&&!legacy)throw Error('أسماء الأعمدة غير مطابقة للقالب. استخدم ملف liplip الأصلي.');
+  const imageExtended=same(EXTENDED_HEADERS),imageFirst=same(HEADERS),imageLast=same(PREVIOUS_HEADERS),legacy=same(PREVIOUS_HEADERS.slice(0,19));
+  if(!imageExtended&&!imageFirst&&!imageLast&&!legacy)throw Error('أسماء الأعمدة غير مطابقة للقالب. استخدم ملف liplip الأصلي.');
   if(rows.length>30001)throw Error('الملف يتجاوز ٣٠٬٠٠٠ صف. قسّمه إلى مستويات أو خطوات.');
   const boxes=new Map();let count=0;
   rows.slice(1).forEach((source,index)=>{
-   const normalized=Array.from({length:HEADERS.length},(_,i)=>source?.[i]);
-   const row=imageFirst?[...normalized.slice(0,5),...normalized.slice(6),normalized[5]]:normalized;
+   const width=imageExtended?EXTENDED_HEADERS.length:HEADERS.length,normalized=Array.from({length:width},(_,i)=>source?.[i]);
+   const row=imageExtended||imageFirst?[...normalized.slice(0,5),...normalized.slice(6,20),normalized[5],...normalized.slice(20)]:normalized;
    if(!row?.some(cell=>value(cell)))return;
    const line=index+2,rawProcess=value(row[0]),process=rawProcess==='checkpointGrammar'?'grammar':rawProcess,stage=positive(row[1],5),step=positive(row[2],10),box=positive(row[3],20),type=value(row[4]);
    if(!PROCESSES.includes(process)||!stage||!step||!box)throw Error(`الصف ${line}: العملية أو المستوى أو الخطوة أو الصندوق غير صحيح.`);
-   const fields={type,en:value(row[5]),ar:value(row[6]),example:value(row[7]),prompt:value(row[8]),audio:value(row[9]),options:[value(row[10]),value(row[11]),value(row[12])],explanation:value(row[14]),answer:value(row[15]),title:value(row[16]),formula:value(row[17]),body:value(row[18]),image:value(row[19])};
-   if(['choice','audioChoice','imageChoice'].includes(type)){
+   const option4=value(row[20]),fields={type,en:value(row[5]),ar:value(row[6]),example:value(row[7]),prompt:value(row[8]),audio:value(row[9]),options:[value(row[10]),value(row[11]),value(row[12])],explanation:value(row[14]),answer:value(row[15]),title:value(row[16]),formula:value(row[17]),body:value(row[18]),image:value(row[19]),images:[value(row[19]),value(row[21]),value(row[22]),value(row[23])]};
+   if(['wordImageChoice','imageMatch','imageChoice'].includes(type)&&option4)fields.options.push(option4);
+   if(['choice','audioChoice'].includes(type)){
     const correct=positive(row[13],3);
     if(!correct)throw Error(`الصف ${line}: الإجابة الصحيحة يجب أن تكون 1 أو 2 أو 3.`);
+    fields.correct=correct-1;
+   }else if(['wordImageChoice','imageChoice'].includes(type)){
+    const correct=positive(row[13],type==='imageChoice'&&fields.options.length===3?3:4);
+    if(!correct)throw Error(`الصف ${line}: الإجابة الصحيحة خارج نطاق الخيارات.`);
     fields.correct=correct-1;
    }
    let item;
@@ -91,5 +97,5 @@ const LiplipImporter = (() => {
   if(file.size>12*1024*1024)throw Error('الحد الأقصى لحجم الملف ١٢ ميغابايت.');
   return parseRows(await sheetRows(file),validateItem);
  }
- return {HEADERS,parseRows,read};
+ return {HEADERS,EXTENDED_HEADERS,parseRows,read};
 })();

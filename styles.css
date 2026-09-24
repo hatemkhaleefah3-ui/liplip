@@ -423,3 +423,54 @@
  .zone-image-word-text{font-size:clamp(42px,14vw,68px);margin:12px 0 20px}
  .zone-image-word-audio{width:100%;min-height:50px}
 }
+
+
+/* Unified image learning system */
+.zone-image-word-arabic{display:block;width:100%;margin:-14px 0 24px;color:#d9cce8;font-size:clamp(18px,2.5vw,28px);font-weight:700;text-align:left}
+.zone-listen-image-card{height:min(48vw,430px);min-height:260px;margin:0 0 18px;border:1px solid #ceded9;border-radius:26px;overflow:hidden;background:linear-gradient(145deg,#eef8f5,#e8e2f4);display:grid;place-items:center}
+.zone-listen-image-card img{width:100%;height:100%;object-fit:contain;display:block;padding:16px}
+.zone-image-pronounce-pair{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}
+.zone-image-pronounce-pair .zone-pronounce-tile{min-height:155px}
+.zone-image-pronounce-pair .zone-pronounce-tile strong{font:800 18px 'Readex Pro',sans-serif}
+.zone-image-question{background:#fbfaff;border-color:#ded3ea}
+.zone-word-image-question,.zone-image-match-question,.zone-image-words-question{padding:clamp(18px,3vw,30px)}
+.zone-image-question-word{margin:12px 0 24px;text-align:center;font:800 clamp(38px,7vw,72px)/1.1 'DM Sans',sans-serif;color:#332b4b}
+.zone-image-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zone-image-option{position:relative;cursor:pointer;min-width:0}
+.zone-image-option input{position:absolute;opacity:0;pointer-events:none}
+.zone-image-option span{position:relative;display:grid;place-items:center;min-height:190px;padding:10px;border:2px solid #e1dbe8;border-radius:20px;background:#fff;overflow:hidden;transition:border-color .16s,transform .16s,box-shadow .16s}
+.zone-image-option span img{width:100%;height:180px;object-fit:contain;border-radius:14px}
+.zone-image-option span small{position:absolute;top:10px;left:10px;display:grid;place-items:center;min-width:31px;height:31px;border-radius:999px;background:#ffffffdc;color:#65547e;font:800 10px 'DM Sans',sans-serif;box-shadow:0 3px 10px #35274817}
+.zone-image-option input:checked+span{border-color:#7252a6;background:#f4eefc;box-shadow:0 0 0 3px #8060b71f}
+.zone-image-option input:focus-visible+span{outline:3px solid #8c63d0;outline-offset:2px}
+.zone-image-option:hover span{transform:translateY(-2px)}
+.zone-image-match-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.zone-image-match-card{display:grid;gap:10px;padding:12px;border:1px solid #ded7e5;border-radius:20px;background:#fff}
+.zone-image-match-card img{width:100%;height:175px;object-fit:contain;border-radius:14px;background:#f7f4fa}
+.zone-image-match-card select{width:100%;min-height:48px;border:1px solid #d8d0df;border-radius:12px;background:#faf8fc;color:#393148;padding:9px 11px;font-weight:700}
+.zone-image-question-focus{height:min(42vw,380px);min-height:240px;margin:12px 0 20px;border:1px solid #dfd7e6;border-radius:22px;background:linear-gradient(145deg,#f7f3fb,#eef5f1);display:grid;place-items:center;overflow:hidden}
+.zone-image-question-focus img{width:100%;height:100%;object-fit:contain;padding:14px}
+.zone-image-word-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.zone-image-word-options label{position:relative;cursor:pointer}
+.zone-image-word-options input{position:absolute;opacity:0;pointer-events:none}
+.zone-image-word-options span{display:flex;align-items:center;justify-content:center;min-height:68px;padding:13px;border:2px solid #e0d9e6;border-radius:16px;background:#fff;color:#342d45;font:800 clamp(16px,2.4vw,23px) 'DM Sans',sans-serif;transition:border-color .16s,background .16s,transform .16s}
+.zone-image-word-options input:checked+span{border-color:#7351a7;background:#f0e7fb}
+.zone-image-word-options input:focus-visible+span{outline:3px solid #8c63d0;outline-offset:2px}
+.zone-image-word-options label:hover span{transform:translateY(-2px)}
+.zone-editor-form input[name^="img"],.zone-editor-form input[name="image"]{direction:ltr}
+@media(max-width:700px){
+ .zone-image-word-arabic{margin:-8px 0 19px;font-size:20px}
+ .zone-listen-image-card{height:290px;min-height:0;border-radius:20px}
+ .zone-listen-image-card img{padding:10px}
+ .zone-image-pronounce-pair{gap:10px}
+ .zone-image-pronounce-pair .zone-pronounce-tile{min-height:118px;padding:15px}
+ .zone-image-options,.zone-image-match-grid,.zone-image-word-options{grid-template-columns:1fr 1fr}
+ .zone-image-option span{min-height:132px;padding:7px}
+ .zone-image-option span img,.zone-image-match-card img{height:120px}
+ .zone-image-question-focus{height:250px;min-height:0}
+ .zone-image-word-options span{min-height:58px;font-size:17px}
+ .zone-image-match-card{padding:8px}
+ .zone-image-match-card select{font-size:11px;padding:8px}
+}
+
+.zone-preview-image-set{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.zone-preview-image-set img{width:100%;height:140px;object-fit:contain;border:1px solid #e3dce8;border-radius:12px;background:#faf8fc}@media(max-width:700px){.zone-preview-image-set img{height:105px}}
