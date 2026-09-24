@@ -63,7 +63,8 @@ const LiplipImporter = (() => {
   if(rows.length>30001)throw Error('الملف يتجاوز ٣٠٬٠٠٠ صف. قسّمه إلى مستويات أو خطوات.');
   const boxes=new Map();let count=0;
   rows.slice(1).forEach((source,index)=>{
-   const row=imageFirst?[...source.slice(0,5),...source.slice(6),source[5]]:source;
+   const normalized=Array.from({length:HEADERS.length},(_,i)=>source?.[i]);
+   const row=imageFirst?[...normalized.slice(0,5),...normalized.slice(6),normalized[5]]:normalized;
    if(!row?.some(cell=>value(cell)))return;
    const line=index+2,rawProcess=value(row[0]),process=rawProcess==='checkpointGrammar'?'grammar':rawProcess,stage=positive(row[1],5),step=positive(row[2],10),box=positive(row[3],20),type=value(row[4]);
    if(!PROCESSES.includes(process)||!stage||!step||!box)throw Error(`الصف ${line}: العملية أو المستوى أو الخطوة أو الصندوق غير صحيح.`);
