@@ -6,7 +6,7 @@ const root=path.join(__dirname,'..');
 const data=new Map();
 let failWrites=false;
 const localStorage={getItem:key=>data.get(key)||null,setItem:(key,value)=>{if(failWrites)throw Error('quota');data.set(key,value)},removeItem:key=>data.delete(key)};
-const context={localStorage,window:{speechSynthesis:{cancel(){}}},document:{},Date,Number,Object,Math,Set,Map};
+const context={localStorage,window:{speechSynthesis:{cancel(){}}},document:{},Date,Number,Object,Math,Set,Map,URL};
 vm.createContext(context);
 for(const file of ['progress.js','content.js','zone.js','import.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context);
 vm.runInContext('this.P=LiplipProgress;this.Z=LiplipZone;this.I=LiplipImporter;',context);
