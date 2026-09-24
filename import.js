@@ -16,15 +16,15 @@ const LiplipImporter = (() => {
   const workbookText=await read('xl/workbook.xml'),relationshipsText=await read('xl/_rels/workbook.xml.rels');
   if(!workbookText||!relationshipsText)throw Error('تعذّر فتح الملف. تأكد أنه ملف .xlsx صالح.');
   const book=xml(workbookText),relationships=xml(relationshipsText);
-  const content=nodes(book,'sheet').find(sheet=>sheet.getAttribute('name')==='Content');
-  if(!content)throw Error('يجب أن يحتوي الملف على ورقة باسم Content.');
+  const sheets=nodes(book,'sheet'),content=sheets.find(sheet=>sheet.getAttribute('name')==='Content')||(sheets.length===1?sheets[0]:null);
+  if(!content)throw Error('استخدم ورقة باسم Content، أو ملف Excel يحتوي على ورقة واحدة فقط.');
   const relationId=content.getAttributeNS(REL,'id');
   const relation=[...relationships.getElementsByTagName('*')].find(element=>element.localName==='Relationship'&&element.getAttribute('Id')===relationId);
   const target=relation?.getAttribute('Target');
   const path=target?.startsWith('/')?target.slice(1):'xl/'+target;
-  if(!path||!/^xl\/worksheets\/[a-zA-Z0-9_.-]+\.xml$/.test(path))throw Error('تعذّر العثور على ورقة Content في الملف.');
+  if(!path||!/^xl\/worksheets\/[a-zA-Z0-9_.-]+\.xml$/.test(path))throw Error('تعذّر العثور على ورقة المحتوى في الملف.');
   const sheetText=await read(path);
-  if(!sheetText)throw Error('تعذّر العثور على ورقة Content في الملف.');
+  if(!sheetText)throw Error('تعذّر العثور على ورقة المحتوى في الملف.');
   const sharedText=await read('xl/sharedStrings.xml');
   const shared=sharedText?nodes(xml(sharedText),'si').map(si=>nodes(si,'t').map(t=>t.textContent).join('')):[];
   const rows=[];
@@ -65,7 +65,7 @@ const LiplipImporter = (() => {
   rows.slice(1).forEach((source,index)=>{
    const row=imageFirst?[...source.slice(0,5),...source.slice(6),source[5]]:source;
    if(!row?.some(cell=>value(cell)))return;
-   const line=index+2,process=value(row[0]),stage=positive(row[1],5),step=positive(row[2],10),box=positive(row[3],20),type=value(row[4]);
+   const line=index+2,rawProcess=value(row[0]),process=rawProcess==='checkpointGrammar'?'grammar':rawProcess,stage=positive(row[1],5),step=positive(row[2],10),box=positive(row[3],20),type=value(row[4]);
    if(!PROCESSES.includes(process)||!stage||!step||!box)throw Error(`الصف ${line}: العملية أو المستوى أو الخطوة أو الصندوق غير صحيح.`);
    const fields={type,en:value(row[5]),ar:value(row[6]),example:value(row[7]),prompt:value(row[8]),audio:value(row[9]),options:[value(row[10]),value(row[11]),value(row[12])],explanation:value(row[14]),answer:value(row[15]),title:value(row[16]),formula:value(row[17]),body:value(row[18]),image:value(row[19])};
    if(['choice','audioChoice','imageChoice'].includes(type)){
