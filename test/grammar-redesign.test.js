@@ -91,6 +91,7 @@ vm.createContext(ctx);
 for(const file of ['progress.js','content.js','zone.js','import.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),ctx);
 vm.runInContext('this.Z=LiplipZone;this.I=LiplipImporter;',ctx);
 const {Z,I}=ctx;
+assert.equal(I.SCHEMA_VERSION,10,'Arabic-first importer schema version');
 
 assert.ok(Z.TYPES.grammar.some(([type])=>type==='negativeRule'));
 assert.ok(Z.TYPES.grammar.some(([type])=>type==='subjectGuide'));
