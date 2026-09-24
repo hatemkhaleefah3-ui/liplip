@@ -652,17 +652,19 @@
 }
 
 /* Content preview / closet */
-.zone-preview-image-set img,
-.closet-image img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
 .zone-preview-image-set{
   overflow:hidden;
 }
 .zone-preview-image-set img{
+  width:100%;
+  height:140px;
+  object-fit:cover;
   border-radius:12px;
+}
+.closet-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
 /* Generic clickable image wrapper must not reintroduce contain behavior. */
@@ -696,5 +698,8 @@
   }
   .zone-image-match-card img{
     height:120px;
+  }
+  .zone-preview-image-set img{
+    height:105px;
   }
 }
