@@ -21,10 +21,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'content.js'),'utf8')+'\nthis.C=L
 vm.runInContext(fs.readFileSync(path.join(root,'zone.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
 const P = context.P;
-const click = (key,value) => events.click({
-  target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[key]:value}}:null},
-  preventDefault(){}
-});
+const click = (key,value) => {const prop=key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return events.click({\n  target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[prop]:value}}:null},\n  preventDefault(){}\n})};
 assert.equal(P.TOTAL_BOXES,1000);
 assert.deepEqual(JSON.parse(JSON.stringify(P.location(1))),{stage:1,step:1,box:1});
 assert.deepEqual(JSON.parse(JSON.stringify(P.location(21))),{stage:1,step:2,box:1});
