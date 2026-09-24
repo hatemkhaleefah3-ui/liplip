@@ -37,10 +37,10 @@ const LiplipProgress = (() => {
     if(Array.isArray(raw.grammar)){
       const seen=new Set(),completed=new Set(p.completedBoxes);
       p.grammar=raw.grammar.filter(item=>{
-        if(!item||!completed.has(item.boxId)||!['sentenceRule','questionRule'].includes(item.type))return false;
+        if(!item||!completed.has(item.boxId)||!['sentenceRule','questionRule','negativeRule'].includes(item.type))return false;
         const id=limited(item.id,40),key=`${item.boxId}:${item.type}:${id}`;
         if(seen.has(key))return false;seen.add(key);return true;
-      }).slice(0,2000).map(item=>({boxId:item.boxId,id:limited(item.id,40),type:item.type,title:limited(item.title,120),formula:limited(item.formula,220),body:limited(item.body,500),example:limited(item.example,220)}));
+      }).slice(0,2000).map(item=>({boxId:item.boxId,id:limited(item.id,40),type:item.type,title:limited(item.title,120),formula:limited(item.formula,220),en:limited(item.en,500),ar:limited(item.ar,500),body:limited(item.body,700),example:limited(item.example,220)}));
     }
     for(const metric of METRICS){const values=raw.ratings?.[metric];if(Array.isArray(values))p.ratings[metric]=values.filter(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=100).slice(-50)}
     return p;
@@ -71,7 +71,7 @@ const LiplipProgress = (() => {
       if(!seen.has(key)){p.vocabulary.push(entry);seen.set(key,p.vocabulary.length-1)}
       else {const previous=p.vocabulary[seen.get(key)];if(!previous.ar&&entry.ar)Object.assign(previous,{ar:entry.ar,example:entry.example,image:entry.image})}
     }
-    for(const item of grammar){if(!item||!['sentenceRule','questionRule'].includes(item.type))continue;p.grammar.push({boxId,id:limited(item.id,40),type:item.type,title:limited(item.title,120),formula:limited(item.formula,220),body:limited(item.body,500),example:limited(item.example,220)})}
+    for(const item of grammar){if(!item||!['sentenceRule','questionRule','negativeRule'].includes(item.type))continue;p.grammar.push({boxId,id:limited(item.id,40),type:item.type,title:limited(item.title,120),formula:limited(item.formula,220),en:limited(item.en,500),ar:limited(item.ar,500),body:limited(item.body,700),example:limited(item.example,220)})}
     p.ratings.pronunciation.push(pronunciation);p.ratings.writing.push(writing);
     return hydrate(p);
   }
