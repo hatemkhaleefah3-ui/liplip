@@ -1,5 +1,6 @@
 /* One worksheet / one table: all box content types use these columns. */
 const LiplipImporter = (() => {
+ const SCHEMA_VERSION=8;
  const HEADERS=['Item process','Item level','Item step','Item box','Item type','Image link','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body'];
  const EXTENDED_HEADERS=[...HEADERS,'Option 4','Image link 2','Image link 3','Image link 4'];
  const PREVIOUS_HEADERS=[...HEADERS.slice(0,5),...HEADERS.slice(6),'Image link'];
@@ -97,5 +98,5 @@ const LiplipImporter = (() => {
   if(file.size>12*1024*1024)throw Error('الحد الأقصى لحجم الملف ١٢ ميغابايت.');
   return parseRows(await sheetRows(file),validateItem);
  }
- return {HEADERS,EXTENDED_HEADERS,parseRows,read};
+ return {SCHEMA_VERSION,HEADERS,EXTENDED_HEADERS,parseRows,read};
 })();

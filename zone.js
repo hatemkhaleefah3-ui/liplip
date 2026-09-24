@@ -157,6 +157,7 @@ const LiplipZone = (() => {
  async function importFile(file,update){
   if(!ui.sheet||ui.screen!=='menu')return;
   const token=++importToken;importing.error='';importing.busy=true;ui.notice='';update();
+  if(LiplipImporter?.SCHEMA_VERSION!==8){importing.error='نسخة قارئ Excel قديمة في المتصفح. حدّث الصفحة بالكامل ثم أعد اختيار الملف.';importing.busy=false;update();return}
   try{
    const result=await LiplipImporter.read(file,validateItem);
    if(token!==importToken)return;
