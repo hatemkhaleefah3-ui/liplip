@@ -1,5 +1,6 @@
 /* One worksheet / one table: all box content types use these columns. */
-const LiplipImporter = (() => {\n const SCHEMA_VERSION=8;
+const LiplipImporter = (() => {
+ const SCHEMA_VERSION=8;
  const HEADERS=['Item process','Item level','Item step','Item box','Item type','Image link','English','Arabic','Example','Prompt','Audio','Option 1','Option 2','Option 3','Correct option','Explanation','Answer','Title','Formula','Body'];
  const EXTENDED_HEADERS=[...HEADERS,'Option 4','Image link 2','Image link 3','Image link 4'];
  const PREVIOUS_HEADERS=[...HEADERS.slice(0,5),...HEADERS.slice(6),'Image link'];
