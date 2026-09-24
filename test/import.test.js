@@ -22,6 +22,11 @@ async function upload(rows){
 }
 async function main(){
  assert.equal(I.parseRows([heading,vocab(1,1,1)],Z.validateItem).count,1);
+ const sparseImageRow=['vocab',1,1,1,'imageWord','https://liplip.pages.dev/images/placeholder.svg','pen','قلم','The pen is here.'];
+ const sparseImage=I.parseRows([I.HEADERS,sparseImageRow],Z.validateItem);
+ assert.equal(sparseImage.count,1,'sparse image-first row imports');
+ assert.equal(sparseImage.boxes.get(1).vocab[0].image,'https://liplip.pages.dev/images/placeholder.svg','image URL remains mapped to Image link');
+ assert.equal(sparseImage.boxes.get(1).vocab[0].en,'pen');
  const courseRow=values=>I.HEADERS.map(header=>values[header]??'');
  const course=I.parseRows([
   I.HEADERS,
