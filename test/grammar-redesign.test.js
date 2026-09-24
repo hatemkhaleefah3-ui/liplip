@@ -22,45 +22,45 @@ const questions=Array.from({length:5},(_,i)=>({
 }));
 const grammar=[
   {
-    id:'normal',type:'sentenceRule',title:'Normal sentence',
+    id:'normal',type:'sentenceRule',title:'قانون الجملة العادية',
     formula:'Subject + can + base verb + complement',
     ar:'ضع الفاعل أولاً، ثم can، ثم الفعل بصيغته الأساسية، ثم التكملة.',
     en:'Put the subject first, then can, then the base verb, then the complement.',
     example:'I can swim.'
   },
   {
-    id:'question',type:'questionRule',title:'Question',
+    id:'question',type:'questionRule',title:'قاعدة تكوين السؤال',
     formula:'Can + subject + base verb + complement?',
     ar:'قم بإضافة الفعل المساعد can في بداية الجملة لعمل سؤال.',
     en:'Move can to the beginning of the sentence to make a question.',
     example:'Can you swim?'
   },
   {
-    id:'negative',type:'negativeRule',title:'Negative sentence',
+    id:'negative',type:'negativeRule',title:'قاعدة تكوين الجملة المنفية',
     formula:'Subject + cannot / can not + base verb + complement',
     ar:'قم بإضافة not بعد can لعمل جملة منفية.',
     en:'Add not after can to make the sentence negative.',
     example:'I cannot swim.'
   },
   {
-    id:'subject',type:'subjectGuide',title:'Subject + be',
+    id:'subject',type:'subjectGuide',title:'دليل الفاعل والفعل المساعد',
     ar:'اختر صيغة be حسب الفاعل.',
     en:'Choose the form of be according to the subject.',
     body:'I → am / was\nHe / She / It → is / was\nYou / We / They → are / were'
   },
   {
-    id:'agreement',type:'agreementGuide',title:'Singular and compound',
+    id:'agreement',type:'agreementGuide',title:'دليل المفرد والجمع والفاعل المركب',
     ar:'الفاعل المفرد يأخذ الصيغة المفردة، والفاعل الجمع أو المركب يأخذ الصيغة الجمع.',
     en:'A singular subject takes the singular form; plural or compound subjects take the plural form.',
     body:'Singular noun → is / was\nPlural noun → are / were\nAli and Sara → are / were'
   },
   {
-    id:'note',type:'note',title:'Word order',
+    id:'note',type:'note',title:'ترتيب الكلمات',
     ar:'لا تغيّر ترتيب الفاعل والفعل من دون سبب نحوي.',
     en:'Do not change subject and verb order without a grammatical reason.'
   },
   {
-    id:'exception',type:'exceptionNote',title:'Hidden auxiliary',
+    id:'exception',type:'exceptionNote',title:'حالة خاصة',
     ar:'في المضارع البسيط قد يظهر do في السؤال والنفي رغم أنه غير موجود في الجملة المثبتة.',
     en:'In the present simple, do may appear in questions and negatives even though it is absent from the affirmative sentence.',
     body:'You work here. → Do you work here? → You do not work here.'
@@ -100,10 +100,10 @@ assert.doesNotThrow(()=>Z.validateItem('grammar',{type:'addition',title:'Legacy'
 
 Z.start(1);
 let html=Z.render({snapshot:{}});
-assert.match(html,/GRAMMAR LAB/);
+assert.match(html,/مختبر القواعد/);
 assert.match(html,/قانون تكوين الجملة العادية/);
 assert.match(html,/قم بإضافة الفعل المساعد can في بداية الجملة لعمل سؤال/);
-assert.match(html,/Move can to the beginning of the sentence to make a question/);
+assert.doesNotMatch(html,/Move can to the beginning of the sentence to make a question/,'grammar teaching explanation is Arabic-first');
 assert.match(html,/قم بإضافة not بعد can لعمل جملة منفية/);
 assert.match(html,/zone-grammar-guide subjectGuide/);
 assert.match(html,/zone-grammar-guide agreementGuide/);
@@ -126,10 +126,10 @@ const row=values=>I.HEADERS.map(h=>values[h]??'');
 const imported=I.parseRows([
   I.HEADERS,
   row({'Item process':'grammar','Item level':1,'Item step':1,'Item box':2,'Item type':'negativeRule','English':'Add not after can.','Arabic':'أضف not بعد can.','Formula':'Subject + can + not + verb','Example':'I cannot swim.','Title':'Negative'}),
-  row({'Item process':'grammar','Item level':1,'Item step':1,'Item box':2,'Item type':'subjectGuide','English':'Choose be by subject.','Arabic':'اختر be حسب الفاعل.','Body':'I → am / was\nHe / She / It → is / was','Title':'Subject + be'})
+  row({'Item process':'grammar','Item level':1,'Item step':1,'Item box':2,'Item type':'subjectGuide','Arabic':'اختر be حسب الفاعل.','Body':'I → am / was\nHe / She / It → is / was','Title':'دليل الفاعل'})
 ],Z.validateItem);
 assert.equal(imported.count,2);
 assert.equal(imported.boxes.get(2).grammar[0].type,'negativeRule');
 assert.equal(imported.boxes.get(2).grammar[1].type,'subjectGuide');
 
-console.log('Restructured bilingual grammar law/rules/guides/notes/examples/questions passed');
+console.log('Arabic-first grammar law/rules/guides/notes/examples/questions passed');

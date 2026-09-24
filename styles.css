@@ -556,3 +556,12 @@
  .zone-grammar-bilingual p{padding:12px}
  .zone-grammar-example strong{font-size:16px}
 }
+
+.zone-image-open{position:relative;display:grid;width:100%;height:100%;place-items:center;text-decoration:none;color:inherit}
+.zone-image-open img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+.zone-image-open>span{position:absolute;left:12px;bottom:12px;border:1px solid #ffffffaa;background:#fffffff0;color:#554566;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;box-shadow:0 5px 16px #3527481a}
+.zone-image-open-card>span,.zone-image-open-listen>span{opacity:.9}
+.zone-image-open:hover>span,.zone-image-open:focus-visible>span{background:#fff;outline:0}
+.zone-grammar-ar-only{position:relative;z-index:1}
+.zone-grammar-ar-only p{margin:0;border:1px solid #eadcbf;background:#fff8e9;color:#544832;border-radius:14px;padding:15px 16px;line-height:1.95;font-size:12px}
+@media(max-width:700px){.zone-image-open>span{left:8px;bottom:8px;padding:6px 9px;font-size:9px}}
