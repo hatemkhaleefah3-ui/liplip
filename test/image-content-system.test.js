@@ -26,15 +26,24 @@ const ctx={
   FormData:FormDataMock,URL,Date,Number,Object,Math,Set,Map,document:{getElementById(){return null}}
 };
 vm.createContext(ctx);
-for(const file of ['progress.js','content.js','zone.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),ctx);
-vm.runInContext('this.Z=LiplipZone;',ctx);
-const {Z}=ctx;
+for(const file of ['progress.js','content.js','zone.js','import.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),ctx);
+vm.runInContext('this.Z=LiplipZone;this.I=LiplipImporter;',ctx);
+const {Z,I}=ctx;
 assert.ok(Z.TYPES.checkpointVocab.some(([type])=>type==='wordImageChoice'));
 assert.ok(Z.TYPES.checkpointListen.some(([type])=>type==='imageMatch'));
 assert.ok(Z.TYPES.grammar.some(([type])=>type==='imageChoice'));
 assert.ok(Z.TYPES.exam.some(([type])=>type==='wordImageChoice'));
 assert.doesNotThrow(()=>Z.validateItem('checkpointVocab',{type:'imageChoice',prompt:'legacy',image:images[0],options:['a','b','c'],correct:0,explanation:'legacy remains valid'}));
 assert.throws(()=>Z.validateItem('checkpointVocab',{type:'wordImageChoice',answer:'book',images:images.slice(0,3),correct:0,explanation:'x'}),/أربع صور/);
+
+const extended=Array.from(I.EXTENDED_HEADERS);
+const matchRow=Array(24).fill('');
+matchRow[0]='checkpointVocab';matchRow[1]=matchRow[2]=matchRow[3]=1;matchRow[4]='imageMatch';
+matchRow[5]=images[0];matchRow[11]='book';matchRow[12]='pen';matchRow[13]='bag';matchRow[15]='Match each image.';matchRow[20]='car';matchRow[21]=images[1];matchRow[22]=images[2];matchRow[23]=images[3];
+const imported=I.parseRows([extended,matchRow],Z.validateItem);
+assert.equal(imported.count,1,'extended image schema imports');
+assert.deepEqual(Array.from(imported.boxes.get(1).checkpointVocab[0].options),['book','pen','bag','car']);
+assert.equal(imported.boxes.get(1).checkpointVocab[0].images.length,4);
 
 Z.start(1);
 let html=Z.render({snapshot:{level:'A0'}});
