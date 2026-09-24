@@ -565,3 +565,141 @@
 .zone-grammar-ar-only{position:relative;z-index:1}
 .zone-grammar-ar-only p{margin:0;border:1px solid #eadcbf;background:#fff8e9;color:#544832;border-radius:14px;padding:15px 16px;line-height:1.95;font-size:12px}
 @media(max-width:700px){.zone-image-open>span{left:8px;bottom:8px;padding:6px 9px;font-size:9px}}
+
+
+/* Full-bleed image treatment */
+/* Every learning image fills its visual frame edge-to-edge. Cropping is intentional. */
+.zone-image-frame{
+  height:min(42vw,350px);
+  min-height:230px;
+  padding:0;
+}
+.zone-image-frame .zone-image-open,
+.zone-image-frame img{
+  width:100%;
+  height:100%;
+  max-width:none;
+  max-height:none;
+}
+.zone-image-frame img{
+  min-height:0;
+  object-fit:cover;
+}
+
+/* Vocabulary image word */
+.zone-image-word-media{
+  padding:0;
+}
+.zone-image-word-media .zone-image-open-card,
+.zone-image-word-media img{
+  width:100%;
+  height:100%;
+}
+.zone-image-word-media img{
+  max-height:none;
+  object-fit:cover;
+  filter:none;
+}
+
+/* Listening / speaking image */
+.zone-listen-image-card .zone-image-open-listen,
+.zone-listen-image-card img{
+  width:100%;
+  height:100%;
+}
+.zone-listen-image-card img{
+  padding:0;
+  object-fit:cover;
+}
+
+/* Word -> four image choices */
+.zone-image-option span{
+  height:190px;
+  min-height:190px;
+  padding:0;
+}
+.zone-image-option span img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:18px;
+}
+
+/* Four words <-> four images */
+.zone-image-match-card{
+  gap:0;
+  padding:0;
+  overflow:hidden;
+}
+.zone-image-match-card img{
+  width:100%;
+  height:175px;
+  object-fit:cover;
+  border-radius:0;
+  background:none;
+}
+.zone-image-match-card select{
+  width:calc(100% - 20px);
+  margin:10px;
+}
+
+/* One image -> four word choices */
+.zone-image-question-focus img{
+  width:100%;
+  height:100%;
+  padding:0;
+  object-fit:cover;
+}
+
+/* Content preview / closet */
+.zone-preview-image-set{
+  overflow:hidden;
+}
+.zone-preview-image-set img{
+  width:100%;
+  height:140px;
+  object-fit:cover;
+  border-radius:12px;
+}
+.closet-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* Generic clickable image wrapper must not reintroduce contain behavior. */
+.zone-image-open img{
+  width:100%;
+  height:100%;
+  max-width:none;
+  max-height:none;
+  object-fit:cover;
+}
+
+@media(max-width:700px){
+  .zone-image-frame{
+    height:230px;
+    min-height:230px;
+  }
+  .zone-image-word-media{
+    padding:0;
+  }
+  .zone-listen-image-card img{
+    padding:0;
+  }
+  .zone-image-option span{
+    height:132px;
+    min-height:132px;
+    padding:0;
+  }
+  .zone-image-option span img,
+  .zone-image-match-card img{
+    height:100%;
+  }
+  .zone-image-match-card img{
+    height:120px;
+  }
+  .zone-preview-image-set img{
+    height:105px;
+  }
+}
