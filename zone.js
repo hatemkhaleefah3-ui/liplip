@@ -17,7 +17,7 @@ const LiplipZone = (() => {
   listen:[['word','صوت كلمة'],['sentence','صوت جملة'],['imageWord','صورة: استمع وانطق']],
   checkpointVocab:[['choice','سؤال اختيارات'],['write','اكتب الإجابة'],['speak','انطق الإجابة'],['wordImageChoice','كلمة ← 4 صور'],['imageMatch','اربط 4 كلمات بـ 4 صور'],['imageChoice','صورة ← 4 كلمات']],
   checkpointListen:[['audioChoice','سؤال صوت واختيارات'],['wordImageChoice','كلمة ← 4 صور'],['imageMatch','اربط 4 كلمات بـ 4 صور'],['imageChoice','صورة ← 4 كلمات']],
-  grammar:[['sentenceRule','قانون الجملة العادية'],['questionRule','قاعدة تكوين السؤال'],['negativeRule','قاعدة تكوين النفي'],['subjectGuide','دليل الفاعل والفعل المساعد'],['agreementGuide','المفرد والجمع'],['note','ملاحظة ثنائية اللغة'],['exceptionNote','حالة خاصة / جملة غير معتادة'],['example','مثال'],['choice','سؤال اختبار'],['wordImageChoice','كلمة ← 4 صور'],['imageMatch','اربط 4 كلمات بـ 4 صور'],['imageChoice','صورة ← 4 كلمات']],
+  grammar:[['sentenceRule','قانون الجملة العادية'],['questionRule','قاعدة تكوين السؤال'],['negativeRule','قاعدة تكوين النفي'],['subjectGuide','دليل الفاعل والفعل المساعد'],['agreementGuide','المفرد والجمع'],['note','ملاحظة'],['exceptionNote','حالة خاصة / جملة غير معتادة'],['example','مثال'],['choice','سؤال اختبار'],['wordImageChoice','كلمة ← 4 صور'],['imageMatch','اربط 4 كلمات بـ 4 صور'],['imageChoice','صورة ← 4 كلمات']],
   exam:[['choice','سؤال اختيارات'],['write','اكتب الإجابة'],['wordImageChoice','كلمة ← 4 صور'],['imageMatch','اربط 4 كلمات بـ 4 صور'],['imageChoice','صورة ← 4 كلمات']]
  };
  const allowedType=(process,type)=>TYPES[process]?.some(([value])=>value===type)||(['checkpointVocab','exam'].includes(process)&&LEGACY_IMAGE_TYPES.includes(type))||(process==='grammar'&&type==='addition');
