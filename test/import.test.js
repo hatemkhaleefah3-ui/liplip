@@ -22,6 +22,20 @@ async function upload(rows){
 }
 async function main(){
  assert.equal(I.parseRows([heading,vocab(1,1,1)],Z.validateItem).count,1);
+ const courseRow=values=>I.HEADERS.map(header=>values[header]??'');
+ const course=I.parseRows([
+  I.HEADERS,
+  courseRow({'Item process':'checkpointVocab','Item level':1,'Item step':1,'Item box':1,'Item type':'write','Prompt':"Write the English word for 'سيارة'.",'Explanation':'The translation is car.','Answer':'car'}),
+  courseRow({'Item process':'checkpointVocab','Item level':1,'Item step':1,'Item box':1,'Item type':'speak','Prompt':"Say the word 'house'.",'Explanation':'Pronounce house clearly.','Answer':'house'}),
+  courseRow({'Item process':'grammar','Item level':1,'Item step':1,'Item box':1,'Item type':'sentenceRule','Title':'Present Simple','Formula':'Subject + Verb(s/es)','Body':'اقرأ وتدرب على القاعدة.'}),
+  courseRow({'Item process':'grammar','Item level':1,'Item step':1,'Item box':1,'Item type':'note','Body':'Use for habits and general truths.'}),
+  courseRow({'Item process':'checkpointGrammar','Item level':1,'Item step':1,'Item box':1,'Item type':'choice','Prompt':'Select the correct form:','Option 1':'A','Option 2':'B','Option 3':'C','Correct option':1,'Explanation':'Correct form used.'})
+ ],Z.validateItem);
+ assert.equal(course.count,5,'course workbook compatibility rows parse');
+ assert.equal(course.boxes.get(1).checkpointVocab.length,2);
+ assert.equal(course.boxes.get(1).checkpointVocab[1].type,'speak');
+ assert.equal(course.boxes.get(1).grammar.length,3,'checkpointGrammar is folded into the grammar phase');
+ assert.equal(course.boxes.get(1).grammar.at(-1).type,'choice');
  assert.throws(()=>I.parseRows([heading,vocab(1,11,1)],Z.validateItem),/الصف 2/);
  assert.throws(()=>I.parseRows([heading,['exam',1,1,1,'choice','','','','السؤال','','أ','ب','ج',4,'شرح']],Z.validateItem),/الإجابة الصحيحة/);
  assert.throws(()=>I.parseRows([heading,['listen',1,1,1,'word','hello','']],Z.validateItem),/الصف 2/);
