@@ -6,7 +6,7 @@ const root=path.join(__dirname,'..');
 const data=new Map();
 let failWrites=false;
 const localStorage={getItem:key=>data.get(key)||null,setItem:(key,value)=>{if(failWrites)throw Error('quota');data.set(key,value)},removeItem:key=>data.delete(key)};
-const context={localStorage,window:{speechSynthesis:{cancel(){}}},document:{},Date,Number,Object,Math,Set,Map};
+const context={localStorage,window:{speechSynthesis:{cancel(){}}},document:{},Date,Number,Object,Math,Set,Map,URL};
 vm.createContext(context);
 for(const file of ['progress.js','content.js','zone.js','import.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context);
 vm.runInContext('this.P=LiplipProgress;this.Z=LiplipZone;this.I=LiplipImporter;',context);
@@ -22,6 +22,11 @@ async function upload(rows){
 }
 async function main(){
  assert.equal(I.parseRows([heading,vocab(1,1,1)],Z.validateItem).count,1);
+ const sparseImageRow=['vocab',1,1,1,'imageWord','https://liplip.pages.dev/images/placeholder.svg','pen','قلم','The pen is here.'];
+ const sparseImage=I.parseRows([I.HEADERS,sparseImageRow],Z.validateItem);
+ assert.equal(sparseImage.count,1,'sparse image-first row imports');
+ assert.equal(sparseImage.boxes.get(1).vocab[0].image,'https://liplip.pages.dev/images/placeholder.svg','image URL remains mapped to Image link');
+ assert.equal(sparseImage.boxes.get(1).vocab[0].en,'pen');
  const courseRow=values=>I.HEADERS.map(header=>values[header]??'');
  const course=I.parseRows([
   I.HEADERS,
