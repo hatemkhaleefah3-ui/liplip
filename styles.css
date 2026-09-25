@@ -1595,3 +1595,46 @@
     gap:8px;
   }
 }
+
+
+/* Unified Watch Read template */
+.reception-format-grid.unified{
+  grid-template-columns:1fr;
+}
+.reception-format-unified{
+  display:grid;
+  gap:10px;
+}
+.reception-format-unified>p{
+  max-width:780px;
+}
+.reception-format-help{
+  display:grid;
+  gap:7px;
+  margin-top:4px;
+  border-top:1px dashed #d7cbb3;
+  padding-top:12px;
+}
+.reception-format-help>b{
+  color:#4f7069;
+  font-size:9px;
+}
+.reception-format-help>code{
+  display:block;
+  border:1px solid #ddd2bd;
+  border-radius:11px;
+  padding:10px;
+  background:#faf7ef;
+  direction:ltr;
+  text-align:left;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  color:#5f5547;
+  font-size:8px;
+  line-height:1.8;
+}
+.reception-format-help>small{
+  color:#8a7b66;
+  font-size:8px;
+  line-height:1.7;
+}
