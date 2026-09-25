@@ -1427,3 +1427,171 @@
   background:#eef7f3;color:#446d65;font:inherit;font-size:9px;font-weight:900;cursor:pointer;
 }
 .reception-template-download:hover{background:#e2f0ea}
+
+
+/* Compact treasure status v16 */
+.treasure-map-hero-status{
+  grid-template-columns:minmax(0,1.35fr) minmax(270px,.65fr);
+  align-items:center;
+}
+.treasure-status-mini{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:11px 14px;
+  align-items:center;
+  border:1px solid #cfb477;
+  border-radius:20px;
+  padding:13px 14px;
+  background:linear-gradient(145deg,#fffdf3e8,#f4e3bbe8);
+  box-shadow:inset 0 0 0 3px #fff8e2a6,0 8px 22px #6a4c2114;
+}
+.treasure-status-mini-box{
+  grid-row:1 / 3;
+  min-width:78px;
+  display:grid;
+  place-items:center;
+  align-self:stretch;
+  border-left:1px dashed #c7ad75;
+  padding-left:13px;
+}
+.treasure-status-mini-box>span{
+  color:#91754b;
+  font-size:8px;
+  font-weight:900;
+}
+.treasure-status-mini-box>strong{
+  margin:1px 0;
+  color:#5d4324;
+  font:900 29px/1 'DM Sans',sans-serif;
+  letter-spacing:.02em;
+}
+.treasure-status-mini-box>small{
+  color:#8a775b;
+  font-size:7px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.treasure-status-mini-progress{
+  min-width:0;
+}
+.treasure-status-mini-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+.treasure-status-mini-head>span{
+  overflow:hidden;
+  color:#594936;
+  font-size:10px;
+  font-weight:900;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.treasure-status-mini-head>b{
+  flex:none;
+  color:#78582d;
+  font:900 10px 'DM Sans',sans-serif;
+}
+.treasure-status-mini-bar{
+  height:5px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#ded0ac;
+}
+.treasure-status-mini-bar>i{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:#8060a3;
+}
+.treasure-status-mini-dots{
+  display:flex;
+  gap:4px;
+  margin-top:7px;
+}
+.treasure-status-mini-dots>i{
+  flex:1;
+  height:4px;
+  border-radius:999px;
+  background:#dfd3b6;
+}
+.treasure-status-mini-dots>i.done{background:#61906b}
+.treasure-status-mini-dots>i.active{
+  background:#8060a3;
+  box-shadow:0 0 0 1px #8060a326;
+}
+.treasure-status-mini-count{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  color:#87745a;
+  font-size:7px;
+  font-weight:800;
+}
+.treasure-status-mini-count span{
+  white-space:nowrap;
+}
+.treasure-status-mini-count b{
+  color:#5e472b;
+  font:900 9px 'DM Sans',sans-serif;
+}
+.treasure-status-mini.reception{
+  border-color:#aec4bd;
+  background:linear-gradient(145deg,#fbfbf3ed,#e5eee9eb);
+  box-shadow:inset 0 0 0 3px #ffffffa3,0 8px 22px #31564d14;
+}
+.treasure-status-mini.reception .treasure-status-mini-box{
+  border-left-color:#b4cbc4;
+}
+.treasure-status-mini.reception .treasure-status-mini-box>span,
+.treasure-status-mini.reception .treasure-status-mini-box>small{
+  color:#607972;
+}
+.treasure-status-mini.reception .treasure-status-mini-box>strong,
+.treasure-status-mini.reception .treasure-status-mini-head>b,
+.treasure-status-mini.reception .treasure-status-mini-count b{
+  color:#365c54;
+}
+.treasure-status-mini.reception .treasure-status-mini-head>span{
+  color:#435f59;
+}
+.treasure-status-mini.reception .treasure-status-mini-bar{
+  background:#d6e0dc;
+}
+.treasure-status-mini.reception .treasure-status-mini-bar>i,
+.treasure-status-mini.reception .treasure-status-mini-dots>i.active{
+  background:#4f8279;
+}
+.treasure-status-mini.reception .treasure-status-mini-dots>i.done{
+  background:#5b8b72;
+}
+@media(max-width:700px){
+  .treasure-map-hero-status{
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+  .treasure-status-mini{
+    grid-template-columns:72px minmax(0,1fr);
+    gap:8px 11px;
+    border-radius:17px;
+    padding:10px 11px;
+  }
+  .treasure-status-mini-box{
+    min-width:0;
+    padding-left:10px;
+  }
+  .treasure-status-mini-box>strong{
+    font-size:24px;
+  }
+  .treasure-status-mini-head{
+    margin-bottom:5px;
+  }
+  .treasure-status-mini-count{
+    gap:8px;
+  }
+}
