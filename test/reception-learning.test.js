@@ -31,6 +31,24 @@ for(const file of ['progress.js','reception-import.js','reception.js'])vm.runInC
 vm.runInContext('this.P=LiplipProgress;this.I=LiplipReceptionImporter;this.R=LiplipReception;',context);
 const {P,I,R}=context;
 
+const combined=[];
+combined[0]=I.COMBINED_HEADERS;
+combined[1]=[
+ 'Tom has a red ball.',
+ 'EN_AR | red | أحمر\nAR_EN | كرة | ball\nMCQ | من لديه كرة؟ | Tom | Sara | Ali | Omar | 1',
+ 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+ 'VOICE | Hello there | Hello there | Goodbye | Thank you | Good morning | 1\nIMAGE_AR | https://example.com/cat.jpg | قطة\nMCQ | ما معنى hello؟ | مرحباً | وداعاً | شكراً | آسف | 1'
+];
+combined[3]=['','','https://youtu.be/abc123',''];
+const unified=I.parseRows(combined,R.validate);
+assert.equal(unified.format,'combined');
+assert.equal(unified.boxes.get(1).read.length,1);
+assert.equal(unified.boxes.get(1).readExam.length,3);
+assert.equal(unified.boxes.get(1).watch.length,1);
+assert.equal(unified.boxes.get(1).watchExam.length,3);
+assert.equal(unified.boxes.has(2),false);
+assert.equal(unified.boxes.has(3),true);
+
 const watch=[
  I.WATCH_HEADERS,
  ['watch',1,1,1,'video','فيديو الترحيب','https://www.youtube.com/watch?v=dQw4w9WgXcQ','Hello there','استمع للتحية','','','','','','','','',''],
