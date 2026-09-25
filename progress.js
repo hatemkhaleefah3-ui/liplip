@@ -3,6 +3,7 @@ const LiplipProgress = (() => {
   const STAGES = ['التأسيس','بناء المفردات','التعبير','التفاعل','الإتقان'];
   const LEVELS = ['A0','A1','A2','B1','B2','C1','C2'];
   const METRICS = ['pronunciation','writing','listening','reading','communication','accent','fluency'];
+  const RECEPTION_PROCESSES=['watch','watchExam','read','readExam'];
   const STEP_NAMES = [
     ['أول الطريق','التعارف','كلمات من يومك','أسئلة بسيطة','الوقت والمكان','أشياء حولنا','عبارات مفيدة','مواقف مألوفة','نرتّب الكلمات','نراجع وننطلق'],
     ['المعاني الجديدة','وصف الأشياء','حكاية يومية','اختيار الكلمات','سؤال أوضح','جمل أطول','نسمع ونفهم','نقرأ ونكتشف','تعبير بسيط','نجمع ما تعلّمنا'],
@@ -21,7 +22,7 @@ const LiplipProgress = (() => {
     {words:7000,boxes:1000,samples:30,score:90}
   ];
   const TOTAL_BOXES = 5 * 10 * 20;
-  const fresh = () => ({completedBoxes:[],vocabulary:[],grammar:[],ratings:Object.fromEntries(METRICS.map(k=>[k,[]]))});
+  const fresh = () => ({completedBoxes:[],vocabulary:[],grammar:[],receptionBoxes:[],ratings:Object.fromEntries(METRICS.map(k=>[k,[]]))});
   const validBox = n => Number.isInteger(n)&&n>=1&&n<=TOTAL_BOXES;
   const limited=(value,max)=>typeof value==='string'?value.trim().slice(0,max):'';
   function hydrate(raw){
@@ -33,6 +34,14 @@ const LiplipProgress = (() => {
         const key=item.word.trim().toLocaleLowerCase();if(!key||key.length>80||seen.has(key))return false;
         seen.add(key);return true;
       }).slice(0,10000).map(item=>({word:item.word.trim(),boxId:validBox(item.boxId)?item.boxId:null,ar:limited(item.ar,160),example:limited(item.example,220),image:typeof item.image==='string'&&/^https:\/\//i.test(item.image)?limited(item.image,500):''}));
+    }
+    if(Array.isArray(raw.receptionBoxes)){
+      const seen=new Set();
+      p.receptionBoxes=raw.receptionBoxes.filter(entry=>entry&&validBox(entry.boxId)&&!seen.has(entry.boxId)&&seen.add(entry.boxId)).slice(0,TOTAL_BOXES).map(entry=>{
+        const rawCompleted=Array.isArray(entry.completed)?entry.completed:[];
+        const completed=[];for(const key of RECEPTION_PROCESSES){if(rawCompleted.includes(key))completed.push(key);else break}
+        return {boxId:entry.boxId,completed,scores:{watchExam:typeof entry.scores?.watchExam==='number'?Math.max(0,Math.min(100,entry.scores.watchExam)):null,readExam:typeof entry.scores?.readExam==='number'?Math.max(0,Math.min(100,entry.scores.readExam)):null}};
+      }).sort((a,b)=>a.boxId-b.boxId);
     }
     if(Array.isArray(raw.grammar)){
       const seen=new Set(),completed=new Set(p.completedBoxes);
@@ -75,6 +84,28 @@ const LiplipProgress = (() => {
     p.ratings.pronunciation.push(pronunciation);p.ratings.writing.push(writing);
     return hydrate(p);
   }
+
+  function receptionSnapshot(raw){
+    const p=hydrate(raw),records=new Map(p.receptionBoxes.map(x=>[x.boxId,x]));
+    const complete=new Set(p.receptionBoxes.filter(x=>x.completed.length===RECEPTION_PROCESSES.length).map(x=>x.boxId));
+    let currentBox=1;while(currentBox<=TOTAL_BOXES&&complete.has(currentBox))currentBox++;
+    const boxId=currentBox<=TOTAL_BOXES?currentBox:null,position=location(boxId||TOTAL_BOXES),record=boxId?records.get(boxId):null;
+    const processIndex=boxId?Math.min(RECEPTION_PROCESSES.length,record?.completed.length||0):RECEPTION_PROCESSES.length;
+    return {currentBox:boxId,position,completedBoxes:[...complete].sort((a,b)=>a-b),processIndex,process:RECEPTION_PROCESSES[processIndex]||null,totalBoxes:TOTAL_BOXES};
+  }
+  function recordReceptionProcess(raw,{boxId,process,score=100}){
+    const p=hydrate(raw),snap=receptionSnapshot(p);
+    if(!validBox(boxId)||boxId!==snap.currentBox)throw new Error('Reception boxes must be completed in order');
+    const expected=RECEPTION_PROCESSES[snap.processIndex];
+    if(process!==expected)throw new Error('Reception processes must be completed in order');
+    if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw new Error('Invalid reception score');
+    let record=p.receptionBoxes.find(x=>x.boxId===boxId);
+    if(!record){record={boxId,completed:[],scores:{watchExam:null,readExam:null}};p.receptionBoxes.push(record)}
+    record.completed.push(process);
+    if(process==='watchExam'){record.scores.watchExam=score;p.ratings.listening.push(score)}
+    if(process==='readExam'){record.scores.readExam=score;p.ratings.reading.push(score)}
+    return hydrate(p);
+  }
   function recordChat(raw,{communication,accent,fluency}){
     const p=hydrate(raw);for(const [key,value] of Object.entries({communication,accent,fluency})){
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)throw new Error('Invalid chat rating');
@@ -87,5 +118,5 @@ const LiplipProgress = (() => {
     if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw new Error('Invalid reception rating');
     const p=hydrate(raw);p.ratings[kind==='watching'?'listening':'reading'].push(score);return hydrate(p);
   }
-  return {STAGES,STEP_NAMES,BOX_NAMES,LEVELS,METRICS,REQUIREMENTS,TOTAL_BOXES,hydrate,snapshot,location,recordStudy,recordChat,recordReception};
+  return {STAGES,STEP_NAMES,BOX_NAMES,LEVELS,METRICS,REQUIREMENTS,RECEPTION_PROCESSES,TOTAL_BOXES,hydrate,snapshot,receptionSnapshot,location,recordStudy,recordReceptionProcess,recordChat,recordReception};
 })();
