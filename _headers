@@ -8,3 +8,15 @@
   Cache-Control: no-cache, must-revalidate, max-age=0
 /styles.css
   Cache-Control: no-cache, must-revalidate, max-age=0
+
+/app.js
+  Cache-Control: no-cache, must-revalidate, max-age=0
+
+/progress.js
+  Cache-Control: no-cache, must-revalidate, max-age=0
+
+/reception.js
+  Cache-Control: no-cache, must-revalidate, max-age=0
+
+/reception-import.js
+  Cache-Control: no-cache, must-revalidate, max-age=0
