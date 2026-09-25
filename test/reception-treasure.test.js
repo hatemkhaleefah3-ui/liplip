@@ -70,10 +70,12 @@ assert.match(app.innerHTML,/تشغيل الصوت الإنجليزي/);
 assert.match(app.innerHTML,/اكتب الإجابة بالعربية/);
 
 click('reception','control');
-assert.match(app.innerHTML,/قالب المشاهدة/);
-assert.match(app.innerHTML,/قالب القراءة/);
-assert.equal((app.innerHTML.match(/data-reception="download-template"/g)||[]).length,2);
-assert.match(app.innerHTML,/textVoice/);
-assert.match(app.innerHTML,/storyPage/);
+assert.match(app.innerHTML,/قالب واحد للمشاهدة والقراءة/);
+assert.match(app.innerHTML,/4 أعمدة فقط/);
+assert.equal((app.innerHTML.match(/data-reception="download-template"/g)||[]).length,1);
+assert.match(app.innerHTML,/Read Exam/);
+assert.match(app.innerHTML,/Watch Exam/);
+assert.match(app.innerHTML,/EN_AR/);
+assert.match(app.innerHTML,/VOICE/);
 
 console.log('Watch/Read treasure navigation, status, video, exam, and content control passed');
