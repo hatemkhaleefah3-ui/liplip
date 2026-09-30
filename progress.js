@@ -4,6 +4,9 @@ const LiplipProgress = (() => {
   const LEVELS = ['A0','A1','A2','B1','B2','C1','C2'];
   const METRICS = ['pronunciation','writing','listening','reading','communication','accent','fluency'];
   const RECEPTION_PROCESSES=['watch','watchExam','read','readExam'];
+  const COURSE_PHASES=['vocabulary','grammar','watchRead'];
+  const COURSE_PROCESSES={vocabulary:['content','exam'],grammar:['article','exam'],watchRead:['video','story']};
+  const COURSE_ORDER=COURSE_PHASES.flatMap(phase=>COURSE_PROCESSES[phase].map(process=>phase+':'+process));
   const STEP_NAMES = [
     ['أول الطريق','التعارف','كلمات من يومك','أسئلة بسيطة','الوقت والمكان','أشياء حولنا','عبارات مفيدة','مواقف مألوفة','نرتّب الكلمات','نراجع وننطلق'],
     ['المعاني الجديدة','وصف الأشياء','حكاية يومية','اختيار الكلمات','سؤال أوضح','جمل أطول','نسمع ونفهم','نقرأ ونكتشف','تعبير بسيط','نجمع ما تعلّمنا'],
@@ -22,7 +25,7 @@ const LiplipProgress = (() => {
     {words:7000,boxes:1000,samples:30,score:90}
   ];
   const TOTAL_BOXES = 5 * 10 * 20;
-  const fresh = () => ({completedBoxes:[],vocabulary:[],grammar:[],receptionBoxes:[],ratings:Object.fromEntries(METRICS.map(k=>[k,[]]))});
+  const fresh = () => ({completedBoxes:[],vocabulary:[],grammar:[],receptionBoxes:[],courseBoxes:[],ratings:Object.fromEntries(METRICS.map(k=>[k,[]]))});
   const validBox = n => Number.isInteger(n)&&n>=1&&n<=TOTAL_BOXES;
   const limited=(value,max)=>typeof value==='string'?value.trim().slice(0,max):'';
   function hydrate(raw){
@@ -43,6 +46,26 @@ const LiplipProgress = (() => {
         return {boxId:entry.boxId,completed,scores:{watchExam:typeof entry.scores?.watchExam==='number'?Math.max(0,Math.min(100,entry.scores.watchExam)):null,readExam:typeof entry.scores?.readExam==='number'?Math.max(0,Math.min(100,entry.scores.readExam)):null}};
       }).sort((a,b)=>a.boxId-b.boxId);
     }
+    const hasCourse=Array.isArray(raw.courseBoxes);
+    if(hasCourse){
+      const seen=new Set();
+      p.courseBoxes=raw.courseBoxes.filter(x=>x&&validBox(x.boxId)&&!seen.has(x.boxId)&&seen.add(x.boxId)).map(x=>{
+        const completed=[],input=Array.isArray(x.completed)?x.completed:[];
+        for(const token of COURSE_ORDER){if(input.includes(token))completed.push(token);else break}
+        const scores={};for(const token of completed){const value=x.scores?.[token];scores[token]=typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(100,value)):100}
+        return {boxId:x.boxId,completed,scores};
+      }).sort((a,b)=>a.boxId-b.boxId);
+    }else{
+      const study=new Set(p.completedBoxes),reception=new Map(p.receptionBoxes.map(x=>[x.boxId,x]));
+      for(let boxId=1;boxId<=TOTAL_BOXES;boxId++){
+        const completed=[],scores={};
+        if(study.has(boxId))completed.push(...COURSE_ORDER.slice(0,4));
+        const old=reception.get(boxId);
+        if(completed.length===4&&old?.completed.includes('watchExam')){completed.push('watchRead:video');scores['watchRead:video']=old.scores.watchExam??100}
+        if(completed.length===5&&old?.completed.includes('readExam')){completed.push('watchRead:story');scores['watchRead:story']=old.scores.readExam??100}
+        if(completed.length)p.courseBoxes.push({boxId,completed,scores});
+      }
+    }
     if(Array.isArray(raw.grammar)){
       const seen=new Set(),completed=new Set(p.completedBoxes);
       p.grammar=raw.grammar.filter(item=>{
@@ -55,8 +78,10 @@ const LiplipProgress = (() => {
     return p;
   }
   function location(boxId){const index=boxId-1;return {stage:Math.floor(index/200)+1,step:Math.floor(index%200/20)+1,box:index%20+1}}
+  function courseLocation(boxId){const index=boxId-1;return {level:Math.floor(index/200)+1,box:index%200+1}}
+  function courseComplete(p){return new Set(p.courseBoxes.filter(x=>x.completed.length===COURSE_ORDER.length).map(x=>x.boxId))}
   function snapshot(raw){
-    const p=hydrate(raw);const completed=new Set(p.completedBoxes);
+    const p=hydrate(raw);const completed=p.courseBoxes.length?courseComplete(p):new Set(p.completedBoxes);
     let currentBox=1;while(currentBox<=TOTAL_BOXES&&completed.has(currentBox))currentBox++;
     const position=location(Math.min(currentBox,TOTAL_BOXES));
     const metrics=Object.fromEntries(METRICS.map(key=>{const values=p.ratings[key];return [key,{count:values.length,average:values.length?Math.round(values.reduce((a,b)=>a+b,0)/values.length):null}]}));
@@ -65,7 +90,7 @@ const LiplipProgress = (() => {
       if(p.vocabulary.length>=req.words&&p.completedBoxes.length>=req.boxes&&METRICS.every(k=>metrics[k].count>=req.samples&&metrics[k].average>=req.score))index=i;
       else break;
     }
-    return {level:LEVELS[index],levelIndex:index,next:REQUIREMENTS[index+1]||null,vocabularyCount:p.vocabulary.length,completedCount:p.completedBoxes.length,currentBox:currentBox<=TOTAL_BOXES?currentBox:null,position,stageName:STAGES[position.stage-1],stepName:STEP_NAMES[position.stage-1][position.step-1],boxName:currentBox<=TOTAL_BOXES?BOX_NAMES[position.box-1]:'اكتملت الرحلة',metrics,stages:STAGES,totalBoxes:TOTAL_BOXES};
+    return {level:LEVELS[index],levelIndex:index,next:REQUIREMENTS[index+1]||null,vocabularyCount:p.vocabulary.length,completedCount:completed.size,currentBox:currentBox<=TOTAL_BOXES?currentBox:null,position,stageName:STAGES[position.stage-1],stepName:STEP_NAMES[position.stage-1][position.step-1],boxName:currentBox<=TOTAL_BOXES?BOX_NAMES[position.box-1]:'اكتملت الرحلة',metrics,stages:STAGES,totalBoxes:TOTAL_BOXES};
   }
   /* Future study/chat features may call these after real assessment. Viewing a box never calls them. */
   function recordStudy(raw,{boxId,words=[],wordItems=[],grammar=[],pronunciation,writing}){
@@ -106,6 +131,42 @@ const LiplipProgress = (() => {
     if(process==='readExam'){record.scores.readExam=score;p.ratings.reading.push(score)}
     return hydrate(p);
   }
+  function courseSnapshot(raw){
+    const p=hydrate(raw),records=p.courseBoxes.map(entry=>{
+      const completedPhases=COURSE_PHASES.filter((phase,i)=>entry.completed.length>=(i+1)*2);
+      const phaseIndex=Math.min(2,Math.floor(entry.completed.length/2)),currentPhase=COURSE_PHASES[phaseIndex],processIndex=entry.completed.length%2;
+      return {...entry,completedPhases,currentPhase,processIndex};
+    }),complete=courseComplete(p);
+    let currentBox=1;while(currentBox<=TOTAL_BOXES&&complete.has(currentBox))currentBox++;
+    const boxId=currentBox<=TOTAL_BOXES?currentBox:null,record=boxId?records.find(x=>x.boxId===boxId):null,done=record?.completed.length||0,phaseIndex=boxId?Math.min(2,Math.floor(done/2)):3;
+    return {currentBox:boxId,completedBoxes:[...complete].sort((a,b)=>a-b),records,phaseIndex,phase:COURSE_PHASES[phaseIndex]||null,processIndex:boxId?done%2:0,totalBoxes:TOTAL_BOXES};
+  }
+  function recordCourseProcess(raw,{boxId,phase,process,score=100,words=[],grammar=[]}){
+    const p=hydrate(raw),snap=courseSnapshot(p);
+    if(!validBox(boxId)||boxId!==snap.currentBox)throw new Error('Course boxes must be completed in order');
+    let record=p.courseBoxes.find(x=>x.boxId===boxId);
+    if(!record){record={boxId,completed:[],scores:{}};p.courseBoxes.push(record)}
+    const expected=COURSE_ORDER[record.completed.length],token=phase+':'+process;
+    if(token!==expected)throw new Error('Course phases and processes must be completed in order');
+    if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw new Error('Invalid course score');
+    record.completed.push(token);record.scores[token]=score;
+    if(token==='vocabulary:exam'){
+      const seen=new Set(p.vocabulary.map(x=>x.word.toLocaleLowerCase()));
+      for(const item of words){const word=limited(item?.word,80);if(!word||seen.has(word.toLocaleLowerCase()))continue;seen.add(word.toLocaleLowerCase());p.vocabulary.push({word,boxId,ar:limited(item.ar,160),example:limited(item.example,220),image:typeof item.image==='string'&&/^https:\/\//i.test(item.image)?limited(item.image,500):''})}
+      p.ratings.pronunciation.push(score);p.ratings.writing.push(score);
+    }
+    if(token==='grammar:exam'){
+      const article=grammar[0]||{},rules=[['sentenceRule','Normal',article.normal],['negativeRule','Negative',article.negative],['questionRule','Question',article.question]];
+      for(const [type,title,formula] of rules)if(formula)p.grammar.push({boxId,id:type+'-'+boxId,type,title,formula:limited(formula,220),en:'',ar:'',body:limited(article.rule,700),example:limited(article.examples?.[0]?.text,220)});
+      p.ratings.writing.push(score);
+    }
+    if(token==='watchRead:video')p.ratings.listening.push(score);
+    if(token==='watchRead:story')p.ratings.reading.push(score);
+    if(record.completed.length===COURSE_ORDER.length&&!p.completedBoxes.includes(boxId))p.completedBoxes.push(boxId);
+    p.courseBoxes.sort((a,b)=>a.boxId-b.boxId);
+    return hydrate(p);
+  }
+
   function recordChat(raw,{communication,accent,fluency}){
     const p=hydrate(raw);for(const [key,value] of Object.entries({communication,accent,fluency})){
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)throw new Error('Invalid chat rating');
@@ -118,5 +179,5 @@ const LiplipProgress = (() => {
     if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw new Error('Invalid reception rating');
     const p=hydrate(raw);p.ratings[kind==='watching'?'listening':'reading'].push(score);return hydrate(p);
   }
-  return {STAGES,STEP_NAMES,BOX_NAMES,LEVELS,METRICS,REQUIREMENTS,RECEPTION_PROCESSES,TOTAL_BOXES,hydrate,snapshot,receptionSnapshot,location,recordStudy,recordReceptionProcess,recordChat,recordReception};
+  return {STAGES,STEP_NAMES,BOX_NAMES,LEVELS,METRICS,REQUIREMENTS,RECEPTION_PROCESSES,COURSE_PHASES,COURSE_PROCESSES,TOTAL_BOXES,hydrate,snapshot,receptionSnapshot,courseSnapshot,location,courseLocation,recordStudy,recordReceptionProcess,recordCourseProcess,recordChat,recordReception};
 })();
