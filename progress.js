@@ -67,7 +67,7 @@ const LiplipProgress = (() => {
       }
     }
     if(Array.isArray(raw.grammar)){
-      const seen=new Set(),completed=new Set(p.completedBoxes);
+      const seen=new Set(),completed=new Set([...p.completedBoxes,...p.courseBoxes.filter(x=>x.completed.length>=4).map(x=>x.boxId)]);
       p.grammar=raw.grammar.filter(item=>{
         if(!item||!completed.has(item.boxId)||!['sentenceRule','questionRule','negativeRule'].includes(item.type))return false;
         const id=limited(item.id,40),key=`${item.boxId}:${item.type}:${id}`;
@@ -87,7 +87,7 @@ const LiplipProgress = (() => {
     const metrics=Object.fromEntries(METRICS.map(key=>{const values=p.ratings[key];return [key,{count:values.length,average:values.length?Math.round(values.reduce((a,b)=>a+b,0)/values.length):null}]}));
     let index=0;for(let i=1;i<LEVELS.length;i++){
       const req=REQUIREMENTS[i];
-      if(p.vocabulary.length>=req.words&&p.completedBoxes.length>=req.boxes&&METRICS.every(k=>metrics[k].count>=req.samples&&metrics[k].average>=req.score))index=i;
+      if(p.vocabulary.length>=req.words&&completed.size>=req.boxes&&METRICS.every(k=>metrics[k].count>=req.samples&&metrics[k].average>=req.score))index=i;
       else break;
     }
     return {level:LEVELS[index],levelIndex:index,next:REQUIREMENTS[index+1]||null,vocabularyCount:p.vocabulary.length,completedCount:completed.size,currentBox:currentBox<=TOTAL_BOXES?currentBox:null,position,stageName:STAGES[position.stage-1],stepName:STEP_NAMES[position.stage-1][position.step-1],boxName:currentBox<=TOTAL_BOXES?BOX_NAMES[position.box-1]:'اكتملت الرحلة',metrics,stages:STAGES,totalBoxes:TOTAL_BOXES};
