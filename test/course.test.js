@@ -23,17 +23,26 @@ let p=P.hydrate(null);
 assert.equal(P.courseSnapshot(p).currentBox,1);
 const order=[['vocabulary','content'],['vocabulary','exam'],['grammar','article'],['grammar','exam'],['watchRead','video'],['watchRead','story']];
 assert.throws(()=>P.recordCourseProcess(p,{boxId:1,phase:'grammar',process:'article',score:100}),/order/);
-for(const [phase,process] of order)p=P.recordCourseProcess(p,{boxId:1,phase,process,score:90,words:[],grammar:[]});
+const scores=[100,90,100,75,80,100];
+order.forEach(([phase,process],i)=>{p=P.recordCourseProcess(p,{boxId:1,phase,process,score:scores[i],words:[],grammar:[]})});
 let snap=P.courseSnapshot(p);
 assert.equal(snap.currentBox,2);
 assert.deepEqual([...snap.completedBoxes],[1]);
 assert.deepEqual([...snap.records[0].completedPhases],['vocabulary','grammar','watchRead']);
+C.start(1,p,{review:true});C.afterProgress(p);
+const result=C.render(p);
+assert.match(result,/>85%<\/strong>/,'box score gives one third to each phase and averages video/story');
+assert.equal((result.match(/33\.333%/g)||[]).length,3);
+assert.match(result,/data-course="result-close"/);
+assert.match(result,/data-course="result-next"/);
+assert.match(result,/data-course="result-repeat"/);
 
 let legacy=P.hydrate({completedBoxes:[1],receptionBoxes:[{boxId:1,completed:['watch','watchExam','read','readExam'],scores:{watchExam:80,readExam:85}}]});
 assert.deepEqual([...P.courseSnapshot(legacy).completedBoxes],[1]);
 
 const initial=C.mapPage(P.hydrate(null));
 assert.match(initial,/data-course="level"/);
+assert.doesNotMatch(initial,/الصندوق الحالي/);
 C.click('level',{dataset:{level:'1'}},P.hydrate(null));
 const boxes=C.mapPage(P.hydrate(null));
 assert.equal((boxes.match(/class="course-box /g)||[]).length,200);
