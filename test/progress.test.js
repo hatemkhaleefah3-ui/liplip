@@ -12,7 +12,7 @@ const context={
 vm.createContext(context);
 for(const file of ['progress.js','content.js','zone.js','import.js','reception-import.js','reception.js','course.js','app.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context);
 vm.runInContext('this.P=LiplipProgress;this.C=LiplipCourse;this.S=state;',context);
-const {P,S}=context;
+const {P,C,S}=context;
 const click=(key,value)=>events.click({target:{closest:selector=>selector===`[data-${key}]`?{dataset:{[key.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]:String(value)}}:null},preventDefault(){}});
 const clickCourse=(action,data={})=>events.click({target:{closest:selector=>selector==='[data-course]'?{dataset:{course:action,...data}}:null},preventDefault(){}});
 
@@ -31,6 +31,34 @@ assert.doesNotMatch(app.innerHTML,/course-map-hero|خريطة الدراسة ا�
 assert.equal((app.innerHTML.match(/class="course-level /g)||[]).length,5);
 assert.doesNotMatch(app.innerHTML,/خطوة|data-study-step/);
 assert.doesNotMatch(app.innerHTML,/الصندوق الحالي/,'Study map status card is removed');
+assert.match(app.innerHTML,/course-control-fab/);
+clickCourse('manager-open');
+assert.match(app.innerHTML,/إضافة محتوى/);
+assert.match(app.innerHTML,/تعديل المحتوى/);
+clickCourse('manager-mode',{mode:'add'});
+assert.match(app.innerHTML,/إضافة يدوية/);
+assert.match(app.innerHTML,/استيراد/);
+clickCourse('manager-mode',{mode:'manual'});
+assert.match(app.innerHTML,/course-manager-selectors/);
+assert.match(app.innerHTML,/id="course-manager-add"/);
+events.submit({target:{id:'course-manager-add',dataset:{},values:{kind:'word',en:'manual word',ar:'كلمة يدوية',image:'',voice:'manual word'},reportValidity(){return true}},preventDefault(){}});
+assert.equal(C.getContent(1).vocabulary.items.at(-1).en,'manual word');
+assert.match(app.innerHTML,/تمت إضافة العنصر/);
+clickCourse('manager-back');
+clickCourse('manager-mode',{mode:'import'});
+assert.match(app.innerHTML,/data-course-manager-import/);
+assert.match(app.innerHTML,/data-course="manager-template-zip"/);
+assert.match(app.innerHTML,/liplip-content-templates/);
+clickCourse('manager-close');
+
+clickCourse('manager-open');
+clickCourse('manager-mode',{mode:'edit'});
+assert.match(app.innerHTML,/id="course-manager-edit"/);
+events.submit({target:{id:'course-manager-edit',dataset:{kind:'vocab-item',index:'0'},values:{kind:'word',en:'edited word',ar:'كلمة معدلة',image:'',voice:'edited word'},reportValidity(){return true}},preventDefault(){}});
+assert.equal(C.getContent(1).vocabulary.items[0].en,'edited word');
+assert.match(app.innerHTML,/تم حفظ التعديل/);
+clickCourse('manager-close');
+
 clickCourse('level',{level:'1'});
 assert.equal((app.innerHTML.match(/class="course-box /g)||[]).length,200);
 assert.doesNotMatch(app.innerHTML,/course-map-title|course-phase-key|خريطة المستوى/);
@@ -41,12 +69,7 @@ clickCourse('box',{boxId:'1'});
 assert.equal(S.page,'course-zone');
 assert.match(app.innerHTML,/المرحلة 01 · العملية 01/);
 assert.match(app.innerHTML,/كلمات وصور وأصوات/);
-clickCourse('control');
-assert.match(app.innerHTML,/liplip-vocabulary\.xlsx/);
-assert.match(app.innerHTML,/liplip-grammar\.xlsx/);
-assert.match(app.innerHTML,/liplip-watch-read\.xlsx/);
-assert.equal((app.innerHTML.match(/data-course-import=/g)||[]).length,3);
-clickCourse('control-close');
+assert.doesNotMatch(app.innerHTML,/data-course="control"|course-control-fab|course-manager-sheet/,'content control is available only from the Study map');
 clickCourse('complete-process');
 assert.match(app.innerHTML,/المرحلة 01 · العملية 02/);
 events.submit({target:{id:'course-exam-form',dataset:{phase:'vocabulary'},values:{q0:'0'},reportValidity(){return true}},preventDefault(){}});
