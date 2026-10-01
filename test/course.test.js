@@ -10,6 +10,10 @@ vm.createContext(context);
 for(const file of ['progress.js','course.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context);
 vm.runInContext('this.P=LiplipProgress;this.C=LiplipCourse',context);
 const {P,C}=context;
+const prefixedRoot={getElementsByTagNameNS:(ns,name)=>name==='row'?['prefixed-row']:[],getElementsByTagName:()=>[]};
+assert.deepEqual([...C.xmlNodes(prefixedRoot,'row')],['prefixed-row']);
+const prefixedCell={getAttribute:()=> 'str',getElementsByTagNameNS:(ns,name)=>name==='v'?[{textContent:'vocabulary'}]:[],getElementsByTagName:()=>[]};
+assert.equal(C.cellText(prefixedCell,[]),'vocabulary');
 
 assert.deepEqual({...P.courseLocation(1)},{level:1,box:1});
 assert.deepEqual({...P.courseLocation(200)},{level:1,box:200});
@@ -79,6 +83,7 @@ assert.match(source,/Phase = \$\{PHASE_VALUE\[p\.key\]\}/);
 assert.doesNotMatch(source,/\['Phase','Level','Step'/);
 assert.match(source,/liplip-content-templates\.zip/);
 assert.match(source,/bundle\.file\(PHASE_FILE\[p\.key\]/);
+assert.match(source,/getElementsByTagNameNS/);
 C.start(1,P.hydrate(null));
 assert.doesNotMatch(C.render(P.hydrate(null)),/data-course="control"|course-control-fab/);
 console.log('Unified course geometry, progress, migration, map, and Excel schemas passed');
