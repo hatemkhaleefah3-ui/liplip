@@ -27,12 +27,13 @@ assert.doesNotMatch(navigation,/data-nav="الإعدادات"/);
 assert.match(app.innerHTML,/ثلاث مراحل/);
 
 click('nav','الدراسة');
-assert.match(app.innerHTML,/خريطة الدراسة الموحّدة/);
+assert.doesNotMatch(app.innerHTML,/course-map-hero|خريطة الدراسة الموحّدة/);
 assert.equal((app.innerHTML.match(/class="course-level /g)||[]).length,5);
 assert.doesNotMatch(app.innerHTML,/خطوة|data-study-step/);
 assert.doesNotMatch(app.innerHTML,/الصندوق الحالي/,'Study map status card is removed');
 clickCourse('level',{level:'1'});
 assert.equal((app.innerHTML.match(/class="course-box /g)||[]).length,200);
+assert.doesNotMatch(app.innerHTML,/course-map-title|course-phase-key|خريطة المستوى/);
 assert.match(app.innerHTML,/data-course="box" data-box-id="1"/);
 assert.doesNotMatch(app.innerHTML,/data-box-id="2"/);
 
@@ -78,8 +79,16 @@ assert.match(app.innerHTML,/المستوى 1 · الصندوق 2/);
 assert.match(app.innerHTML,/المرحلة 01 · العملية 01/);
 clickCourse('exit');
 assert.equal(S.page,'app');
-assert.match(app.innerHTML,/اختر الصندوق/);
+assert.match(app.innerHTML,/class="course-boxes"/);
 assert.match(app.innerHTML,/course-box complete phase-3/,'completed box keeps its final color');
+
+click('nav','تحدّث');
+assert.match(app.innerHTML,/talk-section-head/);
+assert.doesNotMatch(app.innerHTML,/talk-intro|status-strip/);
+
+click('nav','خزانتي');
+assert.match(app.innerHTML,/closet-shelves/);
+assert.doesNotMatch(app.innerHTML,/closet-hero/);
 
 click('nav','الملف الشخصي');
 assert.match(app.innerHTML,/مساحتك في لُبلُب/);
