@@ -68,6 +68,10 @@ const sampleQuestions=[
   {type:'imageToVoice',answer:'apple'},{type:'match',matches:[1,2,3,4].map((_,i)=>({left:String(i),right:String(i)}))},{type:'trueFalse',options:['True','False'],correct:0}
 ];
 assert.equal(C.grade(sampleQuestions,form),100);
+const questionCard=C.questions([{type:'mcq',prompt:'Choose one',options:['A','B'],correct:0}],'q');
+assert.match(questionCard,/course-question-title/);
+assert.match(questionCard,/<h2>Choose one<\/h2>/);
+assert.doesNotMatch(questionCard,/<legend>/);
 
 let p=P.hydrate(null);
 assert.equal(P.courseSnapshot(p).currentBox,1);
@@ -111,6 +115,9 @@ assert.match(source,/bundle\.file\(PHASE_FILE\[p\.key\]/);
 assert.match(source,/getElementsByTagNameNS/);
 assert.match(source,/getUserMedia\(\{audio:true\}\)/);
 assert.match(source,/SpeechRecognition\|\|window\.webkitSpeechRecognition/);
+assert.match(source,/watch-exam-player/);
+assert.match(source,/story-page-player/);
+assert.match(source,/story-exam-player/);
 C.start(1,P.hydrate(null));
 assert.doesNotMatch(C.render(P.hydrate(null)),/data-course="control"|course-control-fab/);
 console.log('Unified course geometry, progress, migration, map, and Excel schemas passed');
