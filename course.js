@@ -281,8 +281,31 @@ const LiplipCourse = (() => {
   function saveDownload(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),0)}
   async function downloadTemplate(phase){saveDownload(await templateFile(phase),PHASE_FILE[phase])}
   async function downloadTemplateBundle(){if(typeof JSZip==='undefined')throw Error('JSZip غير متاح.');const bundle=new JSZip();for(const p of PHASES)bundle.file(PHASE_FILE[p.key],await templateFile(p.key,'uint8array'));saveDownload(await bundle.generateAsync({type:'blob'}),'liplip-content-templates.zip')}
-  function cellText(cell,shared){const type=cell.getAttribute('t'),v=cell.getElementsByTagName('v')[0]?.textContent||'';if(type==='s')return shared[Number(v)]||'';if(type==='inlineStr')return [...cell.getElementsByTagName('t')].map(x=>x.textContent||'').join('');return v}
-  async function xlsxRows(file){if(typeof JSZip==='undefined')throw Error('قارئ Excel غير متاح.');const zip=await JSZip.loadAsync(await file.arrayBuffer()),sharedFile=zip.file('xl/sharedStrings.xml'),shared=[];if(sharedFile){const doc=new DOMParser().parseFromString(await sharedFile.async('text'),'application/xml');for(const si of doc.getElementsByTagName('si'))shared.push([...si.getElementsByTagName('t')].map(x=>x.textContent||'').join(''))}const sheet=zip.file('xl/worksheets/sheet1.xml');if(!sheet)throw Error('ورقة Content غير موجودة.');const doc=new DOMParser().parseFromString(await sheet.async('text'),'application/xml'),out=[];for(const row of doc.getElementsByTagName('row')){const values=[];for(const c of row.getElementsByTagName('c')){const ref=c.getAttribute('r')||'',letters=(ref.match(/[A-Z]+/)||['A'])[0];let index=0;for(const ch of letters)index=index*26+ch.charCodeAt(0)-64;values[index-1]=cellText(c,shared)}out.push(values)}return out}
+  function xmlNodes(root,name){
+    if(!root)return [];
+    if(typeof root.getElementsByTagNameNS==='function'){
+      const found=[...root.getElementsByTagNameNS('*',name)];
+      if(found.length)return found;
+    }
+    const plain=typeof root.getElementsByTagName==='function'?[...root.getElementsByTagName(name)]:[];
+    if(plain.length)return plain;
+    return typeof root.getElementsByTagName==='function'?[...root.getElementsByTagName('x:'+name)]:[]
+  }
+  function cellText(cell,shared){const type=cell.getAttribute('t'),v=xmlNodes(cell,'v')[0]?.textContent||'';if(type==='s')return shared[Number(v)]||'';if(type==='inlineStr')return xmlNodes(cell,'t').map(x=>x.textContent||'').join('');return v}
+  async function xlsxRows(file){
+    if(typeof JSZip==='undefined')throw Error('قارئ Excel غير متاح.');
+    const zip=await JSZip.loadAsync(await file.arrayBuffer()),sharedFile=zip.file('xl/sharedStrings.xml'),shared=[];
+    if(sharedFile){const doc=new DOMParser().parseFromString(await sharedFile.async('text'),'application/xml');for(const si of xmlNodes(doc,'si'))shared.push(xmlNodes(si,'t').map(x=>x.textContent||'').join(''))}
+    const sheet=zip.file('xl/worksheets/sheet1.xml');if(!sheet)throw Error('ورقة Content غير موجودة.');
+    const doc=new DOMParser().parseFromString(await sheet.async('text'),'application/xml'),out=[];
+    for(const row of xmlNodes(doc,'row')){
+      const values=[];
+      for(const c of xmlNodes(row,'c')){const ref=c.getAttribute('r')||'',letters=(ref.match(/[A-Z]+/)||['A'])[0];let index=0;for(const ch of letters)index=index*26+ch.charCodeAt(0)-64;values[index-1]=cellText(c,shared)}
+      out.push(values)
+    }
+    if(!out.length)throw Error('تعذّر قراءة صفوف ورقة Content.');
+    return out
+  }
   const n=(v,min,max)=>{const x=Number(v);return Number.isInteger(x)&&x>=min&&x<=max?x:null};
   const opts=(row,start)=>row.slice(start,start+4).map(x=>String(x||'').trim()).filter(Boolean);
   function rowObject(headers,row){const out={};headers.forEach((h,i)=>out[h]=String(row[i]??'').trim());return out}
@@ -338,7 +361,7 @@ const LiplipCourse = (() => {
     return count
   }
   async function importFile(phase,file){ui.error='';ui.notice='';try{const rows=await xlsxRows(file),count=importRows(phase,rows);ui.notice=`تم استيراد ${count} صفاً لمرحلة ${phaseDef(phase).label}.`;return true}catch(e){ui.error=e.message||'تعذّر استيراد الملف.';return false}}
-  async function importAnyFile(file){ui.error='';ui.notice='';try{const rows=await xlsxRows(file),value=String(rows[1]?.[0]||'').trim().toLowerCase(),phase=Object.keys(PHASE_VALUE).find(k=>PHASE_VALUE[k]===value);if(!phase)throw Error('تعذّر تحديد المرحلة من عمود Phase.');const count=importRows(phase,rows);ui.notice=`تم استيراد ${count} صفاً لمرحلة ${phaseDef(phase).label}.`;return true}catch(e){ui.error=e.message||'تعذّر استيراد الملف.';return false}}
+  async function importAnyFile(file){ui.error='';ui.notice='';try{const rows=await xlsxRows(file),headers=rows[0]||[],phaseColumn=headers.findIndex(x=>String(x||'').trim().toLowerCase()==='phase'),firstData=rows.slice(1).find(row=>row.some(x=>String(x||'').trim())),value=String(firstData?.[phaseColumn]||'').trim().toLowerCase(),phase=Object.keys(PHASE_VALUE).find(k=>PHASE_VALUE[k]===value);if(!phase)throw Error('تعذّر تحديد المرحلة من عمود Phase.');const count=importRows(phase,rows);ui.notice=`تم استيراد ${count} صفاً لمرحلة ${phaseDef(phase).label}.`;return true}catch(e){ui.error=e.message||'تعذّر استيراد الملف.';return false}}
 
   function grade(items,form){
     if(!items.length)return 100;let correct=0;
@@ -379,5 +402,5 @@ const LiplipCourse = (() => {
   function submit(form,progress){if(form.id!=='course-exam-form')return {};const phase=form.dataset.phase,process=form.dataset.process||'exam',content=getContent(ui.boxId),items=currentQuestions(content,phase,process),score=grade(items,new FormData(form));ui.notice=`النتيجة: ${score}%`;if(score<70){ui.notice+=` · تحتاج ٧٠٪. راجع المحتوى وحاول مرة أخرى.`;return {}}const r=recordFor(progress);if(ui.review||r.completedPhases.includes(phase)){ui.notice+=` · مراجعة فقط.`;return {}}try{return {progress:LiplipProgress.recordCourseProcess(progress,{boxId:ui.boxId,phase,process:phaseDef(phase).processes[r.processIndex],score,words:content.vocabulary.items.filter(x=>['word','flashcardWord','imageToWord'].includes(x.type)).map(x=>({word:x.en,ar:x.ar,image:x.image||'',example:content.vocabulary.items.find(y=>['sentence','flashcardSentence'].includes(y.type))?.en||''})),grammar:[content.grammar.article]}),completed:true}}catch(e){ui.error=e.message;return {}}}
   function afterProgress(progress){const r=recordFor(progress);ui.processView=0;if(r.completedPhases.length===3){ui.results=true;ui.review=false;ui.phase='watchRead';ui.notice=''}else{ui.phase=r.currentPhase;ui.notice=`اكتملت العملية. التالي: ${phaseDef(r.currentPhase).label} · ${r.processIndex===0?'العملية الأولى':'العملية الثانية'}.`}}
   function render(progress){return learning(progress)}
-  return {PHASES,HEADERS,QUESTION_TYPES,LEVEL_BOXES,templateRows,grade,mapPage,start,render,click,submit,afterProgress,managerSubmit,managerChange,importFile,importAnyFile,downloadTemplate,downloadTemplateBundle,getContent,model};
+  return {PHASES,HEADERS,QUESTION_TYPES,LEVEL_BOXES,templateRows,grade,xmlNodes,cellText,mapPage,start,render,click,submit,afterProgress,managerSubmit,managerChange,importFile,importAnyFile,downloadTemplate,downloadTemplateBundle,getContent,model};
 })();
