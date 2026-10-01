@@ -42,9 +42,19 @@ for(const type of ['flashcardWord','flashcardSentence','imageToWord','voiceToSpe
   assert.match(vocabDeck,new RegExp('data-vocab-group="'+type+'"'));
   assert.match(vocabDeck,new RegExp('data-vocab-type="'+type+'"'));
 }
-assert.match(C.itemCard(vocabSamples[0],0),/<details>/);
+assert.match(C.itemCard(vocabSamples[0],0),/vocab-flip-card/);
+assert.match(C.itemCard(vocabSamples[0],0),/data-course="vocab-flip"/);
+C.click('vocab-flip',{dataset:{index:'0'}},P.hydrate(null));
+assert.match(C.itemCard(vocabSamples[0],0),/is-flipped/);
+C.click('vocab-flip',{dataset:{index:'0'}},P.hydrate(null));
+assert.doesNotMatch(C.itemCard(vocabSamples[0],0),/is-flipped/);
 assert.match(C.itemCard(vocabSamples[3],3),/vocab-speak-steps/);
+assert.match(C.itemCard(vocabSamples[3],3),/data-course="mic-start"/);
 assert.match(C.itemCard(vocabSamples[4],4),/ماذا ترى/);
+assert.match(C.itemCard(vocabSamples[4],4),/data-course="mic-start"/);
+assert.match(C.playerNav(0,3),/data-course="item-next"/);
+assert.match(C.playerNav(2,3,{submitLabel:'Finish'}),/type="submit"/);
+assert.equal(C.grammarItems({laws:[{title:'Law'}],notes:['Note'],examples:[{text:'Example'}]}).length,3);
 for(const feature of ['flashcardWord','flashcardSentence','imageToWord','voiceToSpeak','imageToSpeak'])assert.ok(phaseRows.vocabulary.some(row=>row[C.HEADERS.vocabulary.indexOf('Feature')]===feature));
 for(const feature of ['sentenceBuildLaw','importantNote','example'])assert.ok(phaseRows.grammar.some(row=>row[C.HEADERS.grammar.indexOf('Feature')]===feature));
 for(const [phase,rows] of Object.entries(phaseRows)){
@@ -99,6 +109,8 @@ assert.doesNotMatch(source,/\['Phase','Level','Step'/);
 assert.match(source,/liplip-content-templates\.zip/);
 assert.match(source,/bundle\.file\(PHASE_FILE\[p\.key\]/);
 assert.match(source,/getElementsByTagNameNS/);
+assert.match(source,/getUserMedia\(\{audio:true\}\)/);
+assert.match(source,/SpeechRecognition\|\|window\.webkitSpeechRecognition/);
 C.start(1,P.hydrate(null));
 assert.doesNotMatch(C.render(P.hydrate(null)),/data-course="control"|course-control-fab/);
 console.log('Unified course geometry, progress, migration, map, and Excel schemas passed');
