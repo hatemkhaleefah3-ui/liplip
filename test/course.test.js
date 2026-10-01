@@ -17,7 +17,28 @@ assert.deepEqual({...P.courseLocation(201)},{level:2,box:1});
 for(const headers of Object.values(C.HEADERS)){
   assert.deepEqual([...headers.slice(0,3)],['Phase','Level','Box']);
   assert.equal(headers.includes('Step'),false);
+  assert.equal(headers.includes('Process'),true);
+  assert.equal(headers.includes('Feature'),true);
+  assert.equal(headers.includes('Question Type'),true);
 }
+assert.deepEqual([...C.QUESTION_TYPES],['mcq','fillBlank','voiceToSpeak','imageToVoice','match','trueFalse']);
+const phaseRows=Object.fromEntries(['vocabulary','grammar','watchRead'].map(phase=>[phase,C.templateRows(phase)]));
+assert.ok(phaseRows.vocabulary.length>=29);
+assert.ok(phaseRows.grammar.length>=31);
+assert.ok(phaseRows.watchRead.length>=19);
+for(const feature of ['flashcardWord','flashcardSentence','imageToWord','voiceToSpeak','imageToSpeak'])assert.ok(phaseRows.vocabulary.some(row=>row[C.HEADERS.vocabulary.indexOf('Feature')]===feature));
+for(const feature of ['sentenceBuildLaw','importantNote','example'])assert.ok(phaseRows.grammar.some(row=>row[C.HEADERS.grammar.indexOf('Feature')]===feature));
+for(const [phase,rows] of Object.entries(phaseRows)){
+  const header=C.HEADERS[phase],index=header.indexOf('Question Type'),types=new Set(rows.slice(1).map(row=>row[index]).filter(Boolean));
+  for(const type of C.QUESTION_TYPES)assert.ok(types.has(type),phase+' template is missing '+type);
+}
+const answers=new Map([['q0','0'],['q1','study'],['q2','How are you today?'],['q3','apple'],['q4:0','0'],['q4:1','1'],['q4:2','2'],['q4:3','3'],['q5','0']]);
+const form={get:key=>answers.get(key)??null};
+const sampleQuestions=[
+  {type:'mcq',options:['yes','no'],correct:0},{type:'fillBlank',answer:'study'},{type:'voiceToSpeak',answer:'How are you today?'},
+  {type:'imageToVoice',answer:'apple'},{type:'match',matches:[1,2,3,4].map((_,i)=>({left:String(i),right:String(i)}))},{type:'trueFalse',options:['True','False'],correct:0}
+];
+assert.equal(C.grade(sampleQuestions,form),100);
 
 let p=P.hydrate(null);
 assert.equal(P.courseSnapshot(p).currentBox,1);

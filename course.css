@@ -47,3 +47,14 @@
 .course-manager-import{display:grid;grid-template-columns:1fr 1fr;gap:12px}.course-manager-import label,.course-manager-import>button{min-height:105px;border:1px solid #dcd1e3;border-radius:20px;background:#faf7fc;padding:18px;display:flex;align-items:center;justify-content:center;text-align:center;color:#5f4a70;font:inherit;font-size:11px;font-weight:900;cursor:pointer}.course-manager-import input{display:none}.course-manager-import>button{background:#302a46;color:#fff}.course-manager-import p{grid-column:1/-1;margin:0;color:#807585;font-size:9px;line-height:1.8;text-align:center}
 @media(min-width:900px){.course-control-fab{bottom:28px;left:28px}}
 @media(max-width:620px){.course-control-fab span{display:none}.course-control-fab{width:48px;height:48px;padding:0;justify-content:center}.course-manager-sheet{max-height:91vh;border-radius:24px 24px 0 0}.course-manager-home,.course-manager-import{grid-template-columns:1fr}.course-manager-selectors{grid-template-columns:repeat(2,1fr)}.course-manager-fields{grid-template-columns:1fr}.course-manager-fields .wide,.course-manager-import p{grid-column:1}.course-manager-sheet>header{align-items:flex-start}}
+
+
+/* Structured phase content and the six shared exam interactions. */
+.grammar-laws{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:24px 0}
+.grammar-laws>h2{grid-column:1/-1;margin:0;color:#49365f}
+.grammar-laws article{padding:20px;border:1px solid #d9cdea;border-radius:22px;background:linear-gradient(145deg,#fff,#f6f0ff)}
+.grammar-laws small{color:#8a6ca8;text-transform:uppercase;font-weight:800}.grammar-laws h3{margin:8px 0;color:#302441}.grammar-laws p{color:#6d6377}.grammar-laws strong{display:block;margin-top:14px;padding:12px;border-radius:12px;background:#2f294b;color:#fff}
+.course-match{display:grid;gap:10px}.course-match label{display:grid;grid-template-columns:minmax(90px,1fr) minmax(130px,1fr);align-items:center;gap:12px}.course-match span{font-weight:800}.course-match select,.course-written input{width:100%;border:1px solid #d6cce2;border-radius:12px;padding:12px;background:#fff}
+.course-written{display:grid;gap:8px}.course-written span{font-weight:800;color:#5e4b70}
+.course-question.voiceToSpeak,.course-question.imageToVoice{border-color:#89b9aa;background:#f3fbf8}.course-question.match{border-color:#dbb65c;background:#fffaf0}.course-question.trueFalse{border-color:#9f86bf}
+@media(max-width:760px){.grammar-laws{grid-template-columns:1fr}.course-match label{grid-template-columns:1fr}}
