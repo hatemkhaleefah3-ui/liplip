@@ -30,6 +30,21 @@ const phaseRows=Object.fromEntries(['vocabulary','grammar','watchRead'].map(phas
 assert.ok(phaseRows.vocabulary.length>=29);
 assert.ok(phaseRows.grammar.length>=31);
 assert.ok(phaseRows.watchRead.length>=19);
+const vocabSamples=[
+  {type:'flashcardWord',en:'hello',ar:'مرحباً',voice:'hello'},
+  {type:'flashcardSentence',en:'Hello there.',ar:'مرحباً.',voice:'Hello there.'},
+  {type:'imageToWord',en:'apple',ar:'تفاحة',image:'https://example.com/apple.jpg',voice:'apple'},
+  {type:'voiceToSpeak',en:'How are you?',voice:'How are you?'},
+  {type:'imageToSpeak',en:'cat',ar:'قطة',image:'https://example.com/cat.jpg',voice:'cat'}
+];
+const vocabDeck=C.vocabularyDeck(vocabSamples);
+for(const type of ['flashcardWord','flashcardSentence','imageToWord','voiceToSpeak','imageToSpeak']){
+  assert.match(vocabDeck,new RegExp('data-vocab-group="'+type+'"'));
+  assert.match(vocabDeck,new RegExp('data-vocab-type="'+type+'"'));
+}
+assert.match(C.itemCard(vocabSamples[0],0),/<details>/);
+assert.match(C.itemCard(vocabSamples[3],3),/vocab-speak-steps/);
+assert.match(C.itemCard(vocabSamples[4],4),/ماذا ترى/);
 for(const feature of ['flashcardWord','flashcardSentence','imageToWord','voiceToSpeak','imageToSpeak'])assert.ok(phaseRows.vocabulary.some(row=>row[C.HEADERS.vocabulary.indexOf('Feature')]===feature));
 for(const feature of ['sentenceBuildLaw','importantNote','example'])assert.ok(phaseRows.grammar.some(row=>row[C.HEADERS.grammar.indexOf('Feature')]===feature));
 for(const [phase,rows] of Object.entries(phaseRows)){
