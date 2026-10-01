@@ -1,7 +1,7 @@
 /* v29: five course levels, 50 boxes per level. Keep the legacy 200-id stride so existing box content IDs stay stable. */
 (() => {
-  if (!window.LiplipProgress) return;
-  const P = window.LiplipProgress;
+  if (typeof LiplipProgress === 'undefined') return;
+  const P = LiplipProgress;
   const LEVELS = 5;
   const BOXES_PER_LEVEL = 50;
   const LEGACY_STRIDE = 200;
