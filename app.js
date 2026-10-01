@@ -220,6 +220,8 @@ app.addEventListener('click',e=>{
 });
 app.addEventListener('input',e=>{if(state.page==='zone'&&e.target.closest?.('#zone-quiz-form'))LiplipZone.remember(e.target);if(e.target.id==='birth'){const age=ageFromBirth(e.target.value);document.getElementById('age-display').textContent=age===null?'سنحسب عمرك تلقائياً.':`العمر: ${age} سنة`}});
 app.addEventListener('change',e=>{
+ const managerField=e.target.closest?.('[data-course-manager-field]');if(managerField&&LiplipCourse.managerChange(managerField)){render(false);return}
+ const managerImport=e.target.closest?.('[data-course-manager-import]');if(managerImport&&managerImport.files?.length){LiplipCourse.importAnyFile(managerImport.files[0]).then(()=>render(false));return}
  const courseImport=e.target.closest?.('[data-course-import]');if(courseImport&&courseImport.files?.length){LiplipCourse.importFile(courseImport.dataset.courseImport,courseImport.files[0]).then(()=>render(false));return}
  if(state.page==='zone'&&e.target.id==='zone-import-file'&&e.target.files?.length){LiplipZone.importFile(e.target.files[0],()=>render(false));return}
  if(state.page==='reception-zone'){
@@ -229,6 +231,7 @@ app.addEventListener('change',e=>{
 });
 app.addEventListener('submit',e=>{
  e.preventDefault();if(!e.target.reportValidity())return;
+ if(e.target.id==='course-manager-add'||e.target.id==='course-manager-edit'){LiplipCourse.managerSubmit(e.target);render(false);return}
  if(state.page==='course-zone'){const result=LiplipCourse.submit(e.target,state.progress);if(result.progress){state.progress=result.progress;save();if(result.completed)LiplipCourse.afterProgress(state.progress)}render(false);return}
  if(state.page==='reception-zone'){
   const result=LiplipReception.submit(e.target.id,e.target);if(result.completeProcess){const idx=LiplipProgress.RECEPTION_PROCESSES.indexOf(result.completeProcess.process);if(state.receptionReviewBox!==null){if(idx<3)LiplipReception.setPhase(idx+1);else{LiplipReception.clear();state.receptionReviewBox=null;state.page='app';state.nav='شاهد واقرأ';state.receptionMapView='boxes'}render();return}try{state.progress=LiplipProgress.recordReceptionProcess(state.progress,result.completeProcess);save();const snap=LiplipProgress.receptionSnapshot(state.progress);if(result.completeProcess.process==='readExam'){LiplipReception.clear();state.page='app';state.nav='شاهد واقرأ';state.receptionMapLevel=snap.position.stage;state.receptionMapStep=snap.position.step;state.receptionMapView='boxes'}else LiplipReception.setPhase(snap.processIndex)}catch{}render();return}render(false);return
