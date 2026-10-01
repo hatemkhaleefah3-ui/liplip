@@ -1,12 +1,229 @@
-.talk-room{--ink:#332b48;--purple:#7956a5;--pink:#ff7e9e;--yellow:#f5ca62;--mint:#92d7bd;max-width:1180px!important;padding-bottom:130px!important;color:var(--ink)}
-.talk-room button{font-family:inherit}.talk-select{display:grid;gap:30px}.talk-hero{position:relative;overflow:hidden;padding:clamp(30px,6vw,68px);border:1px solid #e2d5eb;border-radius:42px;background:linear-gradient(135deg,#f7efff 0 55%,#fff3cf);box-shadow:0 11px 0 #eadff0}.talk-hero:after{content:'✦';position:absolute;left:8%;top:15%;font-size:84px;color:#ef83a2;opacity:.55;transform:rotate(-12deg)}.talk-hero>span,.talk-kicker{color:#805ea1;font-size:12px;font-weight:900}.talk-hero h1{margin:13px 0;font-size:clamp(42px,7vw,78px);line-height:1.12}.talk-hero h1 em{color:#8a61af;font-style:normal}.talk-hero p{max-width:620px;margin:0;color:#756c7d;font-size:16px;line-height:1.9}
-.talk-mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px}.talk-mode-card{position:relative;min-height:380px;padding:34px;border:0;border-radius:34px;text-align:right;color:var(--ink);cursor:pointer;overflow:hidden;transition:.2s transform,.2s box-shadow}.talk-mode-card:hover{transform:translateY(-4px)}.talk-mode-card.call{background:linear-gradient(145deg,#ffd7df,#fff0bd);box-shadow:0 9px 0 #edc6ca}.talk-mode-card.chat{background:linear-gradient(145deg,#d9cbff,#ccefe4);box-shadow:0 9px 0 #c7bedf}.talk-mode-card:after{content:'';position:absolute;width:200px;height:200px;border:2px dashed #fff8;border-radius:50%;left:-55px;top:-65px}.talk-mode-icon{display:grid;place-items:center;width:74px;height:74px;border-radius:24px;background:#fff;color:#7f58a3}.talk-mode-card small{display:block;margin-top:33px;font-weight:900;color:#80648c}.talk-mode-card h2{font-size:clamp(29px,4vw,46px);margin:8px 0}.talk-mode-card p{max-width:400px;line-height:1.8;color:#665d70}.talk-mode-card b{position:absolute;bottom:30px;display:flex;align-items:center;gap:9px;padding:12px 17px;border-radius:999px;background:#342b49;color:#fff}
-.talk-journey-progress{position:relative;display:grid;grid-template-columns:repeat(3,1fr);max-width:620px;margin:0 auto 38px}.talk-journey-progress>span{position:absolute;top:18px;right:16.6%;left:16.6%;height:4px;border-radius:4px;background:linear-gradient(to left,#845faf calc((var(--step) - 1)*50%),#e6dce9 0)}.talk-journey-progress b{position:relative;display:grid;justify-items:center;gap:8px;color:#a699aa;font-size:10px}.talk-journey-progress i{display:grid;place-items:center;width:39px;height:39px;border:4px solid #f9f7fb;border-radius:50%;background:#e6dce9;font-style:normal}.talk-journey-progress b.active{color:#684983}.talk-journey-progress b.active i{background:#805ca3;color:#fff}
-.talk-waiting,.talk-active,.talk-rating{position:relative;min-height:680px;padding:clamp(24px,5vw,58px);border:1px solid #e4d8ea;border-radius:40px;background:#fff;text-align:center;overflow:hidden}.talk-waiting.call{background:linear-gradient(160deg,#fff5d7,#fff 42%,#ffe7ec)}.talk-waiting.chat{background:linear-gradient(160deg,#eee7ff,#fff 42%,#dff7ee)}.talk-wait-art{position:relative;width:300px;height:255px;margin:0 auto 8px}.talk-orbit{position:absolute;inset:26px;border:2px dashed #bfa9ce;border-radius:50%;animation:talkSpin 13s linear infinite}.talk-orbit.two{inset:58px;animation-direction:reverse;animation-duration:9s}.talk-avatar{position:absolute;z-index:2;display:grid;place-items:center;width:94px;height:94px;border:8px solid #fff;border-radius:34px;font-size:38px;font-weight:900;box-shadow:0 15px 30px #8064a52b}.talk-avatar.me{right:20px;bottom:30px;background:#8c65ae;color:#fff;transform:rotate(6deg)}.talk-avatar.partner{left:25px;top:30px;background:#ffd873;color:#5b4860;transform:rotate(-7deg)}.talk-wait-art>i{position:absolute;width:14px;height:14px;border-radius:50%;background:#ff7d9f}.talk-wait-art>i:nth-of-type(1){top:42px;right:76px}.talk-wait-art>i:nth-of-type(2){bottom:45px;left:92px;background:#79cdb0}.talk-wait-art>i:nth-of-type(3){top:105px;left:45%;background:#f4c85d}.talk-waiting h1{margin:9px 0;font-size:clamp(31px,5vw,52px)}.talk-waiting>p{color:#756c7d}.talk-match-chips{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:28px 0}.talk-match-chips span{display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #dfd5e4;border-radius:999px;background:#fff;font-size:10px;font-weight:800}.talk-wait-actions{display:flex;justify-content:center;gap:12px}.talk-wait-actions button{min-height:51px;padding:0 24px;border:1px solid #d8cae0;border-radius:17px;background:#fff;color:#685375;font-weight:900;cursor:pointer}.talk-wait-actions .primary{border-color:#76529a;background:#76529a;color:#fff;box-shadow:0 6px 0 #dfd1e8}
-.talk-session-head{display:flex;align-items:center;justify-content:space-between;max-width:790px;margin:0 auto 25px;text-align:right}.talk-session-head div{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:8px}.talk-session-head h1{grid-column:1/3;margin:2px 0;font-size:31px}.talk-session-head p{margin:0;color:#6d9f8b;font-size:10px;font-weight:900}.online-dot{width:10px;height:10px;border-radius:50%;background:#62c79e;box-shadow:0 0 0 5px #dff6ed}.talk-end{padding:11px 20px;border:0;border-radius:15px;background:#ffe7eb;color:#b74f68;font-weight:900;cursor:pointer}
-.talk-call{background:linear-gradient(155deg,#29243e,#4d3766);color:#fff}.talk-call .talk-journey-progress b{color:#cfc4d7}.talk-call .talk-journey-progress b.active{color:#fff}.talk-call .talk-session-head p{color:#9ee4c6}.call-stage{position:relative;max-width:700px;margin:0 auto;padding:42px 20px;border:1px solid #ffffff20;border-radius:38px;background:radial-gradient(circle at 50% 30%,#8f68ad,#413452 70%);overflow:hidden}.call-avatar{display:grid;place-items:center;width:154px;height:154px;margin:auto;border:8px solid #ffffff24;border-radius:54px;background:linear-gradient(145deg,#ffc96c,#ff829d);font-size:64px;font-weight:900}.call-stage h2{margin:20px 0 4px;font-size:30px}.call-stage p{font:700 16px 'DM Sans',sans-serif;color:#e0d8e5}.call-spark{position:absolute;font-size:34px;color:#f5c967}.call-spark.a{right:12%;top:22%}.call-spark.b{left:15%;bottom:20%;color:#ff9ab0}.voice-wave{height:45px;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:22px}.voice-wave i{width:5px;height:calc(10px + (var(--i) % 5)*6px);border-radius:5px;background:#fff;animation:talkWave .9s ease-in-out calc(var(--i)*-.08s) infinite alternate}.call-controls{display:flex;justify-content:center;gap:14px;margin-top:26px}.call-controls button{display:grid;place-items:center;gap:5px;min-width:100px;min-height:78px;border:1px solid #ffffff2b;border-radius:21px;background:#ffffff14;color:#fff;font-size:9px;font-weight:800;cursor:pointer}.call-controls span{font-size:22px}.call-controls button.off{background:#fff;color:#443651}.call-controls .end{background:#ed5f75;border-color:#ed5f75}
-.talk-chat{background:linear-gradient(155deg,#f4efff,#fff 40%,#ecfaf5)}.chat-topic,.talk-messages,.talk-composer{max-width:790px;margin-left:auto;margin-right:auto}.chat-topic{display:flex;align-items:center;gap:12px;padding:15px 18px;border-radius:19px;background:#fff4c9;text-align:right}.chat-topic>span{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#f2c75e}.chat-topic small,.chat-topic b{display:block}.chat-topic small{color:#8e7740}.chat-topic b{margin-top:3px;font-family:'DM Sans',sans-serif}.talk-messages{display:grid;gap:13px;padding:30px 0;min-height:330px;align-content:end}.talk-bubble{max-width:78%;padding:14px 18px;border-radius:22px;text-align:left;box-shadow:0 5px 0 #dfd5e6}.talk-bubble span{display:block;margin-bottom:5px;font-size:8px;font-weight:900}.talk-bubble p{margin:0;font-family:'DM Sans',sans-serif;font-size:15px}.talk-bubble.partner{justify-self:end;background:#fff;border-bottom-right-radius:6px}.talk-bubble.me{justify-self:start;background:#7e5ba1;color:#fff;border-bottom-left-radius:6px;box-shadow:0 5px 0 #d3c4df}.talk-composer{display:grid;grid-template-columns:1fr 54px;gap:10px;padding:10px;border:1px solid #ddd1e4;border-radius:22px;background:#fff}.talk-composer input{min-width:0;border:0;outline:0;padding:0 13px;font:600 14px 'DM Sans',sans-serif}.talk-composer button{border:0;border-radius:16px;background:#805ca4;color:#fff;cursor:pointer}.talk-composer button svg{transform:rotate(180deg)}
-.talk-rating{background:linear-gradient(165deg,#fff7da,#fff 42%,#f1e9ff)}.rating-celebration{display:flex;justify-content:center;gap:27px;margin-bottom:14px;color:#ef7d9b;font-size:27px}.rating-celebration span:nth-child(2){display:grid;place-items:center;width:72px;height:72px;border-radius:26px;background:#ffd46f;color:#fff;font-size:42px;transform:rotate(7deg);box-shadow:0 8px 0 #ead8a8}.talk-rating h1{margin:8px 0;font-size:clamp(35px,6vw,60px)}.talk-rating>p{color:#796f80}.ten-stars{display:flex;direction:ltr;justify-content:center;flex-wrap:wrap;gap:4px;margin:28px auto 10px}.ten-stars button{padding:2px;border:0;background:transparent;color:#d9d1dd;font-size:clamp(27px,4vw,42px);cursor:pointer;transition:.18s transform}.ten-stars button.selected{color:#f1bd3f;text-shadow:0 3px 0 #d89d2f}.ten-stars button:hover{transform:scale(1.18)}.rating-number{display:block;color:#7e5b9d}.talk-feedback-boxes{max-width:760px;margin:30px auto 0;padding:22px;border:1px solid #e2d7e6;border-radius:27px;background:#fff}.talk-feedback-boxes h2{margin:0 0 16px;font-size:18px}.talk-feedback-boxes>div{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.talk-feedback-boxes button{min-height:82px;padding:8px;border:1px solid #e0d5e5;border-radius:17px;background:#faf7fc;color:#665472;font-size:10px;font-weight:900;cursor:pointer}.talk-feedback-boxes button.selected{border-color:#7e5a9f;background:#eee5f6;color:#6b4788;box-shadow:inset 0 0 0 2px #fff}.talk-rating-actions{display:flex;justify-content:center;gap:10px;margin-top:26px}.talk-rating-actions button{min-width:125px;min-height:51px;border:1px solid #dacde1;border-radius:17px;background:#fff;color:#674d78;font-weight:900;cursor:pointer}.talk-rating-actions button:disabled{opacity:.4;cursor:not-allowed}.talk-rating-actions .done{background:#76529a;color:#fff}.talk-rating-actions .report{color:#bd5169;background:#fff0f2}
-.talk-report-layer{position:fixed;z-index:80;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:#241e33a8;backdrop-filter:blur(6px)}.talk-report-sheet{position:relative;width:min(680px,100%);padding:18px 30px 34px;border-radius:34px 34px 24px 24px;background:#fff;text-align:right;box-shadow:0 -20px 70px #21172f55;animation:sheetUp .25s ease-out}.sheet-handle{width:64px;height:6px;margin:0 auto 18px;border-radius:8px;background:#ddd4e0}.sheet-close{position:absolute;left:24px;top:27px;display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:14px;background:#f2edf5;color:#6f577d}.talk-report-sheet>span{font-size:10px;font-weight:900;color:#bb546a}.talk-report-sheet h2{margin:5px 0;font-size:32px}.talk-report-sheet>p{color:#776d7c}.report-options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0}.report-options button{display:flex;align-items:center;gap:10px;min-height:56px;padding:10px 14px;border:1px solid #e2d7e5;border-radius:16px;background:#faf8fb;color:#5f4c6b;font-weight:800;text-align:right;cursor:pointer}.report-options i{display:grid;place-items:center;width:27px;height:27px;border-radius:9px;background:#eee7f1;color:#8a6c98;font-style:normal}.report-options button.selected{border-color:#cc6076;background:#fff0f2;color:#a34156}.report-options button.selected i{background:#d55f78;color:#fff}.report-submit{width:100%;min-height:53px;border:0;border-radius:17px;background:#332b48;color:#fff;font-weight:900}.report-submit:disabled{opacity:.4}
-@keyframes talkSpin{to{transform:rotate(360deg)}}@keyframes talkWave{to{height:9px;opacity:.45}}@keyframes sheetUp{from{transform:translateY(60px);opacity:0}}
-@media(max-width:700px){.talk-room{padding:20px 14px 120px!important}.talk-hero{border-radius:28px}.talk-hero:after{font-size:48px}.talk-mode-cards{grid-template-columns:1fr}.talk-mode-card{min-height:320px;padding:26px}.talk-waiting,.talk-active,.talk-rating{padding:22px 15px;border-radius:29px;min-height:620px}.talk-wait-art{width:260px;height:230px}.talk-wait-actions{flex-direction:column}.talk-wait-actions button{width:100%}.call-stage{padding:34px 12px}.call-avatar{width:125px;height:125px;border-radius:43px}.call-controls{gap:7px}.call-controls button{min-width:0;flex:1}.talk-feedback-boxes>div{grid-template-columns:repeat(2,1fr)}.talk-rating-actions{display:grid;grid-template-columns:1fr 1fr}.talk-rating-actions .done{grid-column:1/3}.talk-rating-actions button{min-width:0}.ten-stars{max-width:330px}.report-options{grid-template-columns:1fr}.talk-report-sheet{padding:16px 19px 25px}.talk-report-sheet h2{font-size:27px}.talk-session-head h1{font-size:24px}.talk-journey-progress{margin-bottom:28px}}
+.talk-room{
+  --ink:#332b48;
+  --purple:#7956a5;
+  --purple-dark:#4b3a62;
+  --pink:#ff7e9e;
+  --yellow:#f5ca62;
+  --mint:#92d7bd;
+  --shell-x:clamp(18px,4vw,56px);
+  --content:860px;
+  box-sizing:border-box;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0;
+  margin:0!important;
+  padding:0 0 calc(116px + env(safe-area-inset-bottom))!important;
+  color:var(--ink);
+  overflow-x:hidden;
+}
+.talk-room *, .talk-room *::before, .talk-room *::after{box-sizing:border-box}
+.talk-room button,.talk-room input{font-family:inherit}
+
+/* Selection: one page surface, not a floating hero card. */
+.talk-select{
+  width:100%;
+  min-height:calc(100dvh - 150px);
+  padding:clamp(26px,5vw,64px) var(--shell-x) clamp(44px,7vw,84px);
+  display:grid;
+  align-content:start;
+  gap:clamp(22px,4vw,38px);
+  background:
+    radial-gradient(circle at 10% 12%,#f3c7d9 0 5%,transparent 5.2%),
+    linear-gradient(145deg,#fbf7ff 0 48%,#fff8df 100%);
+}
+.talk-hero{
+  position:relative;
+  width:min(100%,var(--content));
+  margin:0 auto;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  text-align:right;
+  overflow:visible;
+}
+.talk-hero:after{
+  content:'✦';
+  position:absolute;
+  left:2%;
+  top:4px;
+  font-size:clamp(34px,6vw,58px);
+  color:#ef83a2;
+  opacity:.72;
+  transform:rotate(-12deg);
+}
+.talk-hero>span,.talk-kicker{color:#805ea1;font-size:12px;font-weight:900}
+.talk-hero h1{
+  max-width:760px;
+  margin:10px 0 12px;
+  font-size:clamp(34px,6vw,64px);
+  line-height:1.08;
+  letter-spacing:-.03em;
+}
+.talk-hero h1 em{color:#8a61af;font-style:normal}
+.talk-hero p{max-width:680px;margin:0;color:#756c7d;font-size:clamp(14px,2vw,17px);line-height:1.85}
+.talk-mode-cards{
+  width:min(100%,var(--content));
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+.talk-mode-card{
+  position:relative;
+  min-width:0;
+  min-height:330px;
+  padding:30px;
+  border:0;
+  border-radius:32px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  text-align:right;
+  color:var(--ink);
+  cursor:pointer;
+  overflow:hidden;
+  transition:.2s transform,.2s box-shadow;
+}
+.talk-mode-card:hover{transform:translateY(-3px)}
+.talk-mode-card.call{background:linear-gradient(145deg,#ffdce4,#fff1c0);box-shadow:0 8px 0 #edcbd0}
+.talk-mode-card.chat{background:linear-gradient(145deg,#ddd2ff,#d4f2e8);box-shadow:0 8px 0 #c9c1df}
+.talk-mode-card:after{content:'';position:absolute;width:190px;height:190px;border:2px dashed #ffffffa6;border-radius:50%;left:-58px;top:-64px}
+.talk-mode-icon{display:grid;place-items:center;width:72px;height:72px;border-radius:24px;background:#fff;color:#7f58a3;flex:0 0 auto}
+.talk-mode-card small{display:block;width:100%;margin-top:28px;font-weight:900;color:#80648c}
+.talk-mode-card h2{width:100%;margin:8px 0;font-size:clamp(28px,4vw,44px);line-height:1.15}
+.talk-mode-card p{width:100%;max-width:400px;margin:0;line-height:1.75;color:#665d70}
+.talk-mode-card b{position:static;margin-top:auto;display:flex;align-items:center;gap:9px;padding:12px 17px;border-radius:999px;background:#342b49;color:#fff}
+
+/* All journey phases occupy the page shell and own their background. */
+.talk-waiting,.talk-active,.talk-rating{
+  position:relative;
+  width:100%;
+  min-width:0;
+  min-height:calc(100dvh - 150px);
+  margin:0;
+  padding:clamp(24px,4vw,52px) var(--shell-x) clamp(46px,7vw,82px);
+  border:0;
+  border-radius:0;
+  text-align:center;
+  overflow:hidden;
+}
+.talk-waiting.call{background:linear-gradient(160deg,#fff5d7 0,#fffdf8 46%,#ffe7ec 100%)}
+.talk-waiting.chat{background:linear-gradient(160deg,#eee7ff 0,#fbfbff 46%,#dff7ee 100%)}
+.talk-rating{background:linear-gradient(165deg,#fff7da 0,#fffdf8 44%,#f1e9ff 100%)}
+
+.talk-journey-progress{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(100%,620px);margin:0 auto 34px}
+.talk-journey-progress>span{position:absolute;top:18px;right:16.6%;left:16.6%;height:4px;border-radius:4px;background:linear-gradient(to left,#845faf calc((var(--step) - 1)*50%),#e6dce9 0)}
+.talk-journey-progress b{position:relative;display:grid;justify-items:center;gap:8px;color:#a699aa;font-size:10px}
+.talk-journey-progress i{display:grid;place-items:center;width:39px;height:39px;border:4px solid #f9f7fb;border-radius:50%;background:#e6dce9;font-style:normal}
+.talk-journey-progress b.active{color:#684983}.talk-journey-progress b.active i{background:#805ca3;color:#fff}
+
+.talk-wait-art{position:relative;width:min(300px,72vw);height:245px;margin:0 auto 8px}
+.talk-orbit{position:absolute;inset:26px;border:2px dashed #bfa9ce;border-radius:50%;animation:talkSpin 13s linear infinite}
+.talk-orbit.two{inset:58px;animation-direction:reverse;animation-duration:9s}
+.talk-avatar{position:absolute;z-index:2;display:grid;place-items:center;width:94px;height:94px;border:8px solid #fff;border-radius:34px;font-size:38px;font-weight:900;box-shadow:0 15px 30px #8064a52b}
+.talk-avatar.me{right:20px;bottom:30px;background:#8c65ae;color:#fff;transform:rotate(6deg)}
+.talk-avatar.partner{left:25px;top:30px;background:#ffd873;color:#5b4860;transform:rotate(-7deg)}
+.talk-wait-art>i{position:absolute;width:14px;height:14px;border-radius:50%;background:#ff7d9f}
+.talk-wait-art>i:nth-of-type(1){top:42px;right:76px}.talk-wait-art>i:nth-of-type(2){bottom:45px;left:92px;background:#79cdb0}.talk-wait-art>i:nth-of-type(3){top:105px;left:45%;background:#f4c85d}
+.talk-waiting h1{margin:9px auto;max-width:700px;font-size:clamp(30px,5vw,50px);line-height:1.2}
+.talk-waiting>p{max-width:680px;margin:0 auto;color:#756c7d;line-height:1.8}
+.talk-match-chips{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:28px 0}
+.talk-match-chips span{display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #dfd5e4;border-radius:999px;background:#fff;font-size:10px;font-weight:800}
+.talk-wait-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.talk-wait-actions button{min-height:51px;padding:0 24px;border:1px solid #d8cae0;border-radius:17px;background:#fff;color:#685375;font-weight:900;cursor:pointer}
+.talk-wait-actions .primary{border-color:#76529a;background:#76529a;color:#fff;box-shadow:0 6px 0 #dfd1e8}
+
+.talk-session-head{display:flex;align-items:center;justify-content:space-between;gap:16px;width:min(100%,var(--content));margin:0 auto 24px;text-align:right}
+.talk-session-head div{min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:8px}
+.talk-session-head h1{grid-column:1/3;margin:2px 0;font-size:clamp(24px,4vw,31px);line-height:1.2}
+.talk-session-head p{margin:0;color:#6d9f8b;font-size:10px;font-weight:900}.online-dot{width:10px;height:10px;border-radius:50%;background:#62c79e;box-shadow:0 0 0 5px #dff6ed}
+.talk-end{flex:0 0 auto;padding:11px 20px;border:0;border-radius:15px;background:#ffe7eb;color:#b74f68;font-weight:900;cursor:pointer}
+
+/* Call page */
+.talk-call{background:linear-gradient(160deg,#28223d 0,#413153 52%,#251f38 100%);color:#fff}
+.talk-call .talk-journey-progress b{color:#cfc4d7}.talk-call .talk-journey-progress b.active{color:#fff}.talk-call .talk-journey-progress i{border-color:#443754}.talk-call .talk-session-head p{color:#9ee4c6}
+.call-stage{position:relative;width:min(100%,700px);margin:0 auto;padding:42px 20px;border:1px solid #ffffff20;border-radius:38px;background:radial-gradient(circle at 50% 30%,#8f68ad,#413452 70%);overflow:hidden}
+.call-avatar{display:grid;place-items:center;width:154px;height:154px;margin:auto;border:8px solid #ffffff24;border-radius:54px;background:linear-gradient(145deg,#ffc96c,#ff829d);font-size:64px;font-weight:900}
+.call-stage h2{margin:20px 0 4px;font-size:30px}.call-stage p{font:700 16px 'DM Sans',sans-serif;color:#e0d8e5}.call-spark{position:absolute;font-size:34px;color:#f5c967}.call-spark.a{right:12%;top:22%}.call-spark.b{left:15%;bottom:20%;color:#ff9ab0}
+.voice-wave{height:45px;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:22px}.voice-wave i{width:5px;height:calc(10px + (var(--i) % 5)*6px);border-radius:5px;background:#fff;animation:talkWave .9s ease-in-out calc(var(--i)*-.08s) infinite alternate}
+.call-controls{width:min(100%,700px);display:flex;justify-content:center;gap:14px;margin:26px auto 0}.call-controls button{display:grid;place-items:center;gap:5px;min-width:100px;min-height:78px;border:1px solid #ffffff2b;border-radius:21px;background:#ffffff14;color:#fff;font-size:9px;font-weight:800;cursor:pointer}.call-controls span{font-size:22px}.call-controls button.off{background:#fff;color:#443651}.call-controls .end{background:#ed5f75;border-color:#ed5f75}
+
+/* Chat page: bounded vertical stream; bubbles can never collide. */
+.talk-chat{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  background:linear-gradient(155deg,#f1ebff 0,#fbfbff 43%,#e5f8f1 100%);
+}
+.talk-chat .talk-journey-progress,.talk-chat .talk-session-head{flex:0 0 auto}
+.chat-topic,.talk-messages,.talk-composer{width:min(100%,var(--content));margin-left:auto;margin-right:auto}
+.chat-topic{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:15px 18px;border-radius:19px;background:#fff1bd;text-align:right;box-shadow:0 5px 0 #eadfb8}
+.chat-topic>span{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:14px;background:#f2c75e}.chat-topic div{min-width:0}.chat-topic small,.chat-topic b{display:block}.chat-topic small{color:#8e7740}.chat-topic b{margin-top:3px;font-family:'DM Sans',sans-serif;overflow-wrap:anywhere}
+.talk-messages{
+  flex:1 1 auto;
+  min-height:280px;
+  padding:24px 0;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  gap:12px;
+  direction:ltr;
+  overflow:hidden;
+}
+.talk-bubble{
+  width:fit-content;
+  min-width:0;
+  max-width:min(82%,38rem);
+  padding:13px 16px;
+  border-radius:20px;
+  text-align:left;
+  box-shadow:0 5px 0 #dfd5e6;
+  overflow:hidden;
+}
+.talk-bubble span{display:block;margin-bottom:5px;font-size:8px;font-weight:900;direction:rtl;text-align:left}
+.talk-bubble p{margin:0;font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.45;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.talk-bubble.partner{align-self:flex-start;background:#fff;border-bottom-left-radius:6px}
+.talk-bubble.me{align-self:flex-end;background:#7e5ba1;color:#fff;border-bottom-right-radius:6px;box-shadow:0 5px 0 #d3c4df}
+.talk-composer{flex:0 0 auto;display:grid;grid-template-columns:minmax(0,1fr) 54px;gap:10px;padding:10px;border:1px solid #ddd1e4;border-radius:22px;background:#fff;direction:ltr;box-shadow:0 8px 24px #71548d16}
+.talk-composer input{width:100%;min-width:0;border:0;outline:0;padding:0 13px;background:transparent;font:600 14px 'DM Sans',sans-serif}.talk-composer button{width:54px;min-width:54px;border:0;border-radius:16px;background:#805ca4;color:#fff;cursor:pointer}.talk-composer button svg{transform:rotate(180deg)}
+
+/* Rating: deterministic ten-star layout, never 9+1 wrapping. */
+.rating-celebration{display:flex;justify-content:center;gap:27px;margin-bottom:14px;color:#ef7d9b;font-size:27px}.rating-celebration span:nth-child(2){display:grid;place-items:center;width:72px;height:72px;border-radius:26px;background:#ffd46f;color:#fff;font-size:42px;transform:rotate(7deg);box-shadow:0 8px 0 #ead8a8}
+.talk-rating h1{margin:8px 0;font-size:clamp(34px,6vw,56px);line-height:1.15}.talk-rating>p{max-width:680px;margin:0 auto;color:#796f80;line-height:1.8}
+.ten-stars{width:min(100%,700px);display:grid;grid-template-columns:repeat(10,minmax(0,1fr));direction:ltr;gap:6px;margin:28px auto 12px}
+.ten-stars button{display:grid;place-items:center;min-width:0;min-height:54px;padding:0;border:1px solid #e1d7e5;border-radius:15px;background:#ffffffb8;color:#d3cad8;font-size:clamp(26px,3vw,36px);line-height:1;cursor:pointer;transition:.18s transform,.18s background,.18s color,.18s border-color}
+.ten-stars button.selected{border-color:#e5b547;background:#fff5c9;color:#efb934;text-shadow:0 2px 0 #d89d2f}.ten-stars button:hover{transform:translateY(-2px)}
+.rating-number{display:block;color:#7e5b9d}
+.talk-feedback-boxes{width:min(100%,760px);margin:26px auto 0;padding:22px;border:1px solid #e2d7e6;border-radius:27px;background:#fff}.talk-feedback-boxes h2{margin:0 0 16px;font-size:18px}.talk-feedback-boxes>div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.talk-feedback-boxes button{min-width:0;min-height:74px;padding:8px;border:1px solid #e0d5e5;border-radius:17px;background:#faf7fc;color:#665472;font-size:10px;font-weight:900;cursor:pointer}.talk-feedback-boxes button.selected{border-color:#7e5a9f;background:#eee5f6;color:#6b4788;box-shadow:inset 0 0 0 2px #fff}
+.talk-rating-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:24px}.talk-rating-actions button{min-width:125px;min-height:51px;border:1px solid #dacde1;border-radius:17px;background:#fff;color:#674d78;font-weight:900;cursor:pointer}.talk-rating-actions button:disabled{opacity:.4;cursor:not-allowed}.talk-rating-actions .done{background:#76529a;color:#fff}.talk-rating-actions .report{color:#bd5169;background:#fff0f2}
+
+.talk-report-layer{position:fixed;z-index:80;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:#241e33a8;backdrop-filter:blur(6px)}
+.talk-report-sheet{position:relative;width:min(680px,100%);padding:18px 30px 34px;border-radius:34px 34px 24px 24px;background:#fff;text-align:right;box-shadow:0 -20px 70px #21172f55;animation:sheetUp .25s ease-out}.sheet-handle{width:64px;height:6px;margin:0 auto 18px;border-radius:8px;background:#ddd4e0}.sheet-close{position:absolute;left:24px;top:27px;display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:14px;background:#f2edf5;color:#6f577d}.talk-report-sheet>span{font-size:10px;font-weight:900;color:#bb546a}.talk-report-sheet h2{margin:5px 0;font-size:32px}.talk-report-sheet>p{color:#776d7c}.report-options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0}.report-options button{display:flex;align-items:center;gap:10px;min-height:56px;padding:10px 14px;border:1px solid #e2d7e5;border-radius:16px;background:#faf8fb;color:#5f4c6b;font-weight:800;text-align:right;cursor:pointer}.report-options i{display:grid;place-items:center;width:27px;height:27px;border-radius:9px;background:#eee7f1;color:#8a6c98;font-style:normal}.report-options button.selected{border-color:#cc6076;background:#fff0f2;color:#a34156}.report-options button.selected i{background:#d55f78;color:#fff}.report-submit{width:100%;min-height:53px;border:0;border-radius:17px;background:#332b48;color:#fff;font-weight:900}.report-submit:disabled{opacity:.4}
+
+@keyframes talkSpin{to{transform:rotate(360deg)}}
+@keyframes talkWave{to{height:9px;opacity:.45}}
+@keyframes sheetUp{from{transform:translateY(60px);opacity:0}}
+
+@media(max-width:700px){
+  .talk-room{padding-bottom:calc(104px + env(safe-area-inset-bottom))!important}
+  .talk-select,.talk-waiting,.talk-active,.talk-rating{min-height:calc(100dvh - 112px);padding-left:16px;padding-right:16px}
+  .talk-select{padding-top:26px;gap:20px}
+  .talk-hero:after{font-size:38px;left:1%;top:0}.talk-hero h1{padding-left:44px;font-size:clamp(32px,10vw,46px)}.talk-hero h1 br{display:none}.talk-hero p{font-size:14px}
+  .talk-mode-cards{grid-template-columns:1fr;gap:18px}.talk-mode-card{min-height:300px;padding:26px;border-radius:28px}.talk-mode-card h2{font-size:34px}.talk-mode-card p{padding-bottom:18px}
+  .talk-journey-progress{margin-bottom:26px}.talk-wait-art{height:220px}.talk-avatar{width:82px;height:82px;border-radius:29px}.talk-avatar.me{right:28px}.talk-avatar.partner{left:28px}
+  .talk-wait-actions{flex-direction:column}.talk-wait-actions button{width:100%}
+  .talk-session-head{margin-bottom:18px}.talk-end{padding:10px 16px}
+  .call-stage{padding:32px 12px;border-radius:30px}.call-avatar{width:125px;height:125px;border-radius:43px}.call-controls{gap:7px}.call-controls button{min-width:0;flex:1;min-height:72px;padding:6px}
+  .chat-topic{padding:13px 14px;border-radius:18px}.chat-topic b{font-size:15px}.talk-messages{min-height:250px;padding:18px 0}.talk-bubble{max-width:84%;padding:12px 14px}.talk-bubble p{font-size:15px}.talk-composer{grid-template-columns:minmax(0,1fr) 50px;padding:8px;border-radius:20px}.talk-composer button{width:50px;min-width:50px}
+  .ten-stars{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:390px}.ten-stars button{min-height:54px;font-size:30px}.talk-feedback-boxes{padding:18px}.talk-feedback-boxes>div{grid-template-columns:repeat(2,minmax(0,1fr))}.talk-rating-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.talk-rating-actions .done{grid-column:1/3}.talk-rating-actions button{min-width:0}
+  .report-options{grid-template-columns:1fr}.talk-report-sheet{padding:16px 19px calc(25px + env(safe-area-inset-bottom))}.talk-report-sheet h2{font-size:27px}
+}
+
+@media(max-width:390px){
+  .talk-select,.talk-waiting,.talk-active,.talk-rating{padding-left:12px;padding-right:12px}
+  .talk-mode-card{padding:22px}.talk-mode-icon{width:64px;height:64px;border-radius:21px}.talk-mode-card h2{font-size:31px}
+  .talk-bubble{max-width:88%}.talk-composer input{padding:0 9px;font-size:13px}
+  .ten-stars{gap:6px}.ten-stars button{min-height:50px;border-radius:13px;font-size:27px}
+}
