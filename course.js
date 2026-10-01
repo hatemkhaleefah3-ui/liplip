@@ -35,6 +35,15 @@ const LiplipCourse = (() => {
   function cleanContent(value,id){
     const base=defaultContent(id),out=value&&typeof value==='object'?value:{};
     for(const key of ['vocabulary','grammar','watchRead'])if(!out[key]||typeof out[key]!=='object')out[key]=base[key];
+    const a=out.grammar.article||base.grammar.article;
+    a.notes=Array.isArray(a.notes)?a.notes:[];
+    a.examples=Array.isArray(a.examples)?a.examples:[];
+    a.laws=Array.isArray(a.laws)&&a.laws.length?a.laws:[
+      {type:'normal',title:a.title||'Normal sentence',rule:a.rule||'',formula:a.normal||''},
+      {type:'negative',title:'Negative sentence',rule:a.rule||'',formula:a.negative||''},
+      {type:'question',title:'Question sentence',rule:a.rule||'',formula:a.question||''}
+    ].filter(x=>x.formula||x.rule);
+    out.grammar.article=a;
     return out;
   }
   function getContent(id){return cleanContent(structuredClone(edits[String(id)]||defaultContent(id)),id)}
@@ -60,10 +69,28 @@ const LiplipCourse = (() => {
   function recordFor(progress){return LiplipProgress.courseSnapshot(progress).records.find(x=>x.boxId===ui.boxId)||{completedPhases:[],currentPhase:'vocabulary',processIndex:0}}
   function availablePhase(progress,key){const r=recordFor(progress),target=PHASES.findIndex(x=>x.key===key),current=PHASES.findIndex(x=>x.key===r.currentPhase);return ui.review?r.completedPhases.includes(key):target<=current||r.completedPhases.includes(key)}
   function zoneHeader(progress){const loc=location(ui.boxId),r=recordFor(progress);return `<header class="course-zone-head"><button data-course="exit">${icon(icons.back,17)} العودة للخريطة</button><div><span>المستوى ${loc.level} · الصندوق ${loc.box}</span><strong>${phaseDef(ui.phase).label}</strong></div></header>${ui.notice?`<p class="course-notice">${safe(ui.notice)}</p>`:''}<nav class="course-phase-toggle" aria-label="مراحل الصندوق">${PHASES.map((p,i)=>{const enabled=availablePhase(progress,p.key),done=r.completedPhases.includes(p.key);return `<button ${enabled?`data-course="phase" data-phase="${p.key}"`:'disabled'} class="${ui.phase===p.key?'active':''} ${done?'done':''}"><b>0${i+1}</b><span>${p.label}<small>${p.short}</small></span>${done?icon(icons.check,16):''}</button>`}).join('')}</nav>`}
-  function itemCard(item,i){const media=item.image?`<img src="${safe(item.image)}" alt="${safe(item.ar||item.en)}">`:'';return `<article class="vocab-card ${item.type||'word'}">${media}<span>${String(i+1).padStart(2,'0')} · ${safe(item.type||'word')}</span><strong dir="ltr">${safe(item.en)}</strong><p>${safe(item.ar)}</p>${item.voice?`<button data-course="speak" data-text="${safe(item.voice)}">استمع إلى النطق</button>`:''}</article>`}
-  function questions(items,prefix){return items.map((q,i)=>`<fieldset class="course-question"><legend>${i+1}. ${safe(q.prompt)}</legend>${q.image?`<img src="${safe(q.image)}" alt="صورة السؤال">`:''}${q.voice?`<button type="button" data-course="speak" data-text="${safe(q.voice)}">تشغيل الصوت</button>`:''}${Array.isArray(q.options)&&q.options.length?`<div class="course-options" dir="auto">${q.options.map((x,j)=>`<label><input type="radio" name="${prefix}${i}" value="${j}" required>${safe(x)}</label>`).join('')}</div>`:`<input name="${prefix}${i}" required autocomplete="off">`}</fieldset>`).join('')}
+  function itemCard(item,i){
+    const labels={word:'كلمة',sentence:'جملة',image:'صورة إلى كلمة',voice:'اسمع وتكلّم',flashcardWord:'بطاقة كلمة',flashcardSentence:'بطاقة جملة',imageToWord:'صورة إلى كلمة',voiceToSpeak:'صوت إلى نطق',imageToSpeak:'صورة إلى نطق'};
+    const media=item.image?`<img src="${safe(item.image)}" alt="${safe(item.ar||item.en)}">`:'';
+    return `<article class="vocab-card ${item.type||'word'}">${media}<span>${String(i+1).padStart(2,'0')} · ${safe(labels[item.type]||item.type||'word')}</span><strong dir="ltr">${safe(item.en)}</strong><p>${safe(item.ar)}</p>${item.voice?`<button data-course="speak" data-text="${safe(item.voice)}">استمع ثم انطق</button>`:''}</article>`
+  }
+  function questions(items,prefix){
+    return items.map((q,i)=>{
+      const image=q.image?`<img src="${safe(q.image)}" alt="صورة السؤال">`:'';
+      const voice=q.voice?`<button type="button" data-course="speak" data-text="${safe(q.voice)}">تشغيل الصوت</button>`:'';
+      let control='';
+      if(q.type==='match')control=`<div class="course-match" dir="auto">${(q.matches||[]).map((pair,j)=>`<label><span>${safe(pair.left)}</span><select name="${prefix}${i}:${j}" required><option value="">اختر المطابقة</option>${(q.matches||[]).map((x,k)=>`<option value="${k}">${safe(x.right)}</option>`).join('')}</select></label>`).join('')}</div>`;
+      else if(['mcq','trueFalse'].includes(q.type)&&Array.isArray(q.options)&&q.options.length)control=`<div class="course-options" dir="auto">${q.options.map((x,j)=>`<label><input type="radio" name="${prefix}${i}" value="${j}" required>${safe(x)}</label>`).join('')}</div>`;
+      else control=`<label class="course-written"><span>${q.type==='voiceToSpeak'||q.type==='imageToVoice'?'انطق الإجابة ثم اكتب ما قلته':'اكتب الإجابة'}</span><input name="${prefix}${i}" required autocomplete="off"></label>`;
+      return `<fieldset class="course-question ${safe(q.type||'fillBlank')}"><legend>${i+1}. ${safe(q.prompt)}</legend>${image}${voice}${control}</fieldset>`
+    }).join('')
+  }
   function vocabulary(progress,content,processIndex){if(processIndex===0)return `<section class="phase-vocabulary"><header><span>المرحلة 01 · العملية 01</span><h1>شاهد الكلمة، اسمعها، واستخدمها.</h1><p>الكلمات والجمل والصور والأصوات في مسار واحد قبل الاختبار.</p></header><div class="vocab-deck">${content.items.map(itemCard).join('')}</div><button class="course-advance" data-course="complete-process">أنهيت المحتوى · ابدأ الاختبار</button></section>`;return `<section class="phase-vocabulary"><header><span>المرحلة 01 · العملية 02</span><h1>اختبار المفردات والصوت والصورة.</h1><p>تحتاج ٧٠٪ للانتقال إلى القواعد.</p></header><form id="course-exam-form" data-phase="vocabulary">${questions(content.questions,'q')}<button class="course-submit" type="submit">تحقق من الإجابات</button></form></section>`}
-  function grammar(progress,content,processIndex){const a=content.article||{};if(processIndex===0)return `<article class="phase-grammar"><header><span>المرحلة 02 · العملية 01</span><h1>${safe(a.title||'مقال القاعدة')}</h1><p>${safe(a.rule)}</p></header><section class="grammar-formulas"><div><small>Normal</small><strong dir="ltr">${safe(a.normal)}</strong></div><div><small>Negative</small><strong dir="ltr">${safe(a.negative)}</strong></div><div><small>Question</small><strong dir="ltr">${safe(a.question)}</strong></div></section><section class="grammar-notes"><h2>ملاحظات مهمّة</h2><ul>${(a.notes||[]).map(x=>`<li>${safe(x)}</li>`).join('')}</ul></section><section class="grammar-examples"><div><h2>من السهل إلى الصعب</h2><span>${(a.examples||[]).length} مثالاً</span></div>${(a.examples||[]).map((x,i)=>`<p class="${safe(x.difficulty)}"><b>${String(i+1).padStart(2,'0')}</b><span dir="ltr">${safe(x.text)}</span><small>${safe(x.difficulty)}</small></p>`).join('')}</section><button class="course-advance" data-course="complete-process">قرأت المقال · ابدأ اختبار القواعد</button></article>`;return `<section class="phase-grammar"><header><span>المرحلة 02 · العملية 02</span><h1>اختبار القواعد.</h1><p>تحتاج ٧٠٪ للانتقال إلى شاهد واقرأ.</p></header><form id="course-exam-form" data-phase="grammar">${questions(content.questions,'q')}<button class="course-submit" type="submit">تحقق من الإجابات</button></form></section>`}
+  function grammar(progress,content,processIndex){
+    const a=content.article||{},laws=a.laws||[];
+    if(processIndex===0)return `<article class="phase-grammar"><header><span>المرحلة 02 · العملية 01</span><h1>${safe(a.title||'مقال القاعدة')}</h1><p>${safe(a.rule)}</p></header><section class="grammar-laws"><h2>قوانين بناء الجملة</h2>${laws.map(x=>`<article><small>${safe(x.type)}</small><h3>${safe(x.title)}</h3><p>${safe(x.rule)}</p><strong dir="ltr">${safe(x.formula)}</strong></article>`).join('')}</section><section class="grammar-notes"><h2>ملاحظات مهمّة</h2><ul>${(a.notes||[]).map(x=>`<li>${safe(x)}</li>`).join('')}</ul></section><section class="grammar-examples"><div><h2>من السهل إلى الصعب</h2><span>${(a.examples||[]).length} مثالاً</span></div>${(a.examples||[]).map((x,i)=>`<p class="${safe(x.difficulty)}"><b>${String(i+1).padStart(2,'0')}</b><span dir="ltr">${safe(x.text)}</span><small>${safe(x.difficulty)}</small></p>`).join('')}</section><button class="course-advance" data-course="complete-process">قرأت المقال · ابدأ اختبار القواعد</button></article>`;
+    return `<section class="phase-grammar"><header><span>المرحلة 02 · العملية 02</span><h1>اختبار القواعد.</h1><p>تحتاج ٧٠٪ للانتقال إلى شاهد واقرأ.</p></header><form id="course-exam-form" data-phase="grammar">${questions(content.questions,'q')}<button class="course-submit" type="submit">تحقق من الإجابات</button></form></section>`
+  }
   function youtubeId(value){const s=String(value||'').trim();if(/^[\w-]{6,20}$/.test(s))return s;try{const u=new URL(s);if(u.hostname==='youtu.be')return u.pathname.slice(1);if(/(^|\.)youtube\.com$/.test(u.hostname))return u.searchParams.get('v')||u.pathname.split('/').filter(Boolean).pop()||''}catch{}return ''}
   function watchRead(progress,content,processIndex){if(processIndex===0){const video=content.video||{},id=youtubeId(video.youtube);return `<section class="phase-watch"><header><span>المرحلة 03 · العملية 01</span><h1>${safe(video.title||'شاهد الفيديو ثم أجب')}</h1><p>المشاهدة وأسئلتها عملية واحدة.</p></header>${id?`<div class="course-video"><iframe src="https://www.youtube-nocookie.com/embed/${safe(id)}?rel=0" title="${safe(video.title)}" allowfullscreen></iframe></div>`:'<div class="course-empty">أضف رابط YouTube من إدارة المحتوى.</div>'}<form id="course-exam-form" data-phase="watchRead" data-process="video">${questions(content.videoQuestions||[],'q')}<button class="course-submit" type="submit">أنهيت الفيديو والأسئلة</button></form></section>`}const pages=content.story||[],page=pages[Math.min(ui.storyPage,Math.max(0,pages.length-1))];return `<section class="phase-story"><header><span>المرحلة 03 · العملية 02</span><h1>${safe(page?.title||'اقرأ القصة ثم أجب')}</h1><p>القصة وأسئلتها تختمان الصندوق.</p></header>${page?`<article class="story-spread">${page.image?`<img src="${safe(page.image)}" alt="صورة القصة">`:''}<div><span>صفحة ${ui.storyPage+1} من ${pages.length}</span><p dir="ltr">${safe(page.text)}</p><aside>${safe(page.arabic)}</aside></div></article><div class="story-pager"><button data-course="story-prev" ${ui.storyPage===0?'disabled':''}>السابق</button><button data-course="story-next" ${ui.storyPage>=pages.length-1?'disabled':''}>التالي</button></div>`:'<div class="course-empty">أضف صفحات القصة من إدارة المحتوى.</div>'}<form id="course-exam-form" data-phase="watchRead" data-process="story">${questions(content.storyQuestions||[],'q')}<button class="course-submit" type="submit">أنهيت القصة والأسئلة</button></form></section>`}
   function resultScore(record){const vocabulary=record.scores?.['vocabulary:exam']??0,grammar=record.scores?.['grammar:exam']??0,video=record.scores?.['watchRead:video']??0,story=record.scores?.['watchRead:story']??0,watchRead=Math.round((video+story)/2),total=Math.round((vocabulary+grammar+watchRead)/3);return {vocabulary,grammar,watchRead,total}}
@@ -82,13 +109,13 @@ const LiplipCourse = (() => {
   const managerField=(label,name,value='',type='text',required=false)=>`<label>${label}<input type="${type}" name="${name}" value="${safe(value)}" ${required?'required':''}></label>`;
   const managerArea=(label,name,value='',required=false)=>`<label class="wide">${label}<textarea name="${name}" rows="3" ${required?'required':''}>${safe(value)}</textarea></label>`;
   function questionFields(q={}){
-    const options=q.options||[];
-    return `${managerArea('السؤال','prompt',q.prompt,true)}${managerField('الخيار 1','option1',options[0]||'')}${managerField('الخيار 2','option2',options[1]||'')}${managerField('الخيار 3','option3',options[2]||'')}${managerField('الخيار 4','option4',options[3]||'')}<label>الخيار الصحيح<select name="correct">${[1,2,3,4].map(n=>`<option value="${n}" ${(q.correct??0)===n-1?'selected':''}>${n}</option>`).join('')}</select></label>${managerField('الإجابة النصية','answer',q.answer||'')}${managerArea('شرح الإجابة','explanation',q.explanation||'')}${managerField('رابط الصورة','image',q.image||'','url')}${managerField('نص الصوت','voice',q.voice||'')}`
+    const options=q.options||[],matches=q.matches||[];
+    return `<label>نوع السؤال<select name="questionType">${QUESTION_TYPES.map(type=>`<option value="${type}" ${(q.type||'mcq')===type?'selected':''}>${type}</option>`).join('')}</select></label>${managerArea('السؤال','prompt',q.prompt,true)}${managerField('الخيار 1','option1',options[0]||'')}${managerField('الخيار 2','option2',options[1]||'')}${managerField('الخيار 3','option3',options[2]||'')}${managerField('الخيار 4','option4',options[3]||'')}<label>الخيار الصحيح<select name="correct">${[1,2,3,4].map(n=>`<option value="${n}" ${(q.correct??0)===n-1?'selected':''}>${n}</option>`).join('')}</select></label>${managerField('الإجابة النصية','answer',q.answer||'')}${[1,2,3,4].map((n,i)=>managerField('مطابقة يسار '+n,'matchLeft'+n,matches[i]?.left||'')+managerField('مطابقة يمين '+n,'matchRight'+n,matches[i]?.right||'')).join('')}${managerArea('شرح الإجابة','explanation',q.explanation||'')}${managerField('رابط الصورة','image',q.image||'','url')}${managerField('نص الصوت','voice',q.voice||'')}`
   }
   function manualForm(){
     const phase=ui.managerPhase,process=ui.managerProcess;
     let fields='';
-    if(phase==='vocabulary'&&process==='content')fields=`<label>نوع العنصر<select name="kind"><option value="word">كلمة</option><option value="sentence">جملة</option><option value="image">صورة</option><option value="voice">صوت</option></select></label>${managerField('English','en','', 'text',true)}${managerField('العربية','ar')}${managerField('رابط الصورة','image','','url')}${managerField('نص الصوت','voice')}`;
+    if(phase==='vocabulary'&&process==='content')fields=`<label>نوع العنصر<select name="kind"><option value="flashcardWord">بطاقة كلمة</option><option value="flashcardSentence">بطاقة جملة</option><option value="imageToWord">صورة إلى كلمة</option><option value="voiceToSpeak">صوت إلى نطق</option><option value="imageToSpeak">صورة إلى نطق</option></select></label>${managerField('English','en','', 'text',true)}${managerField('العربية','ar')}${managerField('رابط الصورة','image','','url')}${managerField('نص الصوت','voice')}`;
     else if((phase==='vocabulary'||phase==='grammar')&&process==='exam')fields=questionFields();
     else if(phase==='grammar'&&process==='article')fields=`<label>نوع العنصر<select name="kind"><option value="article">القانون والصيغ</option><option value="note">ملاحظة</option><option value="example">مثال</option></select></label>${managerField('العنوان','title')}${managerArea('القانون أو النص','text')}${managerField('الصيغة العادية','normal')}${managerField('صيغة النفي','negative')}${managerField('صيغة السؤال','question')}${managerField('الصعوبة','difficulty','easy')}`;
     else if(phase==='watchRead'&&process==='video')fields=`<label>نوع العنصر<select name="kind"><option value="video">فيديو</option><option value="question">سؤال الفيديو</option></select></label>${managerField('العنوان','title')}${managerField('رابط YouTube','youtube')}${questionFields()}`;
@@ -98,7 +125,7 @@ const LiplipCourse = (() => {
   function editForm(kind,index,title,fields,fixed=false){return `<form id="course-manager-edit" class="course-manager-item" data-kind="${kind}" data-index="${index}"><header><strong>${safe(title)}</strong>${fixed?'':`<button type="button" data-course="manager-delete" data-kind="${kind}" data-index="${index}">حذف</button>`}</header><div class="course-manager-fields">${fields}</div><button type="submit">حفظ التعديل</button></form>`}
   function editItems(){
     const content=getContent(managerId()),phase=ui.managerPhase,process=ui.managerProcess;let forms=[];
-    if(phase==='vocabulary'&&process==='content')forms=content.vocabulary.items.map((x,i)=>editForm('vocab-item',i,`عنصر ${i+1}`,`<label>النوع<select name="kind">${['word','sentence','image','voice'].map(k=>`<option value="${k}" ${x.type===k?'selected':''}>${k}</option>`).join('')}</select></label>${managerField('English','en',x.en)}${managerField('العربية','ar',x.ar)}${managerField('رابط الصورة','image',x.image,'url')}${managerField('نص الصوت','voice',x.voice)}`));
+    if(phase==='vocabulary'&&process==='content')forms=content.vocabulary.items.map((x,i)=>editForm('vocab-item',i,`عنصر ${i+1}`,`<label>النوع<select name="kind">${['flashcardWord','flashcardSentence','imageToWord','voiceToSpeak','imageToSpeak'].map(k=>`<option value="${k}" ${x.type===k?'selected':''}>${k}</option>`).join('')}</select></label>${managerField('English','en',x.en)}${managerField('العربية','ar',x.ar)}${managerField('رابط الصورة','image',x.image,'url')}${managerField('نص الصوت','voice',x.voice)}`));
     else if(phase==='vocabulary'&&process==='exam')forms=content.vocabulary.questions.map((x,i)=>editForm('vocab-question',i,`سؤال ${i+1}`,questionFields(x)));
     else if(phase==='grammar'&&process==='article'){
       const a=content.grammar.article||{};forms.push(editForm('grammar-article',0,'القانون والصيغ',`${managerField('العنوان','title',a.title)}${managerArea('القانون','text',a.rule)}${managerField('الصيغة العادية','normal',a.normal)}${managerField('صيغة النفي','negative',a.negative)}${managerField('صيغة السؤال','question',a.question)}`,true));
@@ -123,7 +150,10 @@ const LiplipCourse = (() => {
   }
   function managerSheet(){return `<div class="course-manager-overlay"><button class="course-manager-backdrop" data-course="manager-close" aria-label="إغلاق"></button><section class="course-manager-sheet" role="dialog" aria-modal="true"><header><div><small>إدارة محتوى الدراسة</small><h2>${ui.managerMode==='home'?'إدارة المحتوى':ui.managerMode==='edit'?'تعديل المحتوى':ui.managerMode==='import'?'استيراد المحتوى':'إضافة محتوى'}</h2></div><div>${ui.managerMode!=='home'?'<button data-course="manager-back">رجوع</button>':''}<button data-course="manager-close">إغلاق</button></div></header>${ui.error?`<p class="course-control-error">${safe(ui.error)}</p>`:ui.notice?`<p class="course-control-success">${safe(ui.notice)}</p>`:''}<div class="course-manager-body">${managerBody()}</div></section></div>`}
   const managerText=(form,name)=>String(new FormData(form).get(name)||'').trim();
-  function managerQuestion(form){const data=new FormData(form),options=[1,2,3,4].map(i=>String(data.get('option'+i)||'').trim()).filter(Boolean);return {type:options.length?'mcq':'text',prompt:String(data.get('prompt')||'').trim(),options,correct:Math.max(0,Math.min(options.length-1,Number(data.get('correct')||1)-1)),answer:String(data.get('answer')||'').trim(),explanation:String(data.get('explanation')||'').trim(),image:String(data.get('image')||'').trim(),voice:String(data.get('voice')||'').trim()}}
+  function managerQuestion(form){
+    const data=new FormData(form),type=String(data.get('questionType')||'mcq'),options=[1,2,3,4].map(i=>String(data.get('option'+i)||'').trim()).filter(Boolean),matches=[1,2,3,4].map(i=>({left:String(data.get('matchLeft'+i)||'').trim(),right:String(data.get('matchRight'+i)||'').trim()})).filter(x=>x.left&&x.right);
+    return {type,prompt:String(data.get('prompt')||'').trim(),options:type==='trueFalse'&&options.length<2?['True','False']:options,correct:Math.max(0,Math.min(Math.max(0,options.length-1),Number(data.get('correct')||1)-1)),answer:String(data.get('answer')||'').trim(),matches,explanation:String(data.get('explanation')||'').trim(),image:String(data.get('image')||'').trim(),voice:String(data.get('voice')||'').trim()}
+  }
   function managerSubmit(form){
     ui.error='';ui.notice='';const id=managerId(),content=getContent(id),phase=ui.managerPhase,process=ui.managerProcess,data=new FormData(form);
     try{
@@ -174,24 +204,80 @@ const LiplipCourse = (() => {
     ui.notice='';ui.error='';return true
   }
 
+  const QUESTION_TYPES=['mcq','fillBlank','voiceToSpeak','imageToVoice','match','trueFalse'];
   const HEADERS={
-    vocabulary:['Phase','Level','Box','Feature','Order','English','Arabic','Image URL','Voice text','Question','Option 1','Option 2','Option 3','Option 4','Correct option','Answer','Explanation'],
-    grammar:['Phase','Level','Box','Feature','Order','Title','Grammar law','Normal formula','Negative formula','Question formula','Important notes','Example','Difficulty','Question','Option 1','Option 2','Option 3','Option 4','Correct option','Answer','Explanation'],
-    watchRead:['Phase','Level','Box','Feature','Order','Title','Video URL','Story text','Arabic text','Image URL','Question','Option 1','Option 2','Option 3','Option 4','Correct option','Answer','Explanation']
+    vocabulary:['Phase','Level','Box','Process','Feature','Order','Item Type','English','Arabic','Sentence','Image URL','Voice Text','Question Type','Question Prompt','Option 1','Option 2','Option 3','Option 4','Correct Option','Answer','Match Left 1','Match Right 1','Match Left 2','Match Right 2','Match Left 3','Match Right 3','Match Left 4','Match Right 4','Explanation'],
+    grammar:['Phase','Level','Box','Process','Feature','Order','Law Type','Title','Grammar Law','Formula','Important Note','Example','Difficulty','Question Type','Question Prompt','Voice Text','Image URL','Option 1','Option 2','Option 3','Option 4','Correct Option','Answer','Match Left 1','Match Right 1','Match Left 2','Match Right 2','Match Left 3','Match Right 3','Match Left 4','Match Right 4','Explanation'],
+    watchRead:['Phase','Level','Box','Process','Feature','Order','Title','Video URL','Story Text','Arabic Text','Image URL','Voice Text','Question Type','Question Prompt','Option 1','Option 2','Option 3','Option 4','Correct Option','Answer','Match Left 1','Match Right 1','Match Left 2','Match Right 2','Match Left 3','Match Right 3','Match Left 4','Match Right 4','Explanation']
   };
-  const FEATURE_HELP={vocabulary:'word · sentence · image · voice · vocabularyExam · voiceExam · imageExam',grammar:'grammarArticle · grammarExample · grammarExam',watchRead:'video · videoExam · story · storyExam'};
+  const FEATURE_HELP={vocabulary:'flashcardWord · flashcardSentence · imageToWord · voiceToSpeak · imageToSpeak · examQuestion',grammar:'sentenceBuildLaw · importantNote · example · examQuestion',watchRead:'video · videoExamQuestion · storyPage · storyExamQuestion'};
   function controlPanel(){const loc=location(ui.boxId);return `<div class="course-control-overlay"><button class="course-control-backdrop" data-course="control-close" aria-label="إغلاق"></button><section class="course-control" role="dialog" aria-modal="true"><header><div><small>المستوى ${loc.level} · الصندوق ${loc.box}</small><h2>إدارة محتوى المراحل</h2></div><button data-course="control-close">إغلاق</button></header><p>لكل مرحلة ملف Excel مستقل. عمود Phase يقبل قيمة واحدة فقط، ولا يوجد عمود Step.</p><div class="course-template-grid">${PHASES.map(p=>`<article class="${p.key}"><span>${p.label}</span><h3>${PHASE_FILE[p.key]}</h3><code>Phase = ${PHASE_VALUE[p.key]}</code><small>${FEATURE_HELP[p.key]}</small><div><button data-course="download-template" data-phase="${p.key}">تنزيل القالب</button><label>استيراد الملف<input type="file" data-course-import="${p.key}" accept=".xlsx"></label></div></article>`).join('')}</div>${ui.error?`<p class="course-control-error">${safe(ui.error)}</p>`:ui.notice?`<p class="course-control-success">${safe(ui.notice)}</p>`:''}</section></div>`}
 
   function xmlEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]))}
   function colName(i){let s='';for(i++;i;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s}
   function worksheet(rows){return `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>${rows.map((row,ri)=>`<row r="${ri+1}">${row.map((v,ci)=>`<c r="${colName(ci)}${ri+1}" t="inlineStr"${ri===0?' s="1"':''}><is><t>${xmlEsc(v)}</t></is></c>`).join('')}</row>`).join('')}</sheetData><autoFilter ref="A1:${colName(rows[0].length-1)}${rows.length}"/></worksheet>`}
-  function templateRows(phase){
-    const h=HEADERS[phase],p=PHASE_VALUE[phase];
-    if(phase==='vocabulary')return [h,[p,1,1,'word',1,'hello','مرحباً','','hello','','','','','','','',''],[p,1,1,'imageExam',2,'','','https://example.com/cat.jpg','','ما هذه الصورة؟','cat','dog','book','car',1,'cat','اختر الصورة أو الكلمة الصحيحة.']];
-    if(phase==='grammar')return [h,[p,1,1,'grammarArticle',1,'Present simple','نستخدمه للعادات والحقائق.','Subject + verb + object','Subject + do/does not + verb','Do/Does + subject + verb?','does مع he/she/it','','','','','','','','','',''],...Array.from({length:10},(_,i)=>[p,1,1,'grammarExample',i+2,'','','','','','',`Example ${i+1}: She reads every day.`,i<4?'easy':i<8?'medium':'difficult','','','','','','','','']),[p,1,1,'grammarExam',12,'','','','','','','','','اختر الصيغة الصحيحة.','She reads','She read','Reads she','She reading',1,'She reads','']];
-    return [h,[p,1,1,'video',1,'Introduction','https://www.youtube.com/watch?v=VIDEO_ID','','','','','','','','','','',''],[p,1,1,'videoExam',2,'','','','','','ما الفكرة الأساسية؟','A','B','C','D',1,'A',''],[p,1,1,'story',3,'Story','','A short story.','قصة قصيرة.','https://example.com/story.jpg','','','','','','','',''],[p,1,1,'storyExam',4,'','','','','','ماذا حدث؟','A','B','C','D',1,'A','']];
+  function rowFrom(phase,values){return HEADERS[phase].map(h=>values[h]??'')}
+  function examExamples(phase,process,feature,start=1){
+    const base={Phase:PHASE_VALUE[phase],Level:1,Box:1,Process:process,Feature:feature};
+    return [
+      {...base,Order:start,'Question Type':'mcq','Question Prompt':'Choose the correct answer.','Option 1':'correct','Option 2':'option B','Option 3':'option C','Option 4':'option D','Correct Option':1,Answer:'correct',Explanation:'Option 1 is correct.'},
+      {...base,Order:start+1,'Question Type':'fillBlank','Question Prompt':'Complete: I ___ English every day.',Answer:'study',Explanation:'Use the base verb after I.'},
+      {...base,Order:start+2,'Question Type':'voiceToSpeak','Question Prompt':'Listen, say the sentence, then type what you said.','Voice Text':'How are you today?',Answer:'How are you today?',Explanation:'Repeat the complete sentence.'},
+      {...base,Order:start+3,'Question Type':'imageToVoice','Question Prompt':'Look at the image, say the word, then type it.','Image URL':'https://example.com/images/apple.jpg',Answer:'apple',Explanation:'The image shows an apple.'},
+      {...base,Order:start+4,'Question Type':'match','Question Prompt':'Match each English item with its meaning.','Match Left 1':'book','Match Right 1':'كتاب','Match Left 2':'water','Match Right 2':'ماء','Match Left 3':'school','Match Right 3':'مدرسة','Match Left 4':'friend','Match Right 4':'صديق',Explanation:'Match every item once.'},
+      {...base,Order:start+5,'Question Type':'trueFalse','Question Prompt':'The sentence "She reads every day" is in the present simple.','Option 1':'True','Option 2':'False','Correct Option':1,Answer:'True',Explanation:'It describes a repeated action.'}
+    ].map(x=>rowFrom(phase,x))
   }
-  async function templateFile(phase,type='blob'){if(typeof JSZip==='undefined')throw Error('JSZip غير متاح.');const zip=new JSZip(),rows=templateRows(phase);zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');const xl=zip.folder('xl');xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Content" sheetId="1" r:id="rId1"/></sheets></workbook>');xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');xl.file('styles.xml','<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font/><font><b/><color rgb="FFFFFFFF"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF65538E"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"/></cellXfs></styleSheet>');xl.folder('worksheets').file('sheet1.xml',worksheet(rows));return zip.generateAsync({type})}
+  function templateRows(phase){
+    const p=PHASE_VALUE[phase],rows=[HEADERS[phase]];
+    if(phase==='vocabulary'){
+      const words=[['hello','مرحباً'],['family','عائلة'],['market','سوق'],['teacher','معلّم'],['water','ماء']];
+      words.forEach(([en,ar],i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'content',Feature:'flashcardWord',Order:i+1,'Item Type':'word',English:en,Arabic:ar,'Voice Text':en})));
+      const sentences=[['Hello, how are you?','مرحباً، كيف حالك؟'],['My family lives in Baghdad.','عائلتي تعيش في بغداد.'],['The market is open today.','السوق مفتوح اليوم.'],['The teacher explains the lesson.','المعلّم يشرح الدرس.'],['I drink water every morning.','أشرب الماء كل صباح.']];
+      sentences.forEach(([en,ar],i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'content',Feature:'flashcardSentence',Order:6+i,'Item Type':'sentence',Sentence:en,Arabic:ar,'Voice Text':en})));
+      ['apple','book','car','house'].forEach((en,i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'content',Feature:'imageToWord',Order:11+i,'Item Type':'imageWord',English:en,Arabic:['تفاحة','كتاب','سيارة','بيت'][i],'Image URL':`https://example.com/images/${en}.jpg`,'Voice Text':en})));
+      ['Good morning.','Please help me.','Thank you very much.','See you tomorrow.'].forEach((en,i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'content',Feature:'voiceToSpeak',Order:15+i,'Item Type':'voiceSpeak',English:en,'Voice Text':en})));
+      ['cat','phone','chair','tree'].forEach((en,i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'content',Feature:'imageToSpeak',Order:19+i,'Item Type':'imageSpeak',English:en,'Image URL':`https://example.com/images/${en}.jpg`,'Voice Text':en})));
+      rows.push(...examExamples(phase,'exam','examQuestion',23));return rows
+    }
+    if(phase==='grammar'){
+      const laws=[
+        ['normal','Present simple: normal sentence','Use subject + base verb for routines and facts.','Subject + verb + object'],
+        ['negative','Present simple: negative sentence','Use do not or does not before the base verb.','Subject + do/does not + base verb + object'],
+        ['question','Present simple: question','Move do or does before the subject.','Do/Does + subject + base verb + object?']
+      ];
+      laws.forEach(([type,title,law,formula],i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'article',Feature:'sentenceBuildLaw',Order:i+1,'Law Type':type,Title:title,'Grammar Law':law,Formula:formula})));
+      ['Use does with he, she, and it.','After does, use the base verb.','Adverbs of frequency usually come before the main verb.','Use do with I, you, we, and they.','Do not add -s after does.','Short answers use do or does.'].forEach((note,i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'article',Feature:'importantNote',Order:4+i,'Important Note':note})));
+      Array.from({length:15},(_,i)=>({text:i<5?`I study English every day. Example ${i+1}`:i<10?`She does not watch television before school. Example ${i+1}`:`Does your brother usually walk to work in the morning? Example ${i+1}`,difficulty:i<5?'easy':i<10?'medium':'difficult'})).forEach((x,i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'article',Feature:'example',Order:10+i,Example:x.text,Difficulty:x.difficulty})));
+      rows.push(...examExamples(phase,'exam','examQuestion',25));return rows
+    }
+    rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'video',Feature:'video',Order:1,Title:'Daily routines','Video URL':'https://www.youtube.com/watch?v=VIDEO_ID'}));
+    rows.push(...examExamples(phase,'video','videoExamQuestion',2));
+    Array.from({length:5},(_,i)=>({title:`A Busy Morning — Page ${i+1}`,text:`Story page ${i+1}: Ali gets ready for school and uses the target vocabulary in context.`,arabic:`صفحة القصة ${i+1}: يستعد علي للمدرسة ويستخدم المفردات المستهدفة.`})).forEach((x,i)=>rows.push(rowFrom(phase,{Phase:p,Level:1,Box:1,Process:'story',Feature:'storyPage',Order:8+i,Title:x.title,'Story Text':x.text,'Arabic Text':x.arabic,'Image URL':`https://example.com/story/page-${i+1}.jpg`})));
+    rows.push(...examExamples(phase,'story','storyExamQuestion',13));return rows
+  }
+  function guideRows(phase){return [
+    ['Field','Allowed values / purpose'],
+    ['Phase',PHASE_VALUE[phase]+' (use this value in every data row)'],
+    ['Level','1 to 5'],
+    ['Box','1 to '+LEVEL_BOXES],
+    ['Process',phaseDef(phase).processes.join(' · ')],
+    ['Feature',FEATURE_HELP[phase]],
+    ['Question Type',QUESTION_TYPES.join(' · ')],
+    ['Important','Do not rename headers, add Step, or mix phases in one file.']
+  ]}
+  async function templateFile(phase,type='blob'){
+    if(typeof JSZip==='undefined')throw Error('JSZip غير متاح.');
+    const zip=new JSZip(),rows=templateRows(phase),guide=guideRows(phase);
+    zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
+    zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    const xl=zip.folder('xl');
+    xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Content" sheetId="1" r:id="rId1"/><sheet name="Guide" sheetId="2" r:id="rId2"/></sheets></workbook>');
+    xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    xl.file('styles.xml','<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font/><font><b/><color rgb="FFFFFFFF"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF65538E"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"/></cellXfs></styleSheet>');
+    const sheets=xl.folder('worksheets');sheets.file('sheet1.xml',worksheet(rows));sheets.file('sheet2.xml',worksheet(guide));
+    return zip.generateAsync({type})
+  }
   function saveDownload(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),0)}
   async function downloadTemplate(phase){saveDownload(await templateFile(phase),PHASE_FILE[phase])}
   async function downloadTemplateBundle(){if(typeof JSZip==='undefined')throw Error('JSZip غير متاح.');const bundle=new JSZip();for(const p of PHASES)bundle.file(PHASE_FILE[p.key],await templateFile(p.key,'uint8array'));saveDownload(await bundle.generateAsync({type:'blob'}),'liplip-content-templates.zip')}
@@ -199,16 +285,71 @@ const LiplipCourse = (() => {
   async function xlsxRows(file){if(typeof JSZip==='undefined')throw Error('قارئ Excel غير متاح.');const zip=await JSZip.loadAsync(await file.arrayBuffer()),sharedFile=zip.file('xl/sharedStrings.xml'),shared=[];if(sharedFile){const doc=new DOMParser().parseFromString(await sharedFile.async('text'),'application/xml');for(const si of doc.getElementsByTagName('si'))shared.push([...si.getElementsByTagName('t')].map(x=>x.textContent||'').join(''))}const sheet=zip.file('xl/worksheets/sheet1.xml');if(!sheet)throw Error('ورقة Content غير موجودة.');const doc=new DOMParser().parseFromString(await sheet.async('text'),'application/xml'),out=[];for(const row of doc.getElementsByTagName('row')){const values=[];for(const c of row.getElementsByTagName('c')){const ref=c.getAttribute('r')||'',letters=(ref.match(/[A-Z]+/)||['A'])[0];let index=0;for(const ch of letters)index=index*26+ch.charCodeAt(0)-64;values[index-1]=cellText(c,shared)}out.push(values)}return out}
   const n=(v,min,max)=>{const x=Number(v);return Number.isInteger(x)&&x>=min&&x<=max?x:null};
   const opts=(row,start)=>row.slice(start,start+4).map(x=>String(x||'').trim()).filter(Boolean);
-  function question(row,{prompt,optionStart,correct,answer,explanation,voice='',image=''}){const options=opts(row,optionStart),c=n(row[correct],1,4);return {type:options.length?'mcq':'write',prompt:String(row[prompt]||'').trim(),options,correct:c===null?0:c-1,answer:String(row[answer]||'').trim(),explanation:String(row[explanation]||'').trim(),voice:String(row[voice]||'').trim(),image:String(row[image]||'').trim()}}
-  function importRows(phase,rows){const expected=HEADERS[phase];if(!rows.length||expected.some((h,i)=>String(rows[0]?.[i]||'').trim()!==h))throw Error('عناوين الأعمدة لا تطابق قالب '+phaseDef(phase).label+'.');let count=0;const touched=new Set();for(let ri=1;ri<rows.length;ri++){const row=rows[ri]||[];if(!row.some(x=>String(x||'').trim()))continue;if(String(row[0]||'').trim().toLowerCase()!==PHASE_VALUE[phase])throw Error(`الصف ${ri+1}: Phase يجب أن يكون ${PHASE_VALUE[phase]} فقط.`);const level=n(row[1],1,5),box=n(row[2],1,LEVEL_BOXES);if(!level||!box)throw Error(`الصف ${ri+1}: Level أو Box غير صالح.`);const id=globalId(level,box),content=getContent(id),feature=String(row[3]||'').trim(),order=n(row[4],1,999)||ri;if(!touched.has(id)){if(phase==='vocabulary')content.vocabulary={items:[],questions:[]};if(phase==='grammar')content.grammar={article:{title:'',rule:'',normal:'',negative:'',question:'',notes:[],examples:[]},questions:[]};if(phase==='watchRead')content.watchRead={video:{title:'',youtube:''},videoQuestions:[],story:[],storyQuestions:[]};touched.add(id)}
-      if(phase==='vocabulary'){if(['word','sentence','image','voice'].includes(feature))content.vocabulary.items.push({type:feature,order,en:String(row[5]||'').trim(),ar:String(row[6]||'').trim(),image:String(row[7]||'').trim(),voice:String(row[8]||'').trim()});else if(['vocabularyExam','voiceExam','imageExam'].includes(feature))content.vocabulary.questions.push(question(row,{prompt:9,optionStart:10,correct:14,answer:15,explanation:16,voice:8,image:7}));else throw Error(`الصف ${ri+1}: Feature غير صالح.`)}
-      if(phase==='grammar'){if(feature==='grammarArticle'){content.grammar.article={title:String(row[5]||'').trim(),rule:String(row[6]||'').trim(),normal:String(row[7]||'').trim(),negative:String(row[8]||'').trim(),question:String(row[9]||'').trim(),notes:String(row[10]||'').split(/\r?\n/).filter(Boolean),examples:content.grammar.article?.examples||[]}}else if(feature==='grammarExample')content.grammar.article.examples.push({text:String(row[11]||'').trim(),difficulty:String(row[12]||'easy').trim()});else if(feature==='grammarExam')content.grammar.questions.push(question(row,{prompt:13,optionStart:14,correct:18,answer:19,explanation:20}));else throw Error(`الصف ${ri+1}: Feature غير صالح.`)}
-      if(phase==='watchRead'){if(feature==='video')content.watchRead.video={title:String(row[5]||'').trim(),youtube:String(row[6]||'').trim()};else if(feature==='videoExam')content.watchRead.videoQuestions.push(question(row,{prompt:10,optionStart:11,correct:15,answer:16,explanation:17}));else if(feature==='story')content.watchRead.story.push({order,title:String(row[5]||'').trim(),text:String(row[7]||'').trim(),arabic:String(row[8]||'').trim(),image:String(row[9]||'').trim()});else if(feature==='storyExam')content.watchRead.storyQuestions.push(question(row,{prompt:10,optionStart:11,correct:15,answer:16,explanation:17}));else throw Error(`الصف ${ri+1}: Feature غير صالح.`)}
-      storeBox(id,content);count++}return count}
+  function rowObject(headers,row){const out={};headers.forEach((h,i)=>out[h]=String(row[i]??'').trim());return out}
+  function examQuestion(o){
+    const type=String(o['Question Type']||'mcq').trim();
+    if(!QUESTION_TYPES.includes(type))throw Error('Question Type غير صالح: '+type);
+    const options=[1,2,3,4].map(i=>o['Option '+i]).filter(Boolean);
+    const matches=[1,2,3,4].map(i=>({left:o['Match Left '+i],right:o['Match Right '+i]})).filter(x=>x.left&&x.right);
+    const correct=n(o['Correct Option'],1,4);
+    return {type,prompt:o['Question Prompt'],options:type==='trueFalse'&&options.length<2?['True','False']:options,correct:correct===null?0:correct-1,answer:o.Answer||'',explanation:o.Explanation||'',voice:o['Voice Text']||'',image:o['Image URL']||'',matches};
+  }
+  function importRows(phase,rows){
+    const expected=HEADERS[phase];
+    if(!rows.length||expected.some((h,i)=>String(rows[0]?.[i]||'').trim()!==h))throw Error('عناوين الأعمدة لا تطابق قالب '+phaseDef(phase).label+'.');
+    let count=0;const touched=new Set();
+    for(let ri=1;ri<rows.length;ri++){
+      const row=rows[ri]||[];if(!row.some(x=>String(x||'').trim()))continue;
+      const o=rowObject(expected,row);
+      if(o.Phase.toLowerCase()!==PHASE_VALUE[phase])throw Error(`الصف ${ri+1}: Phase يجب أن يكون ${PHASE_VALUE[phase]} فقط.`);
+      const level=n(o.Level,1,5),box=n(o.Box,1,LEVEL_BOXES);if(!level||!box)throw Error(`الصف ${ri+1}: Level أو Box غير صالح.`);
+      const id=globalId(level,box),content=getContent(id),feature=o.Feature,process=o.Process,order=n(o.Order,1,999)||ri;
+      if(!touched.has(id)){
+        if(phase==='vocabulary')content.vocabulary={items:[],questions:[]};
+        if(phase==='grammar')content.grammar={article:{title:'',rule:'',normal:'',negative:'',question:'',laws:[],notes:[],examples:[]},questions:[]};
+        if(phase==='watchRead')content.watchRead={video:{title:'',youtube:''},videoQuestions:[],story:[],storyQuestions:[]};
+        touched.add(id);
+      }
+      if(phase==='vocabulary'){
+        if(process==='content'&&['flashcardWord','flashcardSentence','imageToWord','voiceToSpeak','imageToSpeak'].includes(feature))content.vocabulary.items.push({type:feature,order,en:o.English||o.Sentence,ar:o.Arabic,image:o['Image URL'],voice:o['Voice Text']||o.English||o.Sentence});
+        else if(process==='exam'&&feature==='examQuestion')content.vocabulary.questions.push(examQuestion(o));
+        else throw Error(`الصف ${ri+1}: Process أو Feature غير صالح.`);
+      }
+      if(phase==='grammar'){
+        const a=content.grammar.article;
+        if(process==='article'&&feature==='sentenceBuildLaw'){
+          const law={type:o['Law Type']||'normal',title:o.Title,rule:o['Grammar Law'],formula:o.Formula};a.laws.push(law);
+          if(!a.title)a.title=o.Title;if(!a.rule)a.rule=o['Grammar Law'];
+          if(['normal','negative','question'].includes(law.type))a[law.type]=law.formula;
+        }else if(process==='article'&&feature==='importantNote')a.notes.push(o['Important Note']);
+        else if(process==='article'&&feature==='example')a.examples.push({text:o.Example,difficulty:o.Difficulty||'easy'});
+        else if(process==='exam'&&feature==='examQuestion')content.grammar.questions.push(examQuestion(o));
+        else throw Error(`الصف ${ri+1}: Process أو Feature غير صالح.`);
+      }
+      if(phase==='watchRead'){
+        if(process==='video'&&feature==='video')content.watchRead.video={title:o.Title,youtube:o['Video URL']};
+        else if(process==='video'&&feature==='videoExamQuestion')content.watchRead.videoQuestions.push(examQuestion(o));
+        else if(process==='story'&&feature==='storyPage')content.watchRead.story.push({order,title:o.Title,text:o['Story Text'],arabic:o['Arabic Text'],image:o['Image URL']});
+        else if(process==='story'&&feature==='storyExamQuestion')content.watchRead.storyQuestions.push(examQuestion(o));
+        else throw Error(`الصف ${ri+1}: Process أو Feature غير صالح.`);
+      }
+      storeBox(id,content);count++;
+    }
+    return count
+  }
   async function importFile(phase,file){ui.error='';ui.notice='';try{const rows=await xlsxRows(file),count=importRows(phase,rows);ui.notice=`تم استيراد ${count} صفاً لمرحلة ${phaseDef(phase).label}.`;return true}catch(e){ui.error=e.message||'تعذّر استيراد الملف.';return false}}
   async function importAnyFile(file){ui.error='';ui.notice='';try{const rows=await xlsxRows(file),value=String(rows[1]?.[0]||'').trim().toLowerCase(),phase=Object.keys(PHASE_VALUE).find(k=>PHASE_VALUE[k]===value);if(!phase)throw Error('تعذّر تحديد المرحلة من عمود Phase.');const count=importRows(phase,rows);ui.notice=`تم استيراد ${count} صفاً لمرحلة ${phaseDef(phase).label}.`;return true}catch(e){ui.error=e.message||'تعذّر استيراد الملف.';return false}}
 
-  function grade(items,form){if(!items.length)return 100;let correct=0;items.forEach((q,i)=>{const answer=String(form.get('q'+i)||'').trim();if(q.options?.length){if(Number(answer)===q.correct)correct++}else if(norm(answer)===norm(q.answer))correct++});return Math.round(correct/items.length*100)}
+  function grade(items,form){
+    if(!items.length)return 100;let correct=0;
+    items.forEach((q,i)=>{
+      if(q.type==='match'){const ok=(q.matches||[]).every((_,j)=>Number(form.get('q'+i+':'+j))===j);if(ok)correct++;return}
+      const answer=String(form.get('q'+i)||'').trim();
+      if(['mcq','trueFalse'].includes(q.type)&&q.options?.length){if(Number(answer)===q.correct)correct++}
+      else if(norm(answer)===norm(q.answer))correct++;
+    });
+    return Math.round(correct/items.length*100)
+  }
   function currentQuestions(content,phase,process){if(phase==='vocabulary')return content.vocabulary.questions;if(phase==='grammar')return content.grammar.questions;return process==='video'?content.watchRead.videoQuestions:content.watchRead.storyQuestions}
   function speak(text){if(!text||!window.speechSynthesis||typeof SpeechSynthesisUtterance==='undefined')return;try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.86;window.speechSynthesis.speak(u)}catch{}}
   function click(action,target,progress){
@@ -235,8 +376,8 @@ const LiplipCourse = (() => {
     if(action==='complete-process'){const r=recordFor(progress);if(ui.review||r.completedPhases.includes(ui.phase))return {};try{return {progress:LiplipProgress.recordCourseProcess(progress,{boxId:ui.boxId,phase:ui.phase,process:phaseDef(ui.phase).processes[r.processIndex],score:100}),completed:true}}catch(e){ui.error=e.message;return {}}}
     return {}
   }
-  function submit(form,progress){if(form.id!=='course-exam-form')return {};const phase=form.dataset.phase,process=form.dataset.process||'exam',content=getContent(ui.boxId),items=currentQuestions(content,phase,process),score=grade(items,new FormData(form));ui.notice=`النتيجة: ${score}%`;if(score<70){ui.notice+=` · تحتاج ٧٠٪. راجع المحتوى وحاول مرة أخرى.`;return {}}const r=recordFor(progress);if(ui.review||r.completedPhases.includes(phase)){ui.notice+=` · مراجعة فقط.`;return {}}try{return {progress:LiplipProgress.recordCourseProcess(progress,{boxId:ui.boxId,phase,process:phaseDef(phase).processes[r.processIndex],score,words:content.vocabulary.items.filter(x=>x.type==='word').map(x=>({word:x.en,ar:x.ar,image:x.image||'',example:content.vocabulary.items.find(y=>y.type==='sentence')?.en||''})),grammar:[content.grammar.article]}),completed:true}}catch(e){ui.error=e.message;return {}}}
+  function submit(form,progress){if(form.id!=='course-exam-form')return {};const phase=form.dataset.phase,process=form.dataset.process||'exam',content=getContent(ui.boxId),items=currentQuestions(content,phase,process),score=grade(items,new FormData(form));ui.notice=`النتيجة: ${score}%`;if(score<70){ui.notice+=` · تحتاج ٧٠٪. راجع المحتوى وحاول مرة أخرى.`;return {}}const r=recordFor(progress);if(ui.review||r.completedPhases.includes(phase)){ui.notice+=` · مراجعة فقط.`;return {}}try{return {progress:LiplipProgress.recordCourseProcess(progress,{boxId:ui.boxId,phase,process:phaseDef(phase).processes[r.processIndex],score,words:content.vocabulary.items.filter(x=>['word','flashcardWord','imageToWord'].includes(x.type)).map(x=>({word:x.en,ar:x.ar,image:x.image||'',example:content.vocabulary.items.find(y=>['sentence','flashcardSentence'].includes(y.type))?.en||''})),grammar:[content.grammar.article]}),completed:true}}catch(e){ui.error=e.message;return {}}}
   function afterProgress(progress){const r=recordFor(progress);ui.processView=0;if(r.completedPhases.length===3){ui.results=true;ui.review=false;ui.phase='watchRead';ui.notice=''}else{ui.phase=r.currentPhase;ui.notice=`اكتملت العملية. التالي: ${phaseDef(r.currentPhase).label} · ${r.processIndex===0?'العملية الأولى':'العملية الثانية'}.`}}
   function render(progress){return learning(progress)}
-  return {PHASES,HEADERS,LEVEL_BOXES,mapPage,start,render,click,submit,afterProgress,managerSubmit,managerChange,importFile,importAnyFile,downloadTemplate,downloadTemplateBundle,getContent,model};
+  return {PHASES,HEADERS,QUESTION_TYPES,LEVEL_BOXES,templateRows,grade,mapPage,start,render,click,submit,afterProgress,managerSubmit,managerChange,importFile,importAnyFile,downloadTemplate,downloadTemplateBundle,getContent,model};
 })();
