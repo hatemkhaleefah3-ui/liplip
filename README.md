@@ -35,3 +35,13 @@
 ## التحقق والنشر
 
 شغّل `node test/progress.test.js` و`node test/lesson.test.js` و`node test/import.test.js` و`node test/image.test.js` و`node test/closet.test.js`. في Cloudflare Pages اختر الفرع `main`، والإطار `None`، واترك أمر البناء فارغاً، ومجلد المخرجات `.`.
+
+
+## Phase Excel content templates
+
+The Study content manager downloads three separate workbooks: vocabulary, grammar, and watch & read. Every workbook uses `Phase`, `Level`, `Box`, `Process`, `Feature`, and `Order`; the old `Step` column is not used.
+
+- Vocabulary content supports `flashcardWord`, `flashcardSentence`, `imageToWord`, `voiceToSpeak`, and `imageToSpeak`.
+- Grammar articles support `sentenceBuildLaw`, `importantNote`, and `example`, including normal, negative, and question formulas plus easy-to-difficult examples.
+- Every phase supports the same six exam types: `mcq`, `fillBlank`, `voiceToSpeak`, `imageToVoice`, `match`, and `trueFalse`.
+- The bundled examples include 28 vocabulary rows, 30 grammar rows, and 18 watch & read rows so editors can copy a complete pattern instead of starting from an empty sheet.
