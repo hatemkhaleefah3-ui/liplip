@@ -1,0 +1,37 @@
+/* v30 vocabulary flashcards */
+.phase-vocabulary{max-width:860px!important;margin-inline:auto!important}
+.phase-vocabulary>header{text-align:center;margin-bottom:20px}
+.phase-vocabulary>header h1{margin-bottom:8px!important}
+.phase-vocabulary .vocab-deck.vocab-single{display:block!important;margin:22px auto 18px!important;max-width:700px}
+.phase-vocabulary .vocab-card{position:relative;min-height:420px!important;padding:22px!important;border:1px solid #d9cce5!important;border-radius:32px!important;background:linear-gradient(155deg,#fff 0%,#fbf7ff 52%,#f1e8fb 100%)!important;box-shadow:0 20px 55px rgba(73,49,95,.12),0 5px 0 #ded1e9!important;overflow:hidden}
+.phase-vocabulary .vocab-card:before{content:'';position:absolute;inset:auto -80px -110px auto;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,#ead9f8 0 55%,transparent 56%);opacity:.8;pointer-events:none}
+.phase-vocabulary .vocab-card>header{position:relative;z-index:2;display:flex!important;align-items:center;justify-content:space-between;margin:0 0 20px!important;padding:0!important;text-align:initial}
+.phase-vocabulary .vocab-card>header span{display:grid;place-items:center;width:38px;height:38px;border-radius:13px;background:#372e4a;color:#fff;font:800 12px 'DM Sans',sans-serif}
+.phase-vocabulary .vocab-card>header em{font-style:normal;font-size:10px;font-weight:900;color:#79599b;background:#efe5f7;border:1px solid #dfcfea;border-radius:999px;padding:8px 12px}
+.phase-vocabulary .vocab-flip-card{position:relative!important;width:100%!important;min-height:285px!important;padding:0!important;border:0!important;background:transparent!important;border-radius:25px!important;perspective:1100px!important;align-self:stretch!important}
+.phase-vocabulary .vocab-flip-inner{position:absolute;inset:0;display:block;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.phase-vocabulary .vocab-flip-card.is-flipped .vocab-flip-inner{transform:rotateY(180deg)}
+.phase-vocabulary .vocab-flip-face,.phase-vocabulary .vocab-flip-back{position:absolute;inset:0;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:25px;padding:30px;border:1px solid #e0d3e9}
+.phase-vocabulary .vocab-flip-face{background:radial-gradient(circle at 50% 20%,#fff 0 18%,transparent 19%),linear-gradient(145deg,#f9f4ff,#eee2fb)}
+.phase-vocabulary .vocab-flip-back{transform:rotateY(180deg);background:linear-gradient(145deg,#fff5d9,#fffaf0);border-color:#ead8a7}
+.phase-vocabulary .vocab-flip-face small,.phase-vocabulary .vocab-flip-back small{position:absolute;top:18px;color:#8b7e94;font-size:9px;font-weight:800}
+.phase-vocabulary .vocab-flip-face strong{font:900 clamp(48px,9vw,86px)/1.1 'DM Sans',sans-serif;color:#342944;letter-spacing:-.04em;text-align:center;overflow-wrap:anywhere}
+.phase-vocabulary .vocab-flip-back strong{font-size:clamp(34px,7vw,62px);line-height:1.35;color:#5a4422;text-align:center}
+.phase-vocabulary .vocab-sentence-card{justify-content:flex-start}
+.phase-vocabulary .vocab-sentence-en,.phase-vocabulary .vocab-sentence-ar{position:relative;z-index:2;border-radius:22px;padding:22px 24px}
+.phase-vocabulary .vocab-sentence-en{background:#372e4a;color:#fff;min-height:155px;display:flex;flex-direction:column;justify-content:center}
+.phase-vocabulary .vocab-sentence-en small{color:#cbb9e5;font:800 9px 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.phase-vocabulary .vocab-sentence-en p{margin:9px 0 0!important;font:800 clamp(25px,5vw,42px)/1.45 'DM Sans',sans-serif;color:#fff!important}
+.phase-vocabulary .vocab-sentence-ar{margin-top:12px;background:#fff5dc;border:1px solid #efddb0}
+.phase-vocabulary .vocab-sentence-ar small{font-size:9px;font-weight:900;color:#9a6a20}
+.phase-vocabulary .vocab-sentence-ar p{margin:8px 0 0!important;font-size:20px;line-height:1.7;color:#564725!important;font-weight:700}
+.phase-vocabulary .vocab-image-word>img{position:relative;z-index:2;width:100%!important;height:250px!important;object-fit:contain!important;background:#fff!important;border:1px solid #e4dae9;border-radius:24px!important;margin:0 0 14px!important;padding:18px}
+.phase-vocabulary .vocab-image-word figcaption{position:relative;z-index:2;background:#372e4a;color:#fff;border-radius:22px;padding:18px 22px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 16px}
+.phase-vocabulary .vocab-image-word figcaption small{grid-column:1/-1;color:#c8b6df;font-size:9px;font-weight:900}
+.phase-vocabulary .vocab-image-word figcaption strong{font:900 clamp(28px,5vw,44px) 'DM Sans',sans-serif}
+.phase-vocabulary .vocab-image-word figcaption span{font-size:17px;font-weight:700;color:#f4da9a}
+.phase-vocabulary .vocab-speak{position:relative;z-index:3!important;margin-top:auto!important;align-self:center!important;min-width:190px;justify-content:center;display:inline-flex!important;align-items:center;gap:9px;border:1px solid #d7c7e2!important;background:#fff!important;color:#65447f!important;box-shadow:0 5px 0 #d8cae3;padding:11px 17px!important}
+.phase-vocabulary .vocab-speak:before{content:'AUTO';font:900 8px 'DM Sans',sans-serif;background:#e6f3e9;color:#4b7757;border-radius:999px;padding:4px 6px}
+.phase-vocabulary .vocab-speak:active{transform:translateY(3px);box-shadow:0 2px 0 #d8cae3}
+.phase-vocabulary .course-item-nav{max-width:700px;margin-inline:auto}
+@media(max-width:700px){.phase-vocabulary .vocab-card{min-height:390px!important;border-radius:26px!important;padding:16px!important}.phase-vocabulary .vocab-flip-card{min-height:270px!important}.phase-vocabulary .vocab-image-word>img{height:220px!important}.phase-vocabulary .vocab-sentence-en p{font-size:28px}.phase-vocabulary .vocab-sentence-ar p{font-size:17px}}
