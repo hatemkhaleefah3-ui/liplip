@@ -1,4 +1,4 @@
-/* v71: each letter/number card flips directly into a large two-step drawing challenge. */
+/* v72: large card drawing challenge with admin bypass and icon voice control. */
 (() => {
   'use strict';
 
@@ -6,6 +6,7 @@
   const NUMBER_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four'];
   const t = (ar,en) => window.LiplipFrontend?.t ? window.LiplipFrontend.t(ar,en) : (localStorage.getItem('liplip-ui-language') === 'en' ? en : ar);
   const esc = value => window.LiplipFrontend?.escapeHTML ? window.LiplipFrontend.escapeHTML(value) : String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const isAdmin = () => sessionStorage.getItem('liplip-admin-v47') === '1';
 
   const style = document.createElement('style');
   style.textContent = `
@@ -16,7 +17,8 @@
     .lit66-front small,.lit66-step-label{font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#7a6785}
     .lit66-symbol{font-size:clamp(110px,25vw,210px);line-height:.9;font-weight:900;direction:ltr}
     .lit66-front p{margin:0;font-weight:800;color:#735f7e}
-    .lit66-voice{width:46px;height:46px;border-radius:50%;border:1px solid #d9cbe2;background:#fff;display:grid;place-items:center;font-size:22px;cursor:pointer}
+    .lit66-voice{width:48px;height:48px;border-radius:50%;border:1px solid #d9cbe2;background:#fff;display:grid;place-items:center;cursor:pointer;color:#51366d;box-shadow:0 6px 16px rgba(58,38,72,.08)}
+    .lit66-voice svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
     .lit66-back{display:flex;flex-direction:column;gap:16px}
     .lit66-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.lit66-head h2{margin:4px 0 0;font-size:clamp(24px,5vw,36px)}
     .lit66-step-dots{display:flex;gap:7px}.lit66-step-dots i{width:10px;height:10px;border-radius:50%;background:#d9cbe2}.lit66-step-dots i.on{background:#6f4b87}
@@ -82,14 +84,16 @@
   function frontMarkup(L) {
     const x = L.mode === 'letters' ? LETTERS[L.index] : String(L.index);
     const subtitle = L.mode === 'letters' ? t('حرف إنجليزي','English letter') : t('رقم إنجليزي','English number');
-    return `<div class="lit66-front" data-lit66-flip role="button" tabindex="0"><small>${subtitle}</small><strong class="lit66-symbol">${esc(x)}</strong><button type="button" class="lit66-voice" data-lit66-speak aria-label="${t('استمع','Hear')}">🔊</button><p>${t('اضغط البطاقة للانتقال إلى الرسم','Tap the card to draw it')}</p></div>`;
+    const speaker = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6.5 8.5H3v7h3.5L11 19V5Z"></path><path d="M15 9.2a4 4 0 0 1 0 5.6"></path><path d="M17.8 6.5a8 8 0 0 1 0 11"></path></svg>';
+    return `<div class="lit66-front" data-lit66-flip role="button" tabindex="0"><small>${subtitle}</small><strong class="lit66-symbol">${esc(x)}</strong><button type="button" class="lit66-voice" data-lit66-speak aria-label="${t('استمع','Hear')}">${speaker}</button><p>${t('اضغط البطاقة للانتقال إلى الرسم','Tap the card to draw it')}</p></div>`;
   }
 
   function backMarkup(L, f) {
     const q = targets(L)[f.step];
     const isWord = String(q.display).length > 2;
     const buttonLabel = f.status === 'loading' ? t('↻ جارٍ التحقق…','↻ Checking…') : f.status === 'correct' ? t('التالي','Next') : f.step === 0 ? t('التالي','Next') : t('تم','Done');
-    return `<section class="lit66-back"><header class="lit66-head"><div><small class="lit66-step-label">${t('الخطوة','Step')} ${f.step+1} / 2</small><h2>${esc(q.label)}</h2></div><span class="lit66-step-dots"><i class="on"></i><i class="${f.step===1||f.status==='correct'?'on':''}"></i></span></header>${f.flag?`<div class="lit66-flag${f.info?' info':''}" role="status">${esc(f.flag)}</div>`:''}<div class="lit66-canvas-wrap"><span class="lit66-guide${isWord?' word':''}">${esc(q.display)}</span><canvas class="lit66-canvas" data-lit66-canvas width="1000" height="680"></canvas></div><div class="lit66-actions"><button type="button" class="lit66-clear" data-lit66-clear>${t('مسح الرسم','Clear draw')}</button><button type="button" class="lit66-next${f.status==='loading'?' loading':''}${f.status==='correct'?' correct':''}" data-lit66-next ${(!f.drawn[f.step]&&f.status!=='correct')||f.status==='loading'?'disabled':''}>${buttonLabel}</button></div></section>`;
+    const disabled = !isAdmin() && (((!f.drawn[f.step] && f.status!=='correct')) || f.status==='loading');
+    return `<section class="lit66-back"><header class="lit66-head"><div><small class="lit66-step-label">${t('الخطوة','Step')} ${f.step+1} / 2</small><h2>${esc(q.label)}</h2></div><span class="lit66-step-dots"><i class="on"></i><i class="${f.step===1||f.status==='correct'?'on':''}"></i></span></header>${f.flag?`<div class="lit66-flag${f.info?' info':''}" role="status">${esc(f.flag)}</div>`:''}<div class="lit66-canvas-wrap"><span class="lit66-guide${isWord?' word':''}">${esc(q.display)}</span><canvas class="lit66-canvas" data-lit66-canvas width="1000" height="680"></canvas></div><div class="lit66-actions"><button type="button" class="lit66-clear" data-lit66-clear>${t('مسح الرسم','Clear draw')}</button><button type="button" class="lit66-next${f.status==='loading'?' loading':''}${f.status==='correct'?' correct':''}" data-lit66-next ${disabled?'disabled':''}>${buttonLabel}</button></div></section>`;
   }
 
   function renderCard() {
@@ -99,7 +103,7 @@
     if (!L || !root || !wrap || L.stage !== 'learn' || !['letters','numbers'].includes(L.mode)) return;
     root.classList.add('lit66-active');
     const f = stateFor(L);
-    const renderKey = `${f.key}:${f.face}:${f.step}:${f.status}:${f.flag}`;
+    const renderKey = `${f.key}:${f.face}:${f.step}:${f.status}:${f.flag}:${isAdmin()?'admin':'learner'}`;
     if (wrap.dataset.lit66Key === renderKey) return;
     wrap.dataset.lit66Key = renderKey;
     wrap.innerHTML = `<div class="lit66-shell">${f.face==='front'?frontMarkup(L):backMarkup(L,f)}</div>`;
@@ -131,6 +135,11 @@
       else { L.index=0; L.face=true; L.stage='listen-speak'; L._lit66=null; window.render?.(); }
       return;
     }
+    if (isAdmin()) {
+      f.flag='';f.info=false;
+      if (f.step===0) { if(canvas&&f.drawn[0])f.images[0]=compactImage(canvas);f.step=1;renderCard();return; }
+      f.status='correct';renderCard();return;
+    }
     if (!canvas || !f.drawn[f.step]) return;
     f.images[f.step]=compactImage(canvas);
     f.flag=''; f.info=false;
@@ -147,7 +156,7 @@
   document.addEventListener('click',e=>{
     const flip=e.target.closest?.('[data-lit66-flip]');if(flip){if(e.target.closest('[data-lit66-speak]'))return;e.preventDefault();e.stopImmediatePropagation();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L);f.face='back';f.step=0;f.status='idle';f.drawn=[false,false];f.images=['',''];f.flag='';renderCard();return}
     const voice=e.target.closest?.('[data-lit66-speak]');if(voice){e.preventDefault();e.stopImmediatePropagation();speakCurrent();return}
-    const clear=e.target.closest?.('[data-lit66-clear]');if(clear){e.preventDefault();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L),c=document.querySelector('[data-lit66-canvas]');c?.getContext('2d')?.clearRect(0,0,c.width,c.height);f.drawn[f.step]=false;f.flag='';const b=document.querySelector('[data-lit66-next]');if(b)b.disabled=true;return}
+    const clear=e.target.closest?.('[data-lit66-clear]');if(clear){e.preventDefault();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L),c=document.querySelector('[data-lit66-canvas]');c?.getContext('2d')?.clearRect(0,0,c.width,c.height);f.drawn[f.step]=false;f.flag='';const b=document.querySelector('[data-lit66-next]');if(b&&!isAdmin())b.disabled=true;return}
     const next=e.target.closest?.('[data-lit66-next]');if(next){e.preventDefault();onNext()}
   },true);
   document.addEventListener('keydown',e=>{const card=e.target.closest?.('[data-lit66-flip]');if(card&&['Enter',' '].includes(e.key)&&!e.target.closest('button')){e.preventDefault();card.click()}},true);
