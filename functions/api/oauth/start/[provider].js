@@ -32,7 +32,7 @@ export async function onRequestGet(context) {
     url.searchParams.set('scope', 'openid email profile');
     url.searchParams.set('include_granted_scopes', 'true');
   } else {
-    url.searchParams.set('scope', 'email,public_profile');
+    url.searchParams.set('scope', 'public_profile');
   }
 
   return new Response(null, {
