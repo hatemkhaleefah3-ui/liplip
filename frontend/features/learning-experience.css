@@ -1,0 +1,172 @@
+/* Learning experience v43. Loaded last so it can safely correct legacy presentation. */
+
+/* Fast write/speak: caret is physically fixed at center; JS moves the paper under it. */
+.fast38-track{
+  transform:translateX(var(--fast-track-x,0px))!important;
+  transition:transform 90ms linear!important;
+}
+.fast38-caret{left:50%!important;right:auto!important;transform:translateX(-1px)}
+.fast38-page.fast38-speak #fast38-overlay .fast38-char.auto{display:none!important}
+.fast38-page.fast38-speak .fast38-speech-controls.fast43-speech-controls{
+  margin-top:22px;
+  padding:16px;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+.fast38-page.fast38-speak .fast38-speech-controls.fast43-speech-controls .fast38-mic{
+  min-width:min(280px,88%);
+  min-height:56px;
+}
+.fast38-bottom{grid-template-columns:auto auto minmax(220px,360px)!important}
+.fast43-timer,.fast38-counter{
+  min-height:52px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:10px 15px;
+  border-radius:999px;
+  background:#ffffffb8;
+  border:1px solid #fff;
+  color:var(--ui-text-muted);
+  box-shadow:var(--ui-shadow-1);
+}
+.fast43-timer span{font-size:9px;font-weight:900;letter-spacing:.09em}
+.fast43-timer b{font:900 20px/1 var(--ui-font-latin);color:#3d3543;direction:ltr;font-variant-numeric:tabular-nums}
+
+/* Letters/numbers flashcards redesign. */
+.lit43-flashcards{
+  max-width:none!important;
+  background:
+    radial-gradient(circle at 10% 12%,#fff1a9 0 10%,transparent 10.5%),
+    radial-gradient(circle at 91% 23%,#ccecff 0 13%,transparent 13.5%),
+    linear-gradient(180deg,#fffaf3 0%,#f7f1ff 52%,#edf9f4 100%)!important;
+}
+.lit43-flashcards .lit36-progress{
+  max-width:760px;
+  padding:11px 15px;
+  border-radius:999px;
+  background:#ffffffc7;
+  border:1px solid #fff;
+  box-shadow:var(--ui-shadow-1);
+}
+.lit43-flashcards .lit36-progress>i{height:8px;background:#e9e2ee}
+.lit43-flashcards .lit36-card-wrap{gap:22px}
+.lit43-flashcards .lit36-flip{
+  width:min(610px,92vw);
+  height:clamp(390px,56vh,560px);
+  min-height:390px;
+}
+.lit43-flashcards .lit36-face{
+  border-radius:38px;
+  border:3px solid #fff;
+  overflow:hidden;
+  box-shadow:0 15px 0 #c8b2db,0 30px 55px #49385d20;
+  gap:22px;
+}
+.lit43-flashcards .lit36-face:before,
+.lit43-flashcards .lit36-face:after{
+  content:'';
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+}
+.lit43-flashcards .lit36-face:before{width:190px;height:190px;right:-72px;top:52px;background:#f1afd047}
+.lit43-flashcards .lit36-face:after{width:145px;height:145px;left:-40px;bottom:-25px;background:#87d3b94d}
+.lit43-flashcards .lit36-face.front{
+  background:linear-gradient(145deg,#f7eaff 0%,#eee7ff 47%,#fff0b9 100%)!important;
+}
+.lit43-flashcards .lit36-face.back{
+  background:linear-gradient(145deg,#e6f7ff 0%,#efffe9 54%,#fff2bd 100%)!important;
+  box-shadow:0 15px 0 #afd5c7,0 30px 55px #49385d20;
+}
+.lit43-flashcards .lit36-face b{
+  position:relative;
+  z-index:1;
+  font:900 clamp(130px,29vw,230px)/.82 var(--ui-font-latin)!important;
+  letter-spacing:-.055em!important;
+  text-shadow:0 9px 0 #ffffff9c;
+}
+.lit43-flashcards .lit36-face.back b{font-size:clamp(64px,15vw,120px)!important;line-height:1!important}
+.lit43-flashcards .lit36-face small{
+  position:relative;
+  z-index:2;
+  padding:10px 17px;
+  border-radius:999px;
+  background:#ffffffc9;
+  color:#655674;
+  font-size:12px;
+  box-shadow:0 5px 18px #5a496519;
+}
+.lit43-flashcards .lit36-sound{
+  min-width:220px;
+  min-height:58px;
+  justify-content:center;
+  font-size:17px;
+  background:linear-gradient(135deg,#46365f,#76539c);
+  box-shadow:0 7px 0 #261d37;
+}
+.lit43-flashcards .lit36-nav{max-width:610px;margin-top:30px;gap:14px}
+.lit43-flashcards .lit36-nav button{min-height:62px;border-radius:20px;font-size:17px;box-shadow:0 6px 0 #e2d8e9}
+.lit43-flashcards .lit36-nav .primary{box-shadow:0 7px 0 #583d73}
+.lit43-flashcards[data-lit43-deck="letters"] .lit36-face.front:after{background:#89d4bc55}
+.lit43-flashcards[data-lit43-deck="numbers"] .lit36-face.front:after{background:#ffd56d66}
+
+/* Mobile treasure map: reduce the empty gutter and keep the rail close to the cards. */
+@media(max-width:700px){
+  .treasure-ten-road:before,.treasure-levels-road:before{
+    right:20px!important;
+    width:6px!important;
+  }
+  .treasure-box-stop,.treasure-box-stop.zig-left,.treasure-box-stop.zig-right,
+  .treasure-level-stop,.treasure-level-stop.left,.treasure-level-stop.right{
+    padding-right:46px!important;
+  }
+  .treasure-box-path-dot{right:6px!important}
+  .treasure-path-dot{right:5px!important}
+}
+
+/* Story media: show the entire source image instead of cropping it. */
+.story-spread>figure{
+  margin:0;
+  min-width:0;
+  background:#f5f8f4;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:center;
+}
+.story-spread>figure>img{
+  display:block;
+  width:100%;
+  height:auto!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  object-position:center;
+  background:#f5f8f4;
+}
+.story-spread>figure>figcaption{
+  align-self:flex-end;
+  margin:10px 12px 12px;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#fff;
+  color:#527664;
+  font-size:9px;
+  font-weight:900;
+}
+@media(max-width:700px){
+  .story-spread{grid-template-columns:1fr!important}
+  .story-spread>figure>img{max-height:70vh!important}
+}
+
+@media(max-width:600px){
+  .fast38-bottom{grid-template-columns:1fr 1fr!important}
+  .fast38-bottom>.primary{grid-column:1/-1}
+  .fast43-timer,.fast38-counter{justify-content:center}
+  .lit43-flashcards .lit36-flip{width:94vw;height:min(520px,58vh);min-height:410px}
+  .lit43-flashcards .lit36-face{border-radius:32px}
+  .lit43-flashcards .lit36-face b{font-size:clamp(120px,36vw,195px)!important}
+  .lit43-flashcards .lit36-face.back b{font-size:clamp(58px,16vw,90px)!important}
+  .lit43-flashcards .lit36-nav{width:94vw}
+}
