@@ -1,7 +1,8 @@
-/* v67: on-device handwriting judging with Tesseract.js; no Gemini grading calls. */
+/* v67: on-device handwriting judging with Tesseract.js; intercepts drawing grading locally. */
 (() => {
   'use strict';
 
+  const originalFetch = window.fetch.bind(window);
   let workerPromise = null;
   let lastProgress = 0;
 
@@ -63,6 +64,7 @@
     const kind = String(item?.kind || 'word');
     const image = item?.image;
     if (!target || !image) return { correct: false, confidence: 0, text: '' };
+
     await configure(worker, target, kind);
     lastProgress = 0;
     const result = await worker.recognize(image);
@@ -78,7 +80,12 @@
     if (!Array.isArray(items) || items.length !== 2) throw new Error('invalid_local_drawing_pair');
     const results = [];
     for (const item of items) results.push(await judge(item));
-    return { correct: results.every(result => result.correct), confidence: Math.min(...results.map(result => result.confidence)), results, source: 'tesseract-local' };
+    return {
+      correct: results.every(result => result.correct),
+      confidence: Math.min(...results.map(result => result.confidence)),
+      results,
+      source: 'tesseract-local'
+    };
   }
 
   function warmup() {
@@ -88,5 +95,42 @@
     });
   }
 
+  function localJson(body, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+    });
+  }
+
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === 'string' ? input : String(input?.url || '');
+    if (!/\/?api\/gemini\/drawing(?:\?|$)/.test(url)) return originalFetch(input, init);
+
+    try {
+      let body = init?.body;
+      if (typeof body !== 'string') return localJson({ error: 'invalid_local_drawing_input' }, 400);
+      const payload = JSON.parse(body);
+      const items = Array.isArray(payload?.items)
+        ? payload.items
+        : payload?.target && payload?.image
+          ? [{ target: payload.target, kind: payload.kind, image: payload.image }]
+          : [];
+      if (!items.length) return localJson({ error: 'invalid_local_drawing_input' }, 400);
+      const result = items.length === 1 ? await judge(items[0]) : await gradePair(items);
+      return localJson(result);
+    } catch (error) {
+      console.error('[liplip] local drawing judge failed', error);
+      return localJson({ error: String(error?.message || 'local_drawing_judge_failed') }, 503);
+    }
+  };
+
   window.LiplipLocalDrawingJudge = { warmup, judge, gradePair, progress: () => lastProgress, source: 'tesseract-local' };
+
+  const scheduleWarmup = () => {
+    const run = () => warmup();
+    if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 1500 });
+    else setTimeout(run, 500);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleWarmup, { once: true });
+  else scheduleWarmup();
 })();
