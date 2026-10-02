@@ -15,7 +15,11 @@
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ target, kind, image: canvas.toDataURL('image/webp', 0.72) })
     });
-    if (!response.ok) throw new Error(`gemini_drawing_${response.status}`);
+    if (!response.ok) {
+      let code = '';
+      try { code = String((await response.json())?.error || ''); } catch {}
+      throw new Error(code || `gemini_drawing_${response.status}`);
+    }
     const result = await response.json();
     if (typeof result.correct !== 'boolean' || !Number.isFinite(result.confidence)) throw new Error('invalid_drawing_response');
     return result;
@@ -49,16 +53,24 @@
     button.disabled = true;
     button.textContent = UI.t('Gemini يتحقق من الرسم…', 'Gemini is checking…');
     try {
-      const grades = await Promise.all(canvases.map((canvas, i) => grade(canvas, expected[i].target, expected[i].kind)));
+      // Keep requests sequential: the free tier is much more likely to throttle
+      // two simultaneous vision calls than two small calls made back-to-back.
+      const grades = [];
+      for (let i = 0; i < canvases.length; i++) grades.push(await grade(canvases[i], expected[i].target, expected[i].kind));
       const correct = grades.every(item => item.correct && item.confidence >= 0.55);
       state.drawn = correct;
       state._v54ApprovedDrawing = correct ? drawingKey(state) : '';
       button.textContent = correct ? UI.t('صحيح ✓', 'Correct ✓') : UI.t('حاول مرة أخرى', 'Try again');
       button.dataset.state = correct ? 'correct' : 'wrong';
       if (correct) UI.render(false);
-    } catch {
+    } catch (error) {
       state.drawn = false;
-      button.textContent = UI.t('تعذر تحقق Gemini — حاول مجدداً', 'Gemini could not check — retry');
+      const code = String(error?.message || '');
+      button.textContent = code === 'gemini_not_configured'
+        ? UI.t('المفتاح غير متاح لهذا النشر', 'API key unavailable in this deployment')
+        : code.includes('429') || code.includes('RESOURCE_EXHAUSTED')
+          ? UI.t('تم بلوغ الحد المجاني — حاول لاحقاً', 'Free quota reached — retry later')
+          : UI.t('تعذر تحقق Gemini — حاول مجدداً', 'Gemini could not check — retry');
       button.dataset.state = 'wrong';
     } finally {
       button.disabled = false;
