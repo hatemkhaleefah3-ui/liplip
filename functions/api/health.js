@@ -1,14 +1,17 @@
 import { json } from '../_lib/http.js';
 
 export async function onRequestGet(context) {
-  let database = 'unbound';
-  if (context.env.DB) {
-    try {
-      await context.env.DB.prepare('SELECT 1 AS ok').first();
-      database = 'ok';
-    } catch {
-      database = 'error';
-    }
+  let database='unbound',schema='unknown';
+  if(context.env.DB){
+    try{
+      await context.env.DB.prepare('SELECT 1 AS ok').first();database='ok';
+      try{
+        await context.env.DB.prepare('SELECT user_id FROM user_accounts LIMIT 1').first();
+        await context.env.DB.prepare("SELECT revision FROM course_content WHERE id='published' LIMIT 1").first();
+        schema='v2';
+      }catch{schema='migration-required'}
+    }catch{database='error'}
   }
-  return json({ ok: database === 'ok', service: 'liplip-backend', database, time: new Date().toISOString() }, { status: database === 'ok' ? 200 : 503 });
+  const ok=database==='ok'&&schema==='v2';
+  return json({ok,service:'liplip-backend',version:2,database,schema,time:new Date().toISOString()},{status:ok?200:503});
 }
