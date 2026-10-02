@@ -1,0 +1,38 @@
+/* v46 literacy + assessment presentation. */
+.lit36-face.front b,.lit36-face.back b{white-space:nowrap}
+.lit36-face.back b[dir="rtl"]{font-family:var(--ui-font-ar);letter-spacing:0!important}
+
+.lit36-canvas-card:has(.lit46-draw-grid){padding:0!important;background:transparent!important;box-shadow:none!important;border:0!important;overflow:visible!important}
+.lit46-draw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;width:min(920px,94vw);margin-inline:auto}
+.lit46-draw-field{min-width:0;padding:14px;border-radius:28px;background:#fff;border:1px solid #e5dce8;box-shadow:0 9px 0 #d8c8e5,0 18px 32px #3e30551a}
+.lit46-draw-field header{display:flex;align-items:center;gap:9px;padding:2px 4px 12px;color:#665873}
+.lit46-draw-field header span{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#eee5f8;color:#74559a;font:900 11px/1 var(--ui-font-latin)}
+.lit46-draw-field header b{font-size:13px}
+.lit46-draw-surface{position:relative;aspect-ratio:1;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#fffefa,#faf7ff);border:1px solid #eee6ef}
+.lit46-draw-surface canvas{position:absolute;inset:0;width:100%!important;height:100%!important;touch-action:none;z-index:2}
+.lit46-guide{position:absolute;inset:0;display:grid;place-items:center;z-index:1;pointer-events:none;color:#6e5a7b24;font:900 clamp(110px,20vw,210px)/1 var(--ui-font-latin)}
+.lit46-guide-word{font-size:clamp(54px,9vw,100px);letter-spacing:-.04em;padding:14px;text-align:center;overflow-wrap:anywhere}
+
+.v46-skip{border:1px dashed #cdbed7!important;background:#fffaf0!important;color:#745f6d!important}
+.course-exam-player form,.watch-exam-player form,.story-exam-player form{position:relative}
+.course-exam-player form:before,.watch-exam-player form:before,.story-exam-player form:before{content:'First wrong answer or skip stays wrong for this attempt';display:block;margin:0 0 14px;padding:10px 13px;border-radius:14px;background:#fff5d8;color:#695a52;font:800 10px/1.5 var(--ui-font-latin);direction:ltr}
+[dir="rtl"] .course-exam-player form:before,[dir="rtl"] .watch-exam-player form:before,[dir="rtl"] .story-exam-player form:before{content:'أول إجابة خاطئة أو تخطي يبقى محسوباً كخطأ في هذه المحاولة';font-family:var(--ui-font-ar);direction:rtl}
+
+.v46-exam-question-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #ece3ee}
+.v46-exam-question-actions button{border:0;border-radius:12px;padding:9px 13px;background:#eee6f7;color:#5e4777;font-weight:900}
+.v46-exam-question-actions button+button{background:#fff1d5;color:#705b3e}
+.v46-exam-question-actions small{flex:1;min-width:190px;color:#817486;font-size:9px}
+.v45-exam fieldset.v46-skipped{outline:2px dashed #d39b53;outline-offset:3px}
+
+/* Story images must always show the full source image; no crop at any breakpoint. */
+.story-spread>figure,.story-page-player .story-spread>figure{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#f5f8f4!important}
+.story-spread>figure>img,.story-page-player .story-spread>figure>img{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:center!important;clip-path:none!important;transform:none!important}
+
+@media(max-width:700px){
+  .lit46-draw-grid{grid-template-columns:1fr;width:94vw;gap:15px}
+  .lit46-draw-field{border-radius:24px;padding:11px}
+  .lit46-draw-surface{aspect-ratio:1.25/1;min-height:250px}
+  .lit46-guide{font-size:clamp(100px,34vw,170px)}
+  .lit46-guide-word{font-size:clamp(50px,17vw,86px)}
+  .story-spread>figure>img,.story-page-player .story-spread>figure>img{max-height:none!important}
+}
