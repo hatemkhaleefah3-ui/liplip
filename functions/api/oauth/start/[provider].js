@@ -1,11 +1,12 @@
 import { createOAuthState } from '../../../_lib/social.js';
 import { error } from '../../../_lib/http.js';
 
+const PUBLIC_ORIGIN = 'https://liplip.pages.dev';
+
 export async function onRequestGet(context) {
   if (!context.env.DB) return error(503, 'database_unavailable', 'D1 binding DB is not configured.');
   const provider = String(context.params?.provider || '').toLowerCase();
-  const origin = new URL(context.request.url).origin;
-  const redirectUri = `${origin}/api/oauth/callback/${provider}`;
+  const redirectUri = `${PUBLIC_ORIGIN}/api/oauth/callback/${provider}`;
 
   let clientId = '';
   let authUrl = '';
