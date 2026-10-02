@@ -72,6 +72,21 @@ npx wrangler pages secret put ADMIN_PASSWORD --project-name <your-pages-project>
 
 Use a long unique password. Do not place it in git or frontend JavaScript.
 
+## Gemini learning services
+
+Set the Gemini API key as a Cloudflare Pages secret named exactly `GEMINI_API_KEY`:
+
+```sh
+npx wrangler pages secret put GEMINI_API_KEY --project-name <your-pages-project>
+```
+
+The key remains server-side. The application uses it only through these Pages Functions:
+
+- `POST /api/gemini/speech`: Gemini TTS for `letter`, `number`, `word`, and `sentence` speech.
+- `POST /api/gemini/drawing`: Gemini visual judgment for `letter` and `number` handwriting.
+
+Optional non-secret overrides are `GEMINI_TTS_MODEL`, `GEMINI_TTS_VOICE`, and `GEMINI_DRAWING_MODEL`. Defaults are `gemini-3.8-flash-lite-tts`, `Kore`, and `gemini-3.5-flash`. After changing a Pages secret or variable, redeploy the current production commit so the new binding is active.
+
 After applying migrations and redeploying, verify:
 
 1. `GET /api/health` returns HTTP 200 and `database: "ok"`.
