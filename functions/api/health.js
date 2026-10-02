@@ -15,5 +15,10 @@ export async function onRequestGet(context) {
     }catch{database='error'}
   }
   const ok=database==='ok'&&schema==='v3';
-  return json({ok,service:'liplip-backend',version:3,database,schema,time:new Date().toISOString()},{status:ok?200:503});
+  const gemini={
+    configured:Boolean(context.env.GEMINI_API_KEY),
+    speechModel:context.env.GEMINI_TTS_MODEL||'gemini-3.8-flash-lite-tts',
+    drawingModel:context.env.GEMINI_DRAWING_MODEL||'gemini-3.5-flash'
+  };
+  return json({ok,service:'liplip-backend',version:4,database,schema,gemini,time:new Date().toISOString()},{status:ok?200:503});
 }
