@@ -1,24 +1,24 @@
-/* v32: build every 10th treasure box from the previous nine stored boxes before course.js reads content. */
+/* v44: build every 5th treasure box from the previous four stored boxes before course.js reads content. */
 (() => {
-  const KEY='liplip-course-content-v2',STRIDE=200,LEVELS=5,GROUP=10;
+  const KEY='liplip-course-content-v2',STRIDE=200,LEVELS=5,GROUP=5;
   const gid=(level,box)=>(level-1)*STRIDE+box;
   try{
     const store=JSON.parse(localStorage.getItem(KEY)||'{}');
     if(!store||typeof store!=='object')return;
     let changed=false;
     for(let level=1;level<=LEVELS;level++){
-      for(let end=10;end<=50;end+=GROUP){
+      for(let end=GROUP;end<=50;end+=GROUP){
         const sources=[];
-        for(let box=end-9;box<end;box++){
+        for(let box=end-(GROUP-1);box<end;box++){
           const c=store[String(gid(level,box))];
           if(c&&typeof c==='object')sources.push(c);
         }
         if(!sources.length)continue;
-        const first=end-9,aggregate={
+        const first=end-(GROUP-1),aggregate={
           _treasureGenerated:true,
           _treasureRange:[first,end-1],
           vocabulary:{items:[],questions:[]},
-          grammar:{article:{title:`Treasure review ${first}-${end-1}`,rule:'Cumulative review of the previous nine boxes.',normal:'',negative:'',question:'',laws:[],notes:[],examples:[]},questions:[]},
+          grammar:{article:{title:`Treasure review ${first}-${end-1}`,rule:'Cumulative review of the previous four boxes.',normal:'',negative:'',question:'',laws:[],notes:[],examples:[]},questions:[]},
           watchRead:{video:{title:'',youtube:''},videoQuestions:[],story:[],storyQuestions:[]}
         };
         for(const c of sources){
