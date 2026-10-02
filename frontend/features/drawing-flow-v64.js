@@ -1,0 +1,85 @@
+/* v64: exact letter naming + sequential two-part drawing with Gemini judgment. */
+(() => {
+  'use strict';
+  const UI = window.LiplipFrontend;
+  const t = (ar,en) => UI?.t ? UI.t(ar,en) : (localStorage.getItem('liplip-ui-language') === 'en' ? en : ar);
+  const LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const NUMBER_WORDS=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four'];
+  const AR_LETTER_NAMES={A:'ألف',B:'باء',C:'سي',D:'دي',E:'إي',F:'إف',G:'جي',H:'إيتش',I:'آي',J:'جاي',K:'كاي',L:'إل',M:'إم',N:'إن',O:'أو',P:'بي',Q:'كيو',R:'آر',S:'إس',T:'تي',U:'يو',V:'في',W:'دبليو',X:'إكس',Y:'واي',Z:'زي'};
+
+  const style=document.createElement('style');
+  style.textContent=`
+    .v64-hidden{display:none!important}.v64-flow{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+    .v64-flag{display:none;padding:12px 14px;border-radius:14px;font-weight:800}.v64-flag.show{display:block;background:#fff2ef;color:#922d24;border:1px solid #efb4ac}.v64-flag.info{background:#fff9df;color:#6c5708;border-color:#e3cf82}
+    .v64-action{min-height:50px;border:0;border-radius:16px;padding:0 20px;background:#51366d;color:#fff;font:inherit;font-weight:900}.v64-action:disabled{opacity:.45}.v64-action.loading{background:#746a79}.v64-action.correct,.c57-question-next .v64-green{background:#18834b!important;color:#fff!important;border-color:#18834b!important}
+    .v64-vocab{display:flex;flex-direction:column;gap:16px}.v64-vocab section{display:flex;flex-direction:column;gap:12px}.v64-vocab section[hidden]{display:none!important}.v64-prompt{padding:14px 16px;border-radius:16px;background:#f7f2fb}.v64-prompt small{display:block;font-weight:800;opacity:.65;margin-bottom:5px}.v64-prompt strong{display:block;font-size:clamp(24px,4vw,42px)}
+    .v64-vocab canvas{width:100%;height:min(42vw,320px);min-height:220px;border:2px dashed #b9a8c8;border-radius:18px;background:#fff;touch-action:none}.v64-success{padding:22px;border-radius:18px;background:#eaf8f0;color:#176c42;font-weight:900;text-align:center}
+  `;
+  document.head.appendChild(style);
+
+  async function grade(target,kind,image){
+    const r=await fetch('/api/gemini/drawing',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({target,kind,image})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(String(d.error||`gemini_drawing_${r.status}`));
+    if(typeof d.correct!=='boolean')throw new Error('invalid_drawing_response');
+    return d;
+  }
+  const clear=c=>c?.getContext('2d')?.clearRect(0,0,c.width,c.height);
+  const esc=v=>UI?.escapeHTML?UI.escapeHTML(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function litKey(s){return `${s.mode}:${s.stage}:${s.index}`}
+  function litExpected(s){const i=Math.max(0,Number(s.index)||0);if(s.mode==='letters'){const u=LETTERS[Math.min(i,25)]||'A';return[{target:u,kind:'letter'},{target:u.toLowerCase(),kind:'letter'}]}const n=Math.min(i,34);return[{target:String(n),kind:'number'},{target:NUMBER_WORDS[n],kind:'number'}]}
+  function litFlag(root,text,info=false){const f=root.querySelector('.v64-flag');if(!f)return;f.textContent=text||'';f.className=`v64-flag${text?' show':''}${info?' info':''}`}
+  function mountLiteracy(){
+    const root=document.querySelector('.lit36'),s=window.LiplipLiteracy;
+    if(!root||!s||!['letters','numbers'].includes(s.mode)||!['trace','draw','hear-draw'].includes(s.stage))return;
+    const cs=[...root.querySelectorAll('[data-v48-canvas]')];if(cs.length!==2)return;
+    const key=litKey(s);if(s._v64Key!==key){s._v64Key=key;s._v64Step=0;s._v64Status='idle';s._v48Drawn=[false,false];s.drawn=false}
+    root.querySelector('[data-v54-check-drawing]')?.remove();
+    const old=root.querySelector('[data-lit36="finish-draw"]');old?.classList.add('v64-hidden');
+    let flow=root.querySelector('.v64-flow');if(!flow){flow=document.createElement('div');flow.className='v64-flow';flow.innerHTML='<div class="v64-flag" role="status"></div><button type="button" class="v64-action" data-v64-literacy></button>';(root.querySelector('.lit36-draw-actions')||root).appendChild(flow)}
+    cs.forEach((c,i)=>c.closest('.lit48-draw-field')?.toggleAttribute('hidden',i!==Number(s._v64Step||0)));
+    const b=flow.querySelector('[data-v64-literacy]'),step=Number(s._v64Step||0),status=s._v64Status||'idle';
+    b.className=`v64-action${status==='loading'?' loading':status==='correct'?' correct':''}`;
+    if(status==='loading'){b.textContent=t('↻ Gemini يتحقق…','↻ Gemini judging…');b.disabled=true}else if(status==='correct'){b.textContent=t('التالي','Next');b.disabled=false}else{b.textContent=step===0?t('التالي','Next'):t('تم','Done');b.disabled=!Boolean(s._v48Drawn?.[step])}
+  }
+  async function actLiteracy(b){
+    const root=b.closest('.lit36'),s=window.LiplipLiteracy;if(!root||!s)return;const cs=[...root.querySelectorAll('[data-v48-canvas]')];if(cs.length!==2)return;
+    if(s._v64Status==='correct'){s._v54ApprovedDrawing=litKey(s);s.drawn=true;root.querySelector('[data-lit36="finish-draw"]')?.click();return}
+    const step=Number(s._v64Step||0);if(!s._v48Drawn?.[step])return;litFlag(root,'');
+    if(step===0){s._v64Step=1;mountLiteracy();return}
+    s._v64Status='loading';mountLiteracy();
+    try{const ex=litExpected(s),g=[];for(let i=0;i<2;i++)g.push(await grade(ex[i].target,ex[i].kind,cs[i].toDataURL('image/webp',.78)));const ok=g.every(x=>x.correct&&Number(x.confidence||0)>=.55);if(ok){s._v64Status='correct';s._v54ApprovedDrawing=litKey(s);s.drawn=true}else{cs.forEach(clear);s._v48Drawn=[false,false];s.drawn=false;s._v54ApprovedDrawing='';s._v64Step=0;s._v64Status='idle';litFlag(root,t('⚑ الرسمان غير مطابقين. ابدأ من الرسم الأول وحاول مرة أخرى.','⚑ The drawings did not match. Start again from the first drawing.'))}}
+    catch(e){s._v64Status='idle';litFlag(root,t('تعذر على Gemini التحقق الآن. اضغط تم للمحاولة مرة أخرى.','Gemini could not judge right now. Tap Done to retry.'),true);console.error('[liplip] literacy drawing',e)}mountLiteracy();
+  }
+
+  function vocabKey(s,q){return `${s.boxId}:${s.item}:${q?.word?.en||''}:${q?.word?.ar||''}`}
+  function vocabState(s,q){const k=vocabKey(s,q);if(!s._v64Vocab||s._v64Vocab.key!==k)s._v64Vocab={key:k,step:0,drawn:[false,false],images:['',''],status:'idle',flag:''};return s._v64Vocab}
+  function vocabHTML(q,f){return `<div class="v64-vocab"><div class="v64-flag${f.flag?' show':''}" role="status">${esc(f.flag)}</div><section data-v64-step="0" ${f.step===0?'':'hidden'}><div class="v64-prompt"><small>${t('الرسم 1 من 2 · الإنجليزية','DRAW 1 OF 2 · ENGLISH')}</small><strong dir="rtl">${esc(q.word.ar)}</strong><p>${t('ارسم الكلمة الإنجليزية المطابقة.','Draw the matching English word.')}</p></div><canvas data-c57-canvas data-v64-canvas="0" width="1000" height="420"></canvas></section><section data-v64-step="1" ${f.step===1?'':'hidden'}><div class="v64-prompt"><small>${t('الرسم 2 من 2 · العربية','DRAW 2 OF 2 · ARABIC')}</small><strong dir="ltr">${esc(q.word.en)}</strong><p>${t('ارسم الكلمة العربية المطابقة.','Draw the matching Arabic word.')}</p></div><canvas data-c57-canvas data-v64-canvas="1" width="1000" height="420"></canvas></section><button type="button" class="v64-action" data-v64-vocab disabled>${f.step===0?t('التالي','Next'):t('تم','Done')}</button></div>`}
+  function mountVocab(){
+    const s=window.LiplipCourse57,q=s?.exam?.[s.item],box=document.querySelector('.c57-draw-question');if(!s||!q||q.type!=='draw'||!q.word||!box)return;
+    if(s.revealed&&s.results?.[s.item]===true){box.innerHTML=`<div class="v64-success">${t('✓ الرسمان صحيحان. تابع إلى السؤال التالي.','✓ Both drawings are correct. Continue to the next question.')}</div>`;const n=document.querySelector('.c57-question-next button');if(n){n.classList.add('v64-green');if(s.item<(s.exam?.length||1)-1)n.textContent=t('التالي','Next')}return}
+    const f=vocabState(s,q);if(box.querySelector('[data-v64-vocab]'))return;box.innerHTML=vocabHTML(q,f);
+  }
+  function syncVocabButton(){const s=window.LiplipCourse57,q=s?.exam?.[s.item],f=s&&q?vocabState(s,q):null,b=document.querySelector('[data-v64-vocab]');if(!f||!b)return;b.disabled=!f.drawn[f.step]||f.status==='loading'}
+  async function actVocab(b){
+    const s=window.LiplipCourse57,q=s?.exam?.[s.item];if(!s||!q||q.type!=='draw')return;const f=vocabState(s,q),root=b.closest('.c57-draw-question'),cs=[...root.querySelectorAll('[data-v64-canvas]')];if(cs.length!==2||!f.drawn[f.step])return;
+    const flag=root.querySelector('.v64-flag');if(flag){flag.textContent='';flag.className='v64-flag'}
+    if(f.step===0){f.images[0]=cs[0].toDataURL('image/webp',.78);f.step=1;root.querySelector('[data-v64-step="0"]').hidden=true;root.querySelector('[data-v64-step="1"]').hidden=false;b.textContent=t('تم','Done');b.disabled=!f.drawn[1];return}
+    f.images[1]=cs[1].toDataURL('image/webp',.78);f.status='loading';b.classList.add('loading');b.textContent=t('↻ Gemini يتحقق…','↻ Gemini judging…');b.disabled=true;
+    try{const a=await grade(q.word.en,'word',f.images[0]),c=await grade(q.word.ar,'word',f.images[1]),ok=[a,c].every(x=>x.correct&&Number(x.confidence||0)>=.55);if(ok){f.status='correct';s.results[s.item]=true;s.revealed=true;s.drawn=true;window.render?.(false)}else{cs.forEach(clear);f.step=0;f.drawn=[false,false];f.images=['',''];f.status='idle';s.drawn=false;root.querySelector('[data-v64-step="0"]').hidden=false;root.querySelector('[data-v64-step="1"]').hidden=true;b.className='v64-action';b.textContent=t('التالي','Next');b.disabled=true;if(flag){flag.textContent=t('⚑ الرسمان غير مطابقين. عد إلى الرسم الأول وحاول مرة أخرى.','⚑ The drawings did not match. Return to the first drawing and try again.');flag.className='v64-flag show'}}}
+    catch(e){f.status='idle';b.className='v64-action';b.textContent=t('تم','Done');b.disabled=false;if(flag){flag.textContent=t('تعذر على Gemini التحقق الآن. اضغط تم للمحاولة مرة أخرى.','Gemini could not judge right now. Tap Done to retry.');flag.className='v64-flag show info'}console.error('[liplip] vocab drawing',e)}
+  }
+
+  document.addEventListener('click',e=>{const a=e.target.closest?.('[data-v64-literacy]');if(a){e.preventDefault();actLiteracy(a);return}const v=e.target.closest?.('[data-v64-vocab]');if(v){e.preventDefault();actVocab(v)}},true);
+  document.addEventListener('pointermove',e=>{const c=e.target.closest?.('[data-v64-canvas]');if(!c)return;const s=window.LiplipCourse57,q=s?.exam?.[s.item];if(!s||!q)return;const f=vocabState(s,q);f.drawn[Number(c.dataset.v64Canvas)||0]=true},true);
+  document.addEventListener('pointerup',()=>requestAnimationFrame(()=>{mountLiteracy();syncVocabButton()}),true);
+
+  // The legacy literacy wrapper could say "أ ألف". Own learn-card speech and say only the letter name, e.g. "ألف".
+  const synth=window.speechSynthesis;
+  if(synth&&typeof synth.speak==='function'&&!synth.__liplipV64ExactFaceVoice){const previous=synth.speak.bind(synth);synth.speak=u=>{const s=window.LiplipLiteracy,service=window.LiplipGeminiSpeech;if(s?.stage==='learn'&&['letters','numbers'].includes(s.mode)&&service?.speak){const i=Math.max(0,Number(s.index)||0);if(s.mode==='letters'){const letter=LETTERS[Math.min(i,25)]||'A',arabic=s.face===false;service.speak(arabic?(AR_LETTER_NAMES[letter]||letter):letter,{language:arabic?'ar-IQ':'en-US',kind:arabic?'word':'letter',volume:u?.volume??1}).catch(()=>{});return}}return previous(u)};try{Object.defineProperty(synth,'__liplipV64ExactFaceVoice',{value:true})}catch{}}
+
+  const observer=new MutationObserver(()=>requestAnimationFrame(()=>{mountLiteracy();mountVocab()}));
+  const start=()=>{if(!document.body)return;observer.observe(document.body,{childList:true,subtree:true});mountLiteracy();mountVocab()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
