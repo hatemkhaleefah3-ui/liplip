@@ -1,0 +1,20 @@
+/* v44 paired uppercase/lowercase letter practice. */
+.lit44-letter-pair{
+  direction:ltr;
+  font-family:var(--ui-font-latin)!important;
+  letter-spacing:-.045em;
+}
+.lit36-shadow.lit44-letter-pair-shadow{
+  direction:ltr;
+  font-size:clamp(145px,38vw,310px)!important;
+  letter-spacing:-.08em!important;
+  white-space:nowrap;
+}
+.lit43-flashcards[data-lit43-deck="letters"] .lit36-face.back b{
+  direction:ltr;
+  letter-spacing:-.075em!important;
+  white-space:nowrap;
+}
+@media(max-width:600px){
+  .lit36-shadow.lit44-letter-pair-shadow{font-size:clamp(128px,34vw,230px)!important}
+}
