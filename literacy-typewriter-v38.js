@@ -8,7 +8,7 @@
     'Learning a language takes patience, practice, and curiosity.'
   ];
   const t=(ar,en)=>localStorage.getItem('liplip-ui-language')==='en'?en:ar;
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const punctuation=/[.,?!()\/“”"]/;
   const L=()=>window.LiplipLiteracy;
   let audioCtx=null;
@@ -55,7 +55,7 @@
     return `<main class="lit36 fast38-page ${isSpeak?'fast38-speak':'fast38-write'}">
       <header class="lit36-head fast38-head"><button data-lit36="fast-exit">${icon('back',18)} ${t('الرئيسية','Home')}</button><div><small>${isSpeak?t('انطق النص كما يظهر','Speak the article as shown'):t('اكتب على الظل حرفاً بحرف','Type directly over the shadow')}</small><h1>${isSpeak?t('تحدي التحدث','Speaking challenge'):t('الآلة الكاتبة','Typewriter')}</h1></div></header>
       <section class="fast38-machine">
-        <div class="fast38-machine-bar"><span class="fast38-reel left"></span><b>${isSpeak?t('SPEAK MODE','SPEAK MODE'):t('TYPEWRITER MODE','TYPEWRITER MODE')}</b><span class="fast38-reel right"></span></div>
+        <div class="fast38-machine-bar"><span class="fast38-reel left"></span><b>${isSpeak?'SPEAK MODE':'TYPEWRITER MODE'}</b><span class="fast38-reel right"></span></div>
         <div class="fast38-paper">
           <div class="fast38-paper-rule" aria-hidden="true"></div>
           <div class="fast38-window">
@@ -76,8 +76,16 @@
 
   function apply(){
     const s=L();if(!s)return;
-    if(s.mode==='fast-write'&&s.started&&!s.result){const root=document.querySelector('.lit36');if(root)root.outerHTML=challengeMarkup();requestAnimationFrame(()=>{if(s.fastMode==='write'){const el=document.getElementById('fast38-input');el?.focus();if(el)el.setSelectionRange(el.value.length,el.value.length)}});return}
-    if((s.mode==='letters'||s.mode==='numbers')&&s.stage==='speak'){const root=document.querySelector('.lit36');if(root)root.outerHTML=finalSpeakMarkup()}
+    if(s.mode==='fast-write'&&s.started&&!s.result){
+      const root=document.querySelector('.lit36');
+      if(root&&!root.classList.contains('fast38-page'))root.outerHTML=challengeMarkup();
+      requestAnimationFrame(()=>{if(s.fastMode==='write'){const el=document.getElementById('fast38-input');el?.focus();if(el)el.setSelectionRange(el.value.length,el.value.length)}});
+      return;
+    }
+    if((s.mode==='letters'||s.mode==='numbers')&&s.stage==='speak'){
+      const root=document.querySelector('.lit36');
+      if(root&&!root.classList.contains('lit38-final'))root.outerHTML=finalSpeakMarkup();
+    }
   }
 
   function updateWriteDOM(){
@@ -101,6 +109,7 @@
     if(b.dataset.v38==='fast-finish'){e.preventDefault();const s=L();if(!s)return;s.result=true;render();}
   },true);
 
-  const observer=new MutationObserver(()=>apply());observer.observe(document.getElementById('app'),{childList:true,subtree:true});
+  const observer=new MutationObserver(()=>apply());
+  const app=document.getElementById('app');if(app)observer.observe(app,{childList:true,subtree:true});
   apply();
 })();
