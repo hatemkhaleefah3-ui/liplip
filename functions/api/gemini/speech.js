@@ -45,7 +45,7 @@ export async function onRequestPost({ request, env }) {
   const text = exactTranscript(inputText, kind);
   if (!text) return json({ error: 'invalid_speech_transcript' }, 400);
 
-  const model = env.GEMINI_TTS_MODEL || 'gemini-3.8-flash-lite-tts';
+  const model = env.GEMINI_TTS_MODEL || 'gemini-3.8-flash-tts';
   let response;
   try {
     response = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
