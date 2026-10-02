@@ -2,21 +2,12 @@
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 /index.html
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
-/zone.js
-  Cache-Control: no-cache, must-revalidate, max-age=0
-/import.js
-  Cache-Control: no-cache, must-revalidate, max-age=0
-/styles.css
-  Cache-Control: no-cache, must-revalidate, max-age=0
 
-/app.js
+/*.js
   Cache-Control: no-cache, must-revalidate, max-age=0
-
-/progress.js
+/*.css
   Cache-Control: no-cache, must-revalidate, max-age=0
-
-/reception.js
+/frontend/*
   Cache-Control: no-cache, must-revalidate, max-age=0
-
-/reception-import.js
+/frontend/*/*
   Cache-Control: no-cache, must-revalidate, max-age=0

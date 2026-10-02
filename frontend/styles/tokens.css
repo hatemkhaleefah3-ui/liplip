@@ -1,0 +1,74 @@
+/* Shared design tokens for all new frontend work. Existing legacy CSS can migrate gradually. */
+:root {
+  --ui-bg: #fbf9f5;
+  --ui-surface: #fffdf8;
+  --ui-surface-muted: #f4eee3;
+  --ui-text: #2b2632;
+  --ui-text-muted: #746877;
+  --ui-border: #ded2dc;
+  --ui-accent: #684d78;
+  --ui-accent-strong: #4d4059;
+  --ui-danger: #d92f45;
+  --ui-success: #188b4d;
+
+  --ui-font-ar: 'Readex Pro', system-ui, sans-serif;
+  --ui-font-latin: 'DM Sans', system-ui, sans-serif;
+
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+
+  --ui-radius-sm: 10px;
+  --ui-radius-md: 16px;
+  --ui-radius-lg: 24px;
+  --ui-radius-xl: 34px;
+  --ui-radius-pill: 999px;
+
+  --ui-shadow-1: 0 4px 14px rgb(44 35 51 / 8%);
+  --ui-shadow-2: 0 14px 34px rgb(44 35 51 / 12%);
+
+  --ui-content-sm: 640px;
+  --ui-content-md: 920px;
+  --ui-content-lg: 1180px;
+  --ui-tap-min: 44px;
+
+  --ui-z-base: 0;
+  --ui-z-nav: 20;
+  --ui-z-sheet: 50;
+  --ui-z-modal: 100;
+  --ui-z-toast: 150;
+
+  --ui-motion-fast: 120ms;
+  --ui-motion-normal: 220ms;
+  --ui-ease: cubic-bezier(.2,.8,.2,1);
+}
+
+[dir='rtl'] { --ui-inline-start: right; --ui-inline-end: left; }
+[dir='ltr'] { --ui-inline-start: left; --ui-inline-end: right; }
+
+.ui-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
