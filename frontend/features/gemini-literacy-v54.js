@@ -34,7 +34,8 @@
   UI.delegate('click', '[data-v54-check-drawing]', async (event, button) => {
     event.preventDefault();
     if (button.disabled) return;
-    const root = button.closest('.lit36-canvas-card');
+    const page = button.closest('.lit36');
+    const root = page?.querySelector('.lit36-canvas-card');
     const state = window.LiplipLiteracy;
     if (!root || !state || !['letters', 'numbers'].includes(state.mode)) return;
     const canvases = [...root.querySelectorAll('[data-v48-canvas]')];
@@ -68,7 +69,7 @@
     const state = window.LiplipLiteracy;
     if (!state || !['letters', 'numbers'].includes(state.mode) || !['draw', 'hear-draw'].includes(state.stage)) return;
     const card = root.querySelector('.lit36-canvas-card');
-    if (!card || card.querySelector('[data-v54-check-drawing]')) return;
+    if (!card || root.querySelector('[data-v54-check-drawing]')) return;
     const key = drawingKey(state);
     if (state._v54DrawingKey !== key) {
       state._v54DrawingKey = key;
@@ -80,7 +81,7 @@
     button.className = 'primary';
     button.dataset.v54CheckDrawing = '1';
     button.textContent = UI.t('تحقق من الرسم بواسطة Gemini', 'Check drawing with Gemini');
-    card.appendChild(button);
+    (root.querySelector('.lit36-draw-actions') || card).appendChild(button);
   }
 
   UI.registerFeature('gemini-literacy-v54', { mount });
@@ -91,7 +92,7 @@
     if (!state || !['draw', 'hear-draw'].includes(state.stage)) return;
     state._v54ApprovedDrawing = '';
     state.drawn = false;
-    const button = event.target.closest('.lit36-canvas-card')?.querySelector('[data-v54-check-drawing]');
+    const button = event.target.closest('.lit36')?.querySelector('[data-v54-check-drawing]');
     if (button) {
       button.dataset.state = '';
       button.textContent = UI.t('تحقق من الرسم بواسطة Gemini', 'Check drawing with Gemini');
