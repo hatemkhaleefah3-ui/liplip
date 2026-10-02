@@ -1,0 +1,14 @@
+/* v51: Gemini handwriting grading + Gemini TTS. */
+(()=>{'use strict';const UI=window.LiplipFrontend;if(!UI)return;
+const cache=new Map();
+async function grade(canvas,target){const r=await fetch('/api/gemini/drawing',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({target,image:canvas.toDataURL('image/webp',.72)})});if(!r.ok)throw new Error('grade_failed');return r.json()}
+async function speak(text,language){const key=`${language}:${text}`;let url=cache.get(key);if(!url){const r=await fetch('/api/gemini/speech',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,language})});if(!r.ok)throw new Error('speech_failed');url=URL.createObjectURL(await r.blob());cache.set(key,url)}const a=new Audio(url);await a.play()}
+window.LiplipGemini={grade,speak};
+
+UI.delegate('click','[data-v51-check-drawing]',async(e,b)=>{e.preventDefault();if(b.disabled)return;const root=b.closest('.lit36-canvas-card'),s=window.LiplipLiteracy;if(!root||!s)return;const canvases=[...root.querySelectorAll('[data-v48-canvas]')],targets=canvases.map((_,i)=>i===0?(s.mode==='letters'?'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[s.index]:String(s.index)):(s.mode==='letters'?'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[s.index].toLowerCase():['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four'][s.index]));b.disabled=true;b.textContent=UI.t('جاري التحقق…','Checking…');try{const grades=await Promise.all(canvases.map((c,i)=>grade(c,targets[i]))),ok=grades.length===2&&grades.every(g=>g.correct&&g.confidence>=.55);s.drawn=ok;b.textContent=ok?UI.t('صحيح ✓','Correct ✓'):UI.t('حاول مرة أخرى','Try again');b.dataset.state=ok?'correct':'wrong';if(ok)UI.render(false)}catch{b.textContent=UI.t('تعذر التحقق — حاول مجدداً','Could not check — retry')}finally{b.disabled=false}});
+
+function mount({root}){const s=window.LiplipLiteracy;if(!s||!['letters','numbers'].includes(s.mode)||!['draw','hear-draw'].includes(s.stage))return;const card=root.querySelector('.lit36-canvas-card');if(card&&!card.querySelector('[data-v51-check-drawing]')){s.drawn=false;const b=document.createElement('button');b.type='button';b.className='primary';b.dataset.v51CheckDrawing='1';b.textContent=UI.t('تحقق من الرسم','Check drawing');card.appendChild(b)}}
+UI.registerFeature('gemini-literacy-v51',{mount});
+
+const synth=window.speechSynthesis;if(synth&&typeof synth.speak==='function'&&!synth.__liplipGemini){const old=synth.speak.bind(synth);synth.speak=u=>{const text=String(u?.text||'').trim();if(!text)return old(u);speak(text,u.lang||'en-US').catch(()=>old(u));};Object.defineProperty(synth,'__liplipGemini',{value:true})}
+})();
