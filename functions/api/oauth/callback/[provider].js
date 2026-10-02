@@ -1,5 +1,7 @@
 import { consumeOAuthState, completeIdentityLogin, socialErrorRedirect, socialRedirectResponse } from '../../../_lib/social.js';
 
+const PUBLIC_ORIGIN = 'https://liplip.pages.dev';
+
 async function googleIdentity(context, code, redirectUri) {
   const form = new URLSearchParams({
     code,
@@ -57,7 +59,7 @@ export async function onRequestGet(context) {
   const code = String(url.searchParams.get('code') || '');
   const state = String(url.searchParams.get('state') || '');
   if (!code || !(await consumeOAuthState(context, provider, state))) return socialErrorRedirect('oauth_state_invalid');
-  const redirectUri = `${url.origin}/api/oauth/callback/${provider}`;
+  const redirectUri = `${PUBLIC_ORIGIN}/api/oauth/callback/${provider}`;
 
   try {
     const identity = provider === 'google'
