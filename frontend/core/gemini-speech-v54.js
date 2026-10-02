@@ -4,12 +4,12 @@
 
   const ui = window.LiplipFrontend;
   const synth = window.speechSynthesis;
-  if (!ui || !synth || typeof synth.speak !== 'function') return;
+  if (!ui) return;
 
   const KINDS = new Set(['letter', 'number', 'word', 'sentence']);
   const cache = new Map();
-  const nativeSpeak = synth.speak.bind(synth);
-  const nativeCancel = synth.cancel.bind(synth);
+  const nativeSpeak = synth?.speak?.bind(synth);
+  const nativeCancel = synth?.cancel?.bind(synth);
   let activeAudio = null;
   let pendingRequest = null;
   let generation = 0;
@@ -68,7 +68,11 @@
       });
       if (pendingRequest === controller) pendingRequest = null;
       if (token !== generation) throw new DOMException('Speech replaced', 'AbortError');
-      if (!response.ok) throw new Error(`gemini_speech_${response.status}`);
+      if (!response.ok) {
+        let code = '';
+        try { code = String((await response.json())?.error || ''); } catch {}
+        throw new Error(code || `gemini_speech_${response.status}`);
+      }
       const blob = await response.blob();
       if (!blob.type.startsWith('audio/')) throw new Error('invalid_speech_response');
       url = URL.createObjectURL(blob);
@@ -86,19 +90,24 @@
     });
   }
 
-  synth.speak = utterance => {
-    const text = String(utterance?.text || '').trim();
-    if (!text) return nativeSpeak(utterance);
-    speak(text, {
-      language: utterance.lang || 'en-US',
-      kind: classify(text),
-      volume: utterance.volume
-    }).then(() => emit(utterance, 'end')).catch(error => {
-      if (error?.name !== 'AbortError') emit(utterance, 'error', { error });
-    });
-  };
-
-  synth.cancel = () => { stop(); nativeCancel(); };
-  Object.defineProperty(synth, '__liplipGeminiSpeech', { value: true });
+  // Gemini audio does not depend on the browser's native speech engine.
+  // Keep the legacy bridge only where speechSynthesis is available and writable.
+  if (synth && typeof synth.speak === 'function') {
+    try {
+      synth.speak = utterance => {
+        const text = String(utterance?.text || '').trim();
+        if (!text) return nativeSpeak(utterance);
+        speak(text, {
+          language: utterance.lang || 'en-US',
+          kind: classify(text),
+          volume: utterance.volume
+        }).then(() => emit(utterance, 'end')).catch(error => {
+          if (error?.name !== 'AbortError') emit(utterance, 'error', { error });
+        });
+      };
+      synth.cancel = () => { stop(); nativeCancel(); };
+      Object.defineProperty(synth, '__liplipGeminiSpeech', { value: true });
+    } catch {}
+  }
   window.LiplipGeminiSpeech = { speak, cancel: stop, classify };
 })();
