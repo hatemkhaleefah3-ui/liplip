@@ -1,7 +1,8 @@
-/* Course navigation guards: require the current activity before advancing. */
+/* Course navigation guards: require the current activity before advancing. Admin bypasses all walls. */
 (() => {
   const app = document.getElementById('app');
   if (!app) return;
+  const isAdmin = () => sessionStorage.getItem('liplip-admin-v47') === '1';
 
   function setDisabled(button, disabled) {
     if (!button) return;
@@ -32,6 +33,11 @@
       const primary = nav.querySelector('button.primary');
       if (!primary) return;
 
+      if (isAdmin()) {
+        setDisabled(primary, false);
+        return;
+      }
+
       const form = nav.closest('form#course-exam-form');
       if (form) {
         setDisabled(primary, !questionAnswered(form));
@@ -52,6 +58,10 @@
   app.addEventListener('input', updateCourseNavigation, true);
   app.addEventListener('change', updateCourseNavigation, true);
   app.addEventListener('click', event => {
+    if (isAdmin()) {
+      queueMicrotask(updateCourseNavigation);
+      return;
+    }
     const guarded = event.target.closest?.('.course-item-nav button.primary.course-nav-locked');
     if (guarded) {
       event.preventDefault();
