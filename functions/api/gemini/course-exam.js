@@ -69,19 +69,29 @@ export async function onRequestPost({ request, env }) {
   if (kind === 'video' && !/^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(source)) return json({ error: 'invalid_youtube_url' }, 400);
 
   const model = env.GEMINI_COURSE_MODEL || 'gemini-3.8-flash';
-  const payload = {
-    contents: [{ role: 'user', parts: [{ text: promptFor(kind, source, level, box) }] }],
+  const prompt = promptFor(kind, source, level, box);
+  const interactions = kind === 'video';
+  const payload = interactions ? {
+    model,
+    store: false,
+    input: [{ type: 'text', text: prompt }, { type: 'video', uri: source }],
+    response_format: { type: 'text', mime_type: 'application/json', schema },
+    generation_config: { temperature: 0.9 }
+  } : {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.9,
       responseMimeType: 'application/json',
       responseSchema: schema
     }
   };
-  if (kind === 'video') payload.tools = [{ urlContext: {} }];
 
   let upstream;
   try {
-    upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    const url = interactions
+      ? 'https://generativelanguage.googleapis.com/v1beta/interactions'
+      : `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    upstream = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify(payload)
@@ -90,7 +100,9 @@ export async function onRequestPost({ request, env }) {
   if (!upstream.ok) return json({ error: 'gemini_failed', upstreamStatus: upstream.status }, 502);
   let output;
   try { output = await upstream.json(); } catch { return json({ error: 'invalid_gemini_response' }, 502); }
-  const text = output?.candidates?.[0]?.content?.parts?.map(part => part?.text || '').join('') || '';
+  const text = interactions
+    ? (output?.output_text || (Array.isArray(output?.steps) ? output.steps.flatMap(step => Array.isArray(step?.content) ? step.content : []).map(part => part?.text || '').join('') : ''))
+    : (output?.candidates?.[0]?.content?.parts?.map(part => part?.text || '').join('') || '');
   let parsed;
   try { parsed = JSON.parse(text); } catch { return json({ error: 'invalid_exam_json' }, 502); }
   const questions = cleanQuestions(parsed, kind);
