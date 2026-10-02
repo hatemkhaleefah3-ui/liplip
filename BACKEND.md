@@ -1,40 +1,107 @@
-# Backend v1
+# Backend v2
 
-The backend runs as Cloudflare Pages Functions under `/functions` and stores user state in Cloudflare D1.
+The production backend runs as Cloudflare Pages Functions under `/functions` with Cloudflare D1 as the primary database.
 
-## What is implemented
+## Implemented
 
-- `GET /api/health` — runtime/D1 health check.
-- `GET|POST|DELETE /api/session` — anonymous HttpOnly session lifecycle.
-- `GET|PUT /api/state` — authenticated state load/save with optimistic concurrency (`revision`).
-- `backend-client.js` — offline-first bridge for progress, course content, language and local profile/session preview.
-- `migrations/0001_backend.sql` — D1 schema.
+### Identity and sessions
 
-Anonymous sessions are intentionally the first backend identity layer. Google/Facebook buttons are still not authentication and should not be presented as such until OAuth is implemented.
+- Anonymous device sessions remain supported for guests.
+- Registered email/password accounts are now supported.
+- `POST /api/auth/register` upgrades an anonymous session in place when possible, preserving the user's existing progress.
+- `POST /api/auth/login` signs into an existing account.
+- `GET /api/auth/me` returns the current account/session identity.
+- `POST /api/auth/logout` revokes the current user session.
+- Passwords are never stored directly. They use PBKDF2-HMAC-SHA256 with a per-account random salt and 210,000 iterations.
+- Login and registration attempts are throttled in D1.
+- User sessions are random HttpOnly, Secure, SameSite=Lax cookies; only SHA-256 token hashes are stored in D1.
 
-## Cloudflare setup
+### User state
 
-1. Create a D1 database, for example `liplip-db`.
-2. Apply `migrations/0001_backend.sql` to that database (Dashboard SQL console or Wrangler).
-3. In the Cloudflare Pages project, add a D1 binding named exactly `DB` for Production and Preview and point it to `liplip-db`.
-4. Redeploy `main`.
-5. Open `/api/health`; it should return HTTP 200 with `database: "ok"`.
+- `GET|PUT /api/state` stores progress/profile state with optimistic revision control.
+- User state now contains only user-owned data: progress, literacy/level milestones, UI language, and local profile preview.
+- Shared course content is no longer copied into each user's state.
+- `backend-client.js` performs offline-first synchronization and refuses silent overwrite on concurrent edits.
 
-Example Wrangler commands if you use the CLI:
+### Shared content
+
+- `GET /api/content` returns the published course and fast-practice content bundle.
+- `GET|PUT /api/admin/content` lets an authenticated admin publish the shared content bundle using revision compare-and-swap.
+- `frontend/features/backend-content-v49.js` pulls published content for users and publishes local admin edits back to the server.
+- Published content changes are recorded in `audit_log`.
+
+### Administration
+
+- Server-authenticated admin sessions remain separate from user sessions.
+- `POST /api/admin/login`
+- `POST /api/admin/logout`
+- `GET /api/admin/users`
+- `GET /api/admin/user/:id`
+- `GET|PUT /api/admin/content`
+
+The admin password exists only as the Cloudflare secret `ADMIN_PASSWORD`; it is not embedded in frontend code.
+
+## Database migrations
+
+Apply all migrations in order:
 
 ```sh
-npx wrangler d1 create liplip-db
 npx wrangler d1 execute liplip-db --remote --file=migrations/0001_backend.sql
+npx wrangler d1 execute liplip-db --remote --file=migrations/0002_admin.sql
+npx wrangler d1 execute liplip-db --remote --file=migrations/0003_accounts_content.sql
 ```
 
-The Pages dashboard binding is still required unless you later add a Wrangler configuration with the real D1 database ID.
+Migration `0003_accounts_content.sql` adds:
 
-## Sync semantics
+- `user_accounts`
+- `auth_attempts`
+- `course_content`
+- `audit_log`
 
-The client persists a backend revision and a fingerprint of the last synchronized local state. A local-only change is pushed; a remote-only change is pulled; if both changed since the last successful synchronization, the client refuses to overwrite either side and logs a conflict. The API also enforces revision compare-and-swap at the database layer.
+It also creates the initial `published` course-content row.
 
-State payloads are capped at 512 KiB. This is suitable for the current progress/profile/content JSON but not for media uploads. Images/audio should move to R2 in a later backend phase.
+## Cloudflare configuration
 
-## Security properties and limits
+The Pages project requires a D1 binding named exactly `DB` in both Production and Preview.
 
-Session tokens are random, stored only in an `HttpOnly; Secure; SameSite=Lax` cookie, and only their SHA-256 hash is stored in D1. The current anonymous identity is device/browser-specific, so it does not yet provide cross-device account login. Registered identity, account recovery, OAuth, abuse controls/rate limiting, admin authorization, and server-managed course publishing remain separate backend phases.
+Add the admin secret with Wrangler or the Pages dashboard:
+
+```sh
+npx wrangler pages secret put ADMIN_PASSWORD --project-name <your-pages-project>
+```
+
+Use a long unique password. Do not place it in git or frontend JavaScript.
+
+After applying migrations and redeploying, verify:
+
+1. `GET /api/health` returns HTTP 200 and `database: "ok"`.
+2. Create a normal account through the website Sign Up form.
+3. Sign out, then sign back in from another browser and confirm the same progress is restored.
+4. Sign in through Admin access and verify the account appears in the users list.
+5. Change course content as admin and confirm another browser receives the published content.
+
+## State and content limits
+
+- User state: 512 KiB per user.
+- Shared published content: 2 MiB.
+- Images/audio/video files must not be embedded as large base64 blobs in D1. Use URLs. A future media-upload layer should use Cloudflare R2.
+
+## Security model
+
+- Password hashes are salted PBKDF2 hashes.
+- User and admin sessions are separate cookies.
+- Admin APIs require a server-validated admin session.
+- Account login failures are throttled.
+- State and content writes use optimistic concurrency revisions.
+- Content publishing records an audit event.
+- The backend does not expose account passwords, session tokens, or admin credentials through APIs.
+
+## Remaining external integrations
+
+The core application backend is now present. These features still require third-party provider configuration rather than additional local backend logic:
+
+- Google/Facebook/WhatsApp OAuth login credentials and callback configuration.
+- Transactional email provider for email verification/password reset.
+- Cloudflare R2 binding if direct media uploads are required.
+
+Until an email provider is configured, account recovery and email verification should not be presented as active features.
