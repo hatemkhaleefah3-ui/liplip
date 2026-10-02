@@ -1,4 +1,4 @@
-/* v66: each letter/number card flips directly into a two-step Gemini drawing challenge. */
+/* v71: each letter/number card flips directly into a large two-step drawing challenge. */
 (() => {
   'use strict';
 
@@ -10,23 +10,31 @@
   const style = document.createElement('style');
   style.textContent = `
     .lit66-active .lit36-nav{display:none!important}
-    .lit66-shell{width:min(760px,100%);margin:0 auto;perspective:1200px}
-    .lit66-front,.lit66-back{border:0;border-radius:28px;background:linear-gradient(145deg,#fffdf7,#f5eefb);box-shadow:0 18px 50px rgba(58,38,72,.13);padding:24px;min-height:430px}
+    .lit66-shell{width:min(820px,100%);margin:0 auto;perspective:1200px}
+    .lit66-front,.lit66-back{border:0;border-radius:28px;background:linear-gradient(145deg,#fffdf7,#f5eefb);box-shadow:0 18px 50px rgba(58,38,72,.13);padding:24px;min-height:460px}
     .lit66-front{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;color:#261c2e}
     .lit66-front small,.lit66-step-label{font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#7a6785}
-    .lit66-symbol{font-size:clamp(96px,23vw,190px);line-height:.9;font-weight:900;direction:ltr}
+    .lit66-symbol{font-size:clamp(110px,25vw,210px);line-height:.9;font-weight:900;direction:ltr}
     .lit66-front p{margin:0;font-weight:800;color:#735f7e}
     .lit66-voice{width:46px;height:46px;border-radius:50%;border:1px solid #d9cbe2;background:#fff;display:grid;place-items:center;font-size:22px;cursor:pointer}
     .lit66-back{display:flex;flex-direction:column;gap:16px}
     .lit66-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.lit66-head h2{margin:4px 0 0;font-size:clamp(24px,5vw,36px)}
     .lit66-step-dots{display:flex;gap:7px}.lit66-step-dots i{width:10px;height:10px;border-radius:50%;background:#d9cbe2}.lit66-step-dots i.on{background:#6f4b87}
-    .lit66-canvas-wrap{position:relative;flex:1;min-height:270px;border:2px dashed #baa5c9;border-radius:22px;background:#fff;overflow:hidden}
-    .lit66-canvas{display:block;width:100%;height:300px;touch-action:none;background:#fff}
-    .lit66-guide{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-size:clamp(70px,16vw,130px);font-weight:900;color:rgba(81,54,109,.08);direction:ltr}
-    .lit66-actions{display:grid;grid-template-columns:minmax(120px,.42fr) 1fr;gap:12px}.lit66-actions button{min-height:54px;border-radius:17px;border:1px solid #d6c7df;font:inherit;font-weight:900;cursor:pointer}
+    .lit66-canvas-wrap{position:relative;flex:1;min-height:360px;border:2px dashed #baa5c9;border-radius:24px;background:#fff;overflow:hidden}
+    .lit66-canvas{display:block;width:100%;height:390px;touch-action:none;background:#fff}
+    .lit66-guide{position:absolute;inset:16px;display:grid;place-items:center;pointer-events:none;font-size:clamp(160px,30vw,270px);line-height:.82;font-weight:900;color:rgba(81,54,109,.035);-webkit-text-stroke:4px rgba(81,54,109,.18);text-stroke:4px rgba(81,54,109,.18);direction:ltr;white-space:nowrap}
+    .lit66-guide.word{font-size:clamp(58px,12vw,105px);line-height:1;padding:0 18px;white-space:normal;text-align:center;overflow-wrap:anywhere;-webkit-text-stroke:2px rgba(81,54,109,.17);text-stroke:2px rgba(81,54,109,.17)}
+    .lit66-actions{display:grid;grid-template-columns:minmax(130px,.42fr) 1fr;gap:12px}.lit66-actions button{min-height:56px;border-radius:17px;border:1px solid #d6c7df;font:inherit;font-weight:900;cursor:pointer}
     .lit66-clear{background:#fff;color:#5c4966}.lit66-next{background:#51366d;color:#fff;border-color:#51366d!important}.lit66-next:disabled{opacity:.4;cursor:not-allowed}.lit66-next.loading{background:#766a7e}.lit66-next.correct{background:#18834b;border-color:#18834b!important}
     .lit66-flag{padding:12px 14px;border-radius:15px;background:#fff2ef;border:1px solid #efb4ac;color:#922d24;font-weight:850}.lit66-flag.info{background:#fff9df;border-color:#e3cf82;color:#6c5708}
-    @media(max-width:560px){.lit66-front,.lit66-back{min-height:390px;padding:18px}.lit66-canvas{height:270px}.lit66-actions{grid-template-columns:110px 1fr}}
+    @media(max-width:560px){
+      .lit66-front,.lit66-back{min-height:440px;padding:18px}
+      .lit66-canvas-wrap{min-height:320px}
+      .lit66-canvas{height:345px}
+      .lit66-guide{font-size:clamp(145px,43vw,220px);inset:12px;-webkit-text-stroke:3px rgba(81,54,109,.19);text-stroke:3px rgba(81,54,109,.19)}
+      .lit66-guide.word{font-size:clamp(50px,15vw,82px);padding:0 10px;-webkit-text-stroke:2px rgba(81,54,109,.18);text-stroke:2px rgba(81,54,109,.18)}
+      .lit66-actions{grid-template-columns:112px 1fr}
+    }
   `;
   document.head.appendChild(style);
 
@@ -79,8 +87,9 @@
 
   function backMarkup(L, f) {
     const q = targets(L)[f.step];
+    const isWord = String(q.display).length > 2;
     const buttonLabel = f.status === 'loading' ? t('↻ جارٍ التحقق…','↻ Checking…') : f.status === 'correct' ? t('التالي','Next') : f.step === 0 ? t('التالي','Next') : t('تم','Done');
-    return `<section class="lit66-back"><header class="lit66-head"><div><small class="lit66-step-label">${t('الخطوة','Step')} ${f.step+1} / 2</small><h2>${esc(q.label)}</h2></div><span class="lit66-step-dots"><i class="on"></i><i class="${f.step===1||f.status==='correct'?'on':''}"></i></span></header>${f.flag?`<div class="lit66-flag${f.info?' info':''}" role="status">${esc(f.flag)}</div>`:''}<div class="lit66-canvas-wrap"><span class="lit66-guide">${esc(q.display)}</span><canvas class="lit66-canvas" data-lit66-canvas width="900" height="520"></canvas></div><div class="lit66-actions"><button type="button" class="lit66-clear" data-lit66-clear>${t('مسح الرسم','Clear draw')}</button><button type="button" class="lit66-next${f.status==='loading'?' loading':''}${f.status==='correct'?' correct':''}" data-lit66-next ${(!f.drawn[f.step]&&f.status!=='correct')||f.status==='loading'?'disabled':''}>${buttonLabel}</button></div></section>`;
+    return `<section class="lit66-back"><header class="lit66-head"><div><small class="lit66-step-label">${t('الخطوة','Step')} ${f.step+1} / 2</small><h2>${esc(q.label)}</h2></div><span class="lit66-step-dots"><i class="on"></i><i class="${f.step===1||f.status==='correct'?'on':''}"></i></span></header>${f.flag?`<div class="lit66-flag${f.info?' info':''}" role="status">${esc(f.flag)}</div>`:''}<div class="lit66-canvas-wrap"><span class="lit66-guide${isWord?' word':''}">${esc(q.display)}</span><canvas class="lit66-canvas" data-lit66-canvas width="1000" height="680"></canvas></div><div class="lit66-actions"><button type="button" class="lit66-clear" data-lit66-clear>${t('مسح الرسم','Clear draw')}</button><button type="button" class="lit66-next${f.status==='loading'?' loading':''}${f.status==='correct'?' correct':''}" data-lit66-next ${(!f.drawn[f.step]&&f.status!=='correct')||f.status==='loading'?'disabled':''}>${buttonLabel}</button></div></section>`;
   }
 
   function renderCard() {
@@ -100,7 +109,7 @@
   function bindCanvas(canvas, f, step) {
     if (!canvas || canvas.dataset.bound) return;
     canvas.dataset.bound='1';
-    const ctx = canvas.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#251b2c'; ctx.lineWidth=18;
+    const ctx = canvas.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#251b2c'; ctx.lineWidth=20;
     let down=false,last=null;
     const point=e=>{const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}};
     canvas.addEventListener('pointerdown',e=>{down=true;last=point(e);canvas.setPointerCapture?.(e.pointerId);e.preventDefault()});
