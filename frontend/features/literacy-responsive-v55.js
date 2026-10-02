@@ -54,6 +54,8 @@
   }
 
   UI.registerFeature('literacy-responsive-v55', { mount: decorate });
+  UI.onRender(() => decorate({ root: document.getElementById('app') || document }));
+  decorate({ root: document.getElementById('app') || document });
 
   UI.delegate('click', '[data-v55-field]', (event, button) => {
     event.preventDefault();
@@ -87,4 +89,5 @@
 
   const media = window.matchMedia('(max-width: 767px)');
   media.addEventListener?.('change', () => UI.refresh());
+  window.addEventListener('pageshow', () => decorate({ root: document.getElementById('app') || document }));
 })();
