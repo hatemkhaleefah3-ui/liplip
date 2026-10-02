@@ -40,7 +40,10 @@ export async function onRequestPost({ request, env }) {
       })
     });
   } catch { return json({ error: 'gemini_drawing_unavailable' }, 502); }
-  if (!response.ok) return json({ error: 'gemini_drawing_failed', upstreamStatus: response.status }, 502);
+  if (!response.ok) {
+    const status = response.status === 429 ? 429 : 502;
+    return json({ error: response.status === 429 ? 'RESOURCE_EXHAUSTED' : 'gemini_drawing_failed', upstreamStatus: response.status }, status);
+  }
   const output = await response.json();
   const text = output?.candidates?.[0]?.content?.parts?.find(part => typeof part.text === 'string')?.text;
   try {
