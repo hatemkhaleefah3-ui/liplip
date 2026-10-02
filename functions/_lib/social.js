@@ -34,7 +34,7 @@ export async function consumeOAuthState(context, provider, suppliedState) {
 export async function completeIdentityLogin(context, identity) {
   const provider = String(identity.provider || '');
   const subject = String(identity.subject || '');
-  if (!provider || !subject) throw new Error('Invalid social identity');
+  if (!provider || !subject) throw new Error('invalid_social_identity');
 
   const now = Date.now();
   let userId = null;
@@ -89,5 +89,10 @@ export function socialRedirectResponse(session, provider, oauthStateCookie) {
 }
 
 export function socialErrorRedirect(code) {
-  return Response.redirect(`/?auth_error=${encodeURIComponent(code || 'social_login_failed')}`, 302);
+  const headers = new Headers({
+    location: `/?auth_error=${encodeURIComponent(code || 'social_login_failed')}`,
+    'cache-control': 'no-store'
+  });
+  headers.append('set-cookie', cookie('liplip_oauth_state', '', { maxAge: 0 }));
+  return new Response(null, { status: 302, headers });
 }
