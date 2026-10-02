@@ -5,7 +5,7 @@
   const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const NUMBER_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four'];
   const t = (ar,en) => window.LiplipFrontend?.t ? window.LiplipFrontend.t(ar,en) : (localStorage.getItem('liplip-ui-language') === 'en' ? en : ar);
-  const esc = value => window.LiplipFrontend?.escapeHTML ? window.LiplipFrontend.escapeHTML(value) : String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc = value => window.LiplipFrontend?.escapeHTML ? window.LiplipFrontend.escapeHTML(value) : String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 
   const style = document.createElement('style');
   style.textContent = `
@@ -74,11 +74,11 @@
   function frontMarkup(L) {
     const x = L.mode === 'letters' ? LETTERS[L.index] : String(L.index);
     const subtitle = L.mode === 'letters' ? t('حرف إنجليزي','English letter') : t('رقم إنجليزي','English number');
-    return `<button type="button" class="lit66-front" data-lit66-flip><small>${subtitle}</small><strong class="lit66-symbol">${esc(x)}</strong><button type="button" class="lit66-voice" data-lit66-speak aria-label="${t('استمع','Hear')}">🔊</button><p>${t('اضغط البطاقة للانتقال إلى الرسم','Tap the card to draw it')}</p></button>`;
+    return `<div class="lit66-front" data-lit66-flip role="button" tabindex="0"><small>${subtitle}</small><strong class="lit66-symbol">${esc(x)}</strong><button type="button" class="lit66-voice" data-lit66-speak aria-label="${t('استمع','Hear')}">🔊</button><p>${t('اضغط البطاقة للانتقال إلى الرسم','Tap the card to draw it')}</p></div>`;
   }
 
   function backMarkup(L, f) {
-    const ts = targets(L), q = ts[f.step];
+    const q = targets(L)[f.step];
     const buttonLabel = f.status === 'loading' ? t('↻ جارٍ التحقق…','↻ Checking…') : f.status === 'correct' ? t('التالي','Next') : f.step === 0 ? t('التالي','Next') : t('تم','Done');
     return `<section class="lit66-back"><header class="lit66-head"><div><small class="lit66-step-label">${t('الخطوة','Step')} ${f.step+1} / 2</small><h2>${esc(q.label)}</h2></div><span class="lit66-step-dots"><i class="on"></i><i class="${f.step===1||f.status==='correct'?'on':''}"></i></span></header>${f.flag?`<div class="lit66-flag${f.info?' info':''}" role="status">${esc(f.flag)}</div>`:''}<div class="lit66-canvas-wrap"><span class="lit66-guide">${esc(q.display)}</span><canvas class="lit66-canvas" data-lit66-canvas width="900" height="520"></canvas></div><div class="lit66-actions"><button type="button" class="lit66-clear" data-lit66-clear>${t('مسح الرسم','Clear draw')}</button><button type="button" class="lit66-next${f.status==='loading'?' loading':''}${f.status==='correct'?' correct':''}" data-lit66-next ${(!f.drawn[f.step]&&f.status!=='correct')||f.status==='loading'?'disabled':''}>${buttonLabel}</button></div></section>`;
   }
@@ -90,7 +90,7 @@
     if (!L || !root || !wrap || L.stage !== 'learn' || !['letters','numbers'].includes(L.mode)) return;
     root.classList.add('lit66-active');
     const f = stateFor(L);
-    const renderKey = `${f.key}:${f.face}:${f.step}:${f.status}:${f.drawn.join('-')}:${f.flag}`;
+    const renderKey = `${f.key}:${f.face}:${f.step}:${f.status}:${f.flag}`;
     if (wrap.dataset.lit66Key === renderKey) return;
     wrap.dataset.lit66Key = renderKey;
     wrap.innerHTML = `<div class="lit66-shell">${f.face==='front'?frontMarkup(L):backMarkup(L,f)}</div>`;
@@ -104,7 +104,7 @@
     let down=false,last=null;
     const point=e=>{const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}};
     canvas.addEventListener('pointerdown',e=>{down=true;last=point(e);canvas.setPointerCapture?.(e.pointerId);e.preventDefault()});
-    canvas.addEventListener('pointermove',e=>{if(!down)return;const p=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;if(!f.drawn[step]){f.drawn[step]=true;requestAnimationFrame(renderCard)}e.preventDefault()});
+    canvas.addEventListener('pointermove',e=>{if(!down)return;const p=point(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;if(!f.drawn[step]){f.drawn[step]=true;const b=document.querySelector('[data-lit66-next]');if(b)b.disabled=false}e.preventDefault()});
     const end=()=>{down=false;last=null}; canvas.addEventListener('pointerup',end); canvas.addEventListener('pointercancel',end);
   }
 
@@ -114,7 +114,7 @@
     window.LiplipGeminiSpeech?.speak?.(value,{language:'en-US',kind:L.mode==='letters'?'letter':'number',volume:1}).catch(()=>{});
   }
 
-  async function onNext(button) {
+  async function onNext() {
     const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L),canvas=document.querySelector('[data-lit66-canvas]');
     if (f.status === 'correct') {
       const max=L.mode==='letters'?25:34;
@@ -136,11 +136,12 @@
   }
 
   document.addEventListener('click',e=>{
-    const flip=e.target.closest?.('[data-lit66-flip]'); if(flip){if(e.target.closest('[data-lit66-speak]'))return;e.preventDefault();e.stopImmediatePropagation();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L);f.face='back';f.step=0;f.status='idle';f.drawn=[false,false];f.images=['',''];f.flag='';renderCard();return}
+    const flip=e.target.closest?.('[data-lit66-flip]');if(flip){if(e.target.closest('[data-lit66-speak]'))return;e.preventDefault();e.stopImmediatePropagation();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L);f.face='back';f.step=0;f.status='idle';f.drawn=[false,false];f.images=['',''];f.flag='';renderCard();return}
     const voice=e.target.closest?.('[data-lit66-speak]');if(voice){e.preventDefault();e.stopImmediatePropagation();speakCurrent();return}
-    const clear=e.target.closest?.('[data-lit66-clear]');if(clear){e.preventDefault();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L),c=document.querySelector('[data-lit66-canvas]');c?.getContext('2d')?.clearRect(0,0,c.width,c.height);f.drawn[f.step]=false;f.flag='';renderCard();return}
-    const next=e.target.closest?.('[data-lit66-next]');if(next){e.preventDefault();onNext(next)}
+    const clear=e.target.closest?.('[data-lit66-clear]');if(clear){e.preventDefault();const L=window.LiplipLiteracy;if(!L)return;const f=stateFor(L),c=document.querySelector('[data-lit66-canvas]');c?.getContext('2d')?.clearRect(0,0,c.width,c.height);f.drawn[f.step]=false;f.flag='';const b=document.querySelector('[data-lit66-next]');if(b)b.disabled=true;return}
+    const next=e.target.closest?.('[data-lit66-next]');if(next){e.preventDefault();onNext()}
   },true);
+  document.addEventListener('keydown',e=>{const card=e.target.closest?.('[data-lit66-flip]');if(card&&['Enter',' '].includes(e.key)&&!e.target.closest('button')){e.preventDefault();card.click()}},true);
 
   const observer=new MutationObserver(()=>requestAnimationFrame(renderCard));
   const start=()=>{if(!document.body)return;observer.observe(document.body,{childList:true,subtree:true});renderCard()};
