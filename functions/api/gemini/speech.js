@@ -60,7 +60,10 @@ export async function onRequestPost({ request, env }) {
       })
     });
   } catch { return json({ error: 'gemini_tts_unavailable' }, 502); }
-  if (!response.ok) return json({ error: 'gemini_tts_failed', upstreamStatus: response.status }, 502);
+  if (!response.ok) {
+    const status = response.status === 429 ? 429 : 502;
+    return json({ error: response.status === 429 ? 'RESOURCE_EXHAUSTED' : 'gemini_tts_failed', upstreamStatus: response.status }, status);
+  }
   const output = await response.json();
   const blocks = [
     output?.output_audio,
