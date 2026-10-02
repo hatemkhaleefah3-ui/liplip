@@ -1,0 +1,220 @@
+/* v57: canonical five-level course navigation, study flows, exams, and minimal content schemas. */
+(() => {
+  'use strict';
+  if (typeof LiplipCourse === 'undefined' || typeof LiplipProgress === 'undefined') return;
+
+  const UI = window.LiplipFrontend;
+  const LEGACY = Object.fromEntries(Object.entries(LiplipCourse).filter(([,v]) => typeof v === 'function').map(([k,v]) => [k, v.bind(LiplipCourse)]));
+  const STORE = 'liplip-course-content-v2';
+  const STRIDE = 200, LEVELS = 5, BOXES = 50;
+  const PHASES = [
+    { key:'vocabulary', ar:'المفردات', en:'Vocabulary', processes:[['content','دراسة','Study'],['exam','اختبار','Exam']] },
+    { key:'grammar', ar:'القواعد', en:'Grammar', processes:[['article','دراسة','Study'],['exam','اختبار','Exam']] },
+    { key:'watchRead', ar:'شاهد واقرأ', en:'Watch & read', processes:[['video','فيديو + اختبار','Video + exam'],['story','قصة + اختبار','Story + exam']] }
+  ];
+  const HEADERS = {
+    vocabulary:['Level','Box','English','Arabic'],
+    grammar:['Level','Box','Title','Rule','Normal Formula','Negative Formula','Question Formula','Notes','Examples'],
+    watchRead:['Level','Box','Story','YouTube URL','Video Title']
+  };
+  const state57 = window.LiplipCourse57 = {
+    map:'levels', level:1, boxId:null, phase:'vocabulary', process:0, review:false,
+    item:0, flipped:false, revealed:false, drawn:false, answer:null, feedback:'',
+    results:[], exam:null, loading:false, error:'', mediaStep:0, manager:false, boxComplete:false
+  };
+
+  const t = (ar,en) => UI ? UI.t(ar,en) : (localStorage.getItem('liplip-ui-language') === 'en' ? en : ar);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const norm = value => String(value ?? '').trim().toLocaleLowerCase().replace(/[.,?!؟؛:()"'’“”\u064B-\u065F]/g,'').replace(/\s+/g,' ');
+  const gid = (level,box) => (level - 1) * STRIDE + box;
+  const loc = id => LiplipProgress.courseLocation(Number(id) || 1);
+  const phase = key => PHASES.find(x => x.key === key) || PHASES[0];
+  const icon = (name,size=22) => {
+    const p={back:'<path d="M19 12H5m6 6-6-6 6-6"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',check:'<path d="m5 12 4 4L19 6"/>',book:'<path d="M4 5c4 0 6 1 8 3 2-2 4-3 8-3v14c-4 0-6 1-8 3-2-2-4-3-8-3V5Z"/>',play:'<path d="m8 5 11 7-11 7V5Z"/>',sound:'<path d="M5 10v4h3l4 3V7L8 10H5Z"/><path d="M15 9a4 4 0 0 1 0 6m2-8a7 7 0 0 1 0 10"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',spark:'<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M19 13.5 21 12l-2-1.5-.4-2.1-2.4-.4L15 5l-3-1-3 1-1.2 3-2.4.4L5 10.5 3 12l2 1.5.4 2.1 2.4.4L9 19l3 1 3-1 1.2-3 2.4-.4.4-2.1Z"/>'};
+    return `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p[name]||p.spark}</svg>`;
+  };
+
+  function defaultContent(id) {
+    const n=loc(id).box;
+    const pairs=[['hello','مرحباً'],['family','عائلة'],['book','كتاب'],['water','ماء'],['school','مدرسة']];
+    return {
+      vocabulary:{items:pairs.map(([en,ar],i)=>({type:'word',order:i+1,en,ar,voice:en}))},
+      grammar:{article:{title:`Present simple · Box ${n}`,rule:'Use the present simple for routines and facts.',normal:'Subject + base verb + object.',negative:'Subject + do/does not + base verb + object.',question:'Do/Does + subject + base verb + object?',notes:['Use does with he, she, and it.'],examples:[
+        {text:'I study English every day.'},{text:'She reads a book at school.'},{text:'They drink water in the morning.'},{text:'He does not walk to work.'},{text:'Do you visit your family?'}
+      ]}},
+      watchRead:{video:{title:`Box ${n} video`,youtube:''},story:[{order:1,title:`Box ${n} story`,text:'Ali studies English every morning. He reads a book, learns new words, and tells his family what he learned.',arabic:''}]}
+    };
+  }
+  function storeData(){try{const v=JSON.parse(localStorage.getItem(STORE)||'{}');return v&&typeof v==='object'?v:{}}catch{return {}}}
+  function cleanContent(raw,id){
+    const base=defaultContent(id),value=raw&&typeof raw==='object'?structuredClone(raw):base;
+    const rawItems=Array.isArray(value.vocabulary?.items)?value.vocabulary.items:base.vocabulary.items;
+    const seen=new Set(),items=[];
+    rawItems.forEach((item,i)=>{const en=String(item?.en||item?.word||'').trim(),ar=String(item?.ar||'').trim(),k=en.toLowerCase();if(en&&ar&&!seen.has(k)){seen.add(k);items.push({type:'word',order:i+1,en:en.slice(0,80),ar:ar.slice(0,160),voice:en.slice(0,80)})}});
+    const article=value.grammar?.article&&typeof value.grammar.article==='object'?value.grammar.article:base.grammar.article;
+    article.notes=Array.isArray(article.notes)?article.notes.map(String).filter(Boolean):[];
+    article.examples=Array.isArray(article.examples)?article.examples.map(x=>({text:String(x?.text||x).trim()})).filter(x=>x.text):[];
+    const wr=value.watchRead&&typeof value.watchRead==='object'?value.watchRead:base.watchRead;
+    wr.video=wr.video&&typeof wr.video==='object'?wr.video:base.watchRead.video;
+    wr.story=Array.isArray(wr.story)?wr.story.map((x,i)=>({order:i+1,title:String(x?.title||`Page ${i+1}`),text:String(x?.text||x||''),arabic:String(x?.arabic||'')})).filter(x=>x.text):base.watchRead.story;
+    return {vocabulary:{items:items.length?items:base.vocabulary.items},grammar:{article},watchRead:wr};
+  }
+  function getContent(id){return cleanContent(storeData()[String(id)] || LEGACY.getContent?.(id),id)}
+  function saveContent(id,content){const all=storeData();all[String(id)]=cleanContent(content,id);localStorage.setItem(STORE,JSON.stringify(all))}
+  function words(content){return content.vocabulary.items.filter(x=>x.en&&x.ar).slice(0,50)}
+  function fiveWords(content){const source=words(content),out=[];if(!source.length)return out;for(let i=0;i<5;i++)out.push(source[i%source.length]);return out}
+  function record(progress){return LiplipProgress.courseSnapshot(progress).records.find(x=>x.boxId===state57.boxId)||{completed:[],completedPhases:[],currentPhase:'vocabulary',processIndex:0,scores:{}}}
+  function completedToken(r,key,index){return (r.completed||[]).includes(`${key}:${phase(key).processes[index][0]}`)}
+  function resetActivity(){Object.assign(state57,{item:0,flipped:false,revealed:false,drawn:false,answer:null,feedback:'',results:[],exam:null,loading:false,error:'',mediaStep:0,order:[]})}
+
+  function courseModel(progress){
+    const snap=LiplipProgress.courseSnapshot(progress),records=new Map((snap.records||[]).map(x=>[x.boxId,x]));
+    const boxStatus=id=>snap.completedBoxes.includes(id)?'complete':snap.currentBox===id?'current':'locked';
+    const currentLevel=snap.currentBox?loc(snap.currentBox).level:LEVELS;
+    const levelStatus=l=>snap.currentBox===null||l<currentLevel?'complete':l===currentLevel?'current':'locked';
+    return {snap,records,boxStatus,currentLevel,levelStatus};
+  }
+  function levelCard(progress,l){
+    const m=courseModel(progress),status=m.levelStatus(l),ids=Array.from({length:BOXES},(_,i)=>gid(l,i+1));
+    const done=ids.filter(id=>m.snap.completedBoxes.includes(id)).length;
+    const units=ids.reduce((sum,id)=>sum+(m.records.get(id)?.completed?.length||0),0),pct=Math.round(units/(BOXES*6)*100);
+    return `<button class="c57-level ${status}" ${status==='locked'?'disabled':`data-course="level" data-level="${l}"`}><span class="c57-level-no">0${l}</span><span class="c57-level-icon">${status==='locked'?icon('lock',27):status==='complete'?icon('check',27):icon('spark',28)}</span><span><small>${t('المستوى','Level')} ${l}</small><strong>${esc(LiplipProgress.STAGES?.[l-1]||`Level ${l}`)}</strong><em>${done}/${BOXES} ${t('صندوق','boxes')}</em><i><b style="width:${pct}%"></b></i></span><b>${pct}%</b></button>`;
+  }
+  function boxCard(progress,l,b){
+    const m=courseModel(progress),id=gid(l,b),status=m.boxStatus(id),r=m.records.get(id),done=status==='complete'?6:(r?.completed?.length||0),next=done<6?PHASES[Math.floor(done/2)]:null;
+    return `<button class="c57-box ${status}" ${status==='locked'?'disabled':`data-course="box" data-box-id="${id}"`}><span>${status==='locked'?icon('lock',20):status==='complete'?icon('check',20):String(b).padStart(2,'0')}</span><strong>${t('الصندوق','Box')} ${String(b).padStart(2,'0')}</strong><small>${status==='locked'?t('مغلق','Locked'):status==='complete'?t('مراجعة','Review'):`${t(next.ar,next.en)} · ${done%2?t('اختبار','Exam'):t('دراسة','Study')}`}</small><i>${Array.from({length:6},(_,i)=>`<b class="${i<done?'done':i===done&&status==='current'?'active':''}"></b>`).join('')}</i></button>`;
+  }
+  function managerPanel(){return `<div class="c57-manager"><button class="c57-manager-shade" data-course="manager-close" aria-label="${t('إغلاق','Close')}"></button><section><header><div><small>${t('مخططات المحتوى','Content schemas')}</small><h2>${t('استيراد بسيط للصناديق','Simple box imports')}</h2></div><button data-course="manager-close">×</button></header><p>${t('الاختبارات لا تحتاج أعمدة: الموقع ينشئ اختبار المفردات، وGemini ينشئ اختبارات القواعد والفيديو والقصة عند كل محاولة.','No exam columns are needed: the site builds vocabulary exams, and Gemini creates fresh grammar, video, and story exams for every attempt.')}</p><div class="c57-schema-grid">${PHASES.map(p=>`<article><strong>${t(p.ar,p.en)}</strong><small>${HEADERS[p.key].join(' · ')}</small><button data-course="schema-download" data-phase="${p.key}">${t('تنزيل Excel','Download Excel')}</button></article>`).join('')}</div><label class="c57-import"><span>${t('استيراد ملف Excel','Import Excel file')}</span><input type="file" accept=".xlsx,.csv" data-course-manager-import></label><small>${t('للمفردات استخدم صفاً لكل كلمة. للقواعد وشاهد واقرأ استخدم صفاً واحداً لكل صندوق.','Use one row per vocabulary word; use one row per box for grammar and watch/read.')}</small></section></div>`}
+  function mapPage(progress){
+    const m=courseModel(progress);if(!state57.level)state57.level=m.currentLevel;
+    const levels=`<section class="c57-levels">${Array.from({length:LEVELS},(_,i)=>levelCard(progress,i+1)).join('')}</section>`;
+    const boxes=`<section class="c57-box-page"><header><button data-course="levels">${icon('back',18)} ${t('المستويات','Levels')}</button><div><small>${t('المستوى','Level')} ${state57.level}</small><h2>50 ${t('صندوقاً تعليمياً','learning boxes')}</h2></div><span>6 ${t('عمليات لكل صندوق','processes per box')}</span></header><div class="c57-boxes">${Array.from({length:BOXES},(_,i)=>boxCard(progress,state57.level,i+1)).join('')}</div></section>`;
+    return `<main class="c57-map"><header class="c57-map-hero"><div><span>${t('خريطة الدراسة الجديدة','NEW STUDY MAP')}</span><h1>${t('خمسة مستويات. مسار واحد واضح.','Five levels. One clear path.')}</h1><p>${t('كل مستوى يحتوي 50 صندوقاً، وكل صندوق ينقلك عبر المفردات والقواعد والمشاهدة والقراءة.','Every level contains 50 boxes, and every box moves through vocabulary, grammar, video, and reading.')}</p></div><aside><strong>${m.snap.completedBoxes.length}</strong><small>/ 250 ${t('صندوقاً','boxes')}</small></aside></header>${state57.map==='boxes'?boxes:levels}<button class="c57-manage" data-course="manager-open">${icon('settings',18)} ${t('المحتوى','Content')}</button>${state57.manager?managerPanel():''}</main>`;
+  }
+
+  function start(boxId,progress,{review=false}={}){const r=LiplipProgress.courseSnapshot(progress).records.find(x=>x.boxId===boxId);state57.boxId=boxId;state57.review=review;state57.boxComplete=false;state57.phase=review?'vocabulary':(r?.currentPhase||'vocabulary');state57.process=review?0:(r?.processIndex||0);resetActivity()}
+  function stageNav(progress){
+    const r=record(progress),currentIndex=PHASES.findIndex(x=>x.key===r.currentPhase);
+    return `<aside class="c57-stage-nav"><header><span>${t('الصندوق','Box')} ${String(loc(state57.boxId).box).padStart(2,'0')}</span><strong>${t('خطة الصندوق','Box plan')}</strong></header>${PHASES.map((p,pi)=>{const unlocked=state57.review||pi<=currentIndex||r.completedPhases?.includes(p.key);return `<section class="${state57.phase===p.key?'active':''} ${unlocked?'':'locked'}"><button ${unlocked?`data-course="phase" data-phase="${p.key}"`:'disabled'}><b>0${pi+1}</b><span><strong>${t(p.ar,p.en)}</strong><small>${pi===2?t('فيديو وقصة','Video and story'):t('دراسة ثم اختبار','Study then exam')}</small></span></button><div>${p.processes.map((proc,i)=>{const processOpen=unlocked&&(state57.review||i===0||completedToken(r,p.key,0));return `<button data-course="process" data-process="${i}" ${processOpen?'':'disabled'} class="${state57.phase===p.key&&state57.process===i?'active':''} ${completedToken(r,p.key,i)?'done':''}">${completedToken(r,p.key,i)?'✓ ':''}${t(proc[1],proc[2])}</button>`}).join('')}</div></section>`}).join('')}</aside>`;
+  }
+  function zoneTop(progress){const l=loc(state57.boxId),p=phase(state57.phase);return `<header class="c57-zone-top"><button data-course="exit">${icon('back',18)} ${t('الخريطة','Map')}</button><div><small>${t('المستوى','Level')} ${l.level} · ${t('الصندوق','Box')} ${l.box}</small><strong>${t(p.ar,p.en)}</strong></div><span>${state57.review?t('مراجعة','Review'):t(p.processes[state57.process][1],p.processes[state57.process][2])}</span></header>`}
+  function pager(total,label){const i=Math.min(state57.item,Math.max(0,total-1));return `<div class="c57-pager"><span>${esc(label)}</span><b>${i+1} / ${Math.max(1,total)}</b><i><u style="width:${total?((i+1)/total*100):0}%"></u></i></div>`}
+  function nextControls(total,{complete='Complete'}={}){const last=state57.item>=total-1;return `<nav class="c57-controls"><button data-course="item-prev" ${state57.item===0?'disabled':''}>${t('السابق','Previous')}</button><button class="primary" data-course="${last?'complete-study':'item-next'}" data-total="${total}">${last?esc(complete):t('التالي','Next')}</button></nav>`}
+  function vocabularyStudy(content){const list=words(content),i=Math.min(state57.item,Math.max(0,list.length-1)),w=list[i];return `<section class="c57-study c57-vocab"><header><span>01 · ${t('الدراسة','STUDY')}</span><h1>${t('بطاقات إنجليزي وعربي','English–Arabic flashcards')}</h1><p>${t('لكل وجه صوته الصحيح. اقلب البطاقة وانتقل بكلمة واحدة في كل مرة.','Each face has its correct voice. Flip the card and learn one word at a time.')}</p></header>${pager(list.length,t('بطاقة','Card'))}<article class="c57-word-card ${state57.flipped?'flipped':''}"><div class="front"><small>ENGLISH</small><strong dir="ltr">${esc(w?.en||'')}</strong><button type="button" data-course="speak" data-text="${esc(w?.en||'')}" data-lang="en-US">${icon('sound',22)} ${t('صوت إنجليزي','English voice')}</button></div><div class="back"><small>العربية</small><strong>${esc(w?.ar||'')}</strong><button type="button" data-course="speak" data-text="${esc(w?.ar||'')}" data-lang="ar-IQ">${icon('sound',22)} ${t('صوت عربي','Arabic voice')}</button></div><button class="c57-flip-button" data-course="vocab-flip">${state57.flipped?t('اعرض الإنجليزية','Show English'):t('اعرض العربية','Show Arabic')}</button></article>${nextControls(list.length,{complete:t('ابدأ اختبار المفردات','Start vocabulary exam')})}</section>`}
+
+  function vocabularyExamData(content){const list=fiveWords(content);return [...list.map(w=>({type:'draw',word:w})),...list.map(w=>({type:'write',word:w})),...list.map(w=>({type:'speak',word:w}))]}
+  function resultButton(total){const last=state57.item>=total-1;return `<button class="primary" data-course="${last?'finish-vocab-attempt':'exam-next'}" data-total="${total}">${last?t('عرض النتيجة','Show result'):t('السؤال التالي','Next question')}</button>`}
+  function vocabularyQuestion(content){
+    const exam=state57.exam||vocabularyExamData(content);state57.exam=exam;const q=exam[Math.min(state57.item,exam.length-1)],index=state57.item,typeNo=q.type==='draw'?1:q.type==='write'?2:3;
+    let body='';
+    if(q.type==='draw')body=`<div class="c57-draw-question"><div class="c57-prompt"><small>${t('العربية','ARABIC')}</small><strong>${esc(q.word.ar)}</strong><p>${t('ارسم الكلمة الإنجليزية في الحقل.','Draw the English word in the field.')}</p></div><canvas data-c57-canvas width="1000" height="420" aria-label="${t('حقل الرسم','Drawing field')}"></canvas>${state57.revealed?`<div class="c57-reveal"><span>${t('الإجابة الصحيحة','Correct answer')}</span><strong dir="ltr">${esc(q.word.en)}</strong><p>${t('هل رسمتها بصورة صحيحة؟','Did you draw it correctly?')}</p><div><button data-course="draw-grade" data-correct="0">${t('حاول مجدداً','Try again')}</button><button data-course="draw-grade" data-correct="1" class="primary">${t('صحيح','Correct')}</button></div></div>`:`<button class="primary" data-course="draw-done">${t('انتهيت — أظهر الإجابة','Done — reveal answer')}</button>`}</div>`;
+    if(q.type==='write')body=`<div class="c57-write-question"><small>ENGLISH</small><strong dir="ltr">${esc(q.word.en)}</strong><label><span>${t('اكتب المعنى بالعربية','Write the Arabic meaning')}</span><input id="c57-write-answer" dir="rtl" autocomplete="off" value="${esc(state57.answer||'')}"></label>${state57.revealed?`<div class="c57-reveal ${state57.results[state57.item]?'correct':'wrong'}"><span>${t('الإجابة الصحيحة','Correct answer')}</span><strong>${esc(q.word.ar)}</strong><p>${esc(state57.feedback)}</p></div>`:`<button class="primary" data-course="write-done">${t('تحقق','Check')}</button>`}</div>`;
+    if(q.type==='speak')body=`<div class="c57-speak-question"><span class="c57-voice-orb">${icon('sound',38)}</span><h2>${t('استمع ثم انطق الكلمة','Hear, then pronounce the word')}</h2><strong dir="ltr">${esc(q.word.en)}</strong><div><button data-course="speak" data-text="${esc(q.word.en)}" data-lang="en-US">${icon('sound',22)} ${t('اسمع الكلمة','Hear word')}</button><button class="primary" data-course="pronounce" data-expected="${esc(q.word.en)}">${icon('mic',22)} ${t('انطق الكلمة','Pronounce word')}</button></div>${state57.revealed?`<p class="c57-feedback ${state57.results[state57.item]?'correct':'wrong'}">${esc(state57.feedback)}</p>`:''}</div>`;
+    return `<section class="c57-exam"><header><span>01 · ${t('الاختبار','EXAM')}</span><h1>${t('اختبار المفردات','Vocabulary exam')}</h1><p>${t('ثلاثة أنواع · خمسة أسئلة لكل نوع','Three types · five questions per type')}</p></header>${pager(exam.length,`${t('النوع','Type')} ${typeNo}/3`)}<article class="c57-question">${body}</article>${state57.revealed&&state57.results[state57.item]!==undefined?`<nav class="c57-question-next">${resultButton(exam.length)}</nav>`:''}</section>`;
+  }
+  function examSummary(kind,total){const correct=state57.results.filter(Boolean).length,score=Math.round(correct/Math.max(1,total)*100),pass=score>=70;return `<section class="c57-summary ${pass?'pass':'retry'}"><span>${pass?'✓':'↻'}</span><h1>${score}%</h1><p>${pass?t('نجحت ويمكنك متابعة المسار.','Passed. Continue the course.'):t('تحتاج 70٪. ابدأ محاولة جديدة بأسئلة جديدة.','You need 70%. Start a new attempt with fresh questions.')}</p><button class="primary" data-course="${pass?'finish-exam':'retry-exam'}" data-kind="${kind}" data-score="${score}">${pass?t('متابعة','Continue'):t('محاولة جديدة','New attempt')}</button></section>`}
+
+  function grammarStudy(content){const a=content.grammar.article||{},items=[{title:a.title,body:a.rule,formula:a.normal},{title:t('النفي','Negative'),body:a.rule,formula:a.negative},{title:t('السؤال','Question'),body:a.rule,formula:a.question},...(a.notes||[]).map((x,i)=>({title:`${t('ملاحظة','Note')} ${i+1}`,body:x})),...(a.examples||[]).map((x,i)=>({title:`${t('مثال','Example')} ${i+1}`,body:x.text}))].filter(x=>x.title||x.body||x.formula),item=items[Math.min(state57.item,items.length-1)];return `<section class="c57-study c57-grammar"><header><span>02 · ${t('الدراسة','STUDY')}</span><h1>${esc(a.title||t('دراسة القاعدة','Grammar study'))}</h1><p>${esc(a.rule||'')}</p></header>${pager(items.length,t('جزء','Part'))}<article class="c57-grammar-card"><small>${esc(item?.title||'')}</small>${item?.body?`<p>${esc(item.body)}</p>`:''}${item?.formula?`<strong dir="ltr">${esc(item.formula)}</strong>`:''}</article>${nextControls(items.length,{complete:t('ابدأ اختبار القواعد','Start grammar exam')})}</section>`}
+  function aiSource(kind,content){if(kind==='grammar')return JSON.stringify(content.grammar.article);if(kind==='story')return content.watchRead.story.map(x=>x.text).join('\n\n');return String(content.watchRead.video.youtube||'')}
+  async function requestExam(kind,content,onUpdate){state57.loading=true;state57.error='';state57.exam=null;state57.results=[];state57.item=0;state57.revealed=false;onUpdate();try{const l=loc(state57.boxId),response=await fetch('/api/gemini/course-exam',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({kind,source:aiSource(kind,content),level:l.level,box:l.box})});const data=await response.json().catch(()=>({}));if(!response.ok||!Array.isArray(data.questions))throw new Error(data.error||`exam_${response.status}`);state57.exam=data.questions}catch(error){state57.error=t('تعذر إنشاء الاختبار. تحقق من المحتوى أو حصة Gemini ثم حاول مجدداً.','Could not create the exam. Check the content or Gemini quota, then retry.')+` (${error.message})`}finally{state57.loading=false;onUpdate()}}
+  function freshExam(kind){return `<section class="c57-ai-start"><span>${icon('spark',36)}</span><h1>${kind==='grammar'?t('اختبار قواعد جديد','Fresh grammar exam'):kind==='video'?t('اختبار فيديو جديد','Fresh video exam'):t('اختبار قصة جديد','Fresh story exam')}</h1><p>${t('ينشئ Gemini خمسة أسئلة مختلفة لهذه المحاولة. لا تُحفظ الأسئلة للمحاولة التالية.','Gemini creates five different questions for this attempt. Questions are not reused next time.')}</p>${state57.error?`<div class="c57-error">${esc(state57.error)}</div>`:''}<button class="primary" data-course="generate-exam" data-kind="${kind}" ${state57.loading?'disabled':''}>${state57.loading?t('جارٍ الإنشاء…','Generating…'):t('إنشاء خمسة أسئلة','Generate five questions')}</button></section>`}
+  function aiQuestion(kind){
+    const list=state57.exam||[];if(state57.answer==='summary')return examSummary(kind,list.length);const q=list[Math.min(state57.item,list.length-1)];if(!q)return freshExam(kind);
+    let control='';
+    if(q.type==='reorder')control=`<div class="c57-built" dir="ltr">${(state57.order||[]).map((x,i)=>`<button data-course="remove-token" data-index="${i}">${esc(x)}</button>`).join('')||`<span>${t('اضغط الكلمات بالترتيب','Tap words in order')}</span>`}</div><div class="c57-tokens" dir="ltr">${q.options.map((x,i)=>`<button data-course="add-token" data-index="${i}">${esc(x)}</button>`).join('')}</div>`;
+    else if(q.type==='correct_error')control=`<label class="c57-correction"><span>${t('اكتب الجملة الصحيحة كاملة','Write the complete corrected sentence')}</span><input id="c57-ai-text" dir="ltr" autocomplete="off"></label>`;
+    else control=`<div class="c57-options">${q.options.map((x,i)=>`<button data-course="choose-option" data-index="${i}" class="${state57.answer===i?'selected':''}">${esc(x)}</button>`).join('')}</div>`;
+    return `<section class="c57-exam c57-ai-exam"><header><span>${kind==='grammar'?'02':'03'} · GEMINI</span><h1>${kind==='grammar'?t('خمسة أسئلة قواعد','Five grammar questions'):kind==='video'?t('خمسة أسئلة عن الفيديو','Five video questions'):t('خمسة أسئلة عن القصة','Five story questions')}</h1><p>${kind==='grammar'?t('ملء الفراغ · ترتيب الكلمات · تصحيح الخطأ','Fill the blank · reorder · correct the error'):t('اختيار من متعدد مبني على المحتوى','Multiple choice based on the content')}</p></header>${pager(list.length,t('سؤال','Question'))}<article class="c57-question"><small>${esc(q.type.replaceAll('_',' '))}</small><h2 dir="auto">${esc(q.prompt)}</h2>${control}${state57.revealed?`<div class="c57-feedback ${state57.results[state57.item]?'correct':'wrong'}"><strong>${state57.results[state57.item]?t('صحيح','Correct'):t('غير صحيح','Not correct')}</strong><p>${esc(q.explanation)}</p><span>${t('الإجابة','Answer')}: ${esc(q.answer)}</span></div>`:''}</article><nav class="c57-question-next">${state57.revealed?`<button class="primary" data-course="ai-next" data-kind="${kind}">${state57.item>=list.length-1?t('عرض النتيجة','Show result'):t('التالي','Next')}</button>`:`<button class="primary" data-course="check-ai" data-kind="${kind}">${t('تحقق','Check')}</button>`}</nav></section>`;
+  }
+  function youtubeId(value){const s=String(value||'').trim();return /youtu\.be\/([\w-]{6,})/.exec(s)?.[1]||/[?&]v=([\w-]{6,})/.exec(s)?.[1]||/embed\/([\w-]{6,})/.exec(s)?.[1]||(/^[\w-]{6,}$/.test(s)?s:'')}
+  function watchStudy(content,kind){
+    if(state57.mediaStep===1)return state57.exam?aiQuestion(kind):freshExam(kind);
+    if(kind==='video'){const v=content.watchRead.video||{},id=youtubeId(v.youtube);return `<section class="c57-study c57-media"><header><span>03 · ${t('الفيديو','VIDEO')}</span><h1>${esc(v.title||t('شاهد الفيديو','Watch the video'))}</h1><p>${t('شاهد بتركيز. بعد ذلك سينشئ Gemini خمسة أسئلة جديدة.','Watch carefully. Gemini will then create five fresh questions.')}</p></header>${id?`<div class="c57-video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(id)}?rel=0" title="${esc(v.title||'Video')}" allowfullscreen></iframe></div>`:`<div class="c57-empty">${t('أضف رابط YouTube لهذا الصندوق.','Add a YouTube URL for this box.')}</div>`}<button class="primary c57-media-next" data-course="media-exam" data-kind="video" ${id?'':'disabled'}>${t('أنهيت المشاهدة — أنشئ الاختبار','Finished watching — create exam')}</button></section>`}
+    const pages=content.watchRead.story||[],p=pages[Math.min(state57.item,Math.max(0,pages.length-1))];return `<section class="c57-study c57-media"><header><span>03 · ${t('القصة','STORY')}</span><h1>${esc(p?.title||t('اقرأ القصة','Read the story'))}</h1><p>${t('اقرأ النص كاملاً. بعد ذلك سينشئ Gemini خمسة أسئلة جديدة.','Read the full text. Gemini will then create five fresh questions.')}</p></header>${pager(pages.length,t('صفحة','Page'))}<article class="c57-story"><p dir="ltr">${esc(p?.text||'')}</p>${p?.arabic?`<aside>${esc(p.arabic)}</aside>`:''}</article>${state57.item<pages.length-1?`<button class="primary c57-media-next" data-course="item-next" data-total="${pages.length}">${t('الصفحة التالية','Next page')}</button>`:`<button class="primary c57-media-next" data-course="media-exam" data-kind="story">${t('أنهيت القراءة — أنشئ الاختبار','Finished reading — create exam')}</button>`}</section>`
+  }
+
+  function render(progress){
+    if(state57.boxComplete){const next=LiplipProgress.courseSnapshot(progress).currentBox;return `<main class="c57-zone">${zoneTop(progress)}<div class="c57-zone-grid">${stageNav(progress)}<section class="c57-workspace"><section class="c57-summary pass"><span>✓</span><h1>${t('اكتمل الصندوق','Box complete')}</h1><p>${t('أنهيت العمليات الست: دراسة واختبار المفردات، دراسة واختبار القواعد، ثم الفيديو والقصة مع اختبار كل منهما.','You completed all six processes: vocabulary study and exam, grammar study and exam, then video and story with their exams.')}</p><div class="c57-complete-actions"><button data-course="result-close">${t('العودة للخريطة','Back to map')}</button>${next?`<button class="primary" data-course="result-next">${t('ابدأ الصندوق التالي','Start next box')}</button>`:''}</div></section></section></div></main>`}
+    const content=getContent(state57.boxId),r=record(progress),p=phase(state57.phase),isDone=r.completedPhases?.includes(state57.phase);
+    if(!state57.review&&!isDone&&state57.phase===r.currentPhase)state57.process=r.processIndex;
+    let body;
+    if(state57.answer==='vocab-summary')body=examSummary('vocabulary',state57.exam?.length||15);
+    else if(state57.phase==='vocabulary')body=state57.process===0?vocabularyStudy(content):vocabularyQuestion(content);
+    else if(state57.phase==='grammar')body=state57.process===0?grammarStudy(content):(state57.exam?aiQuestion('grammar'):freshExam('grammar'));
+    else body=watchStudy(content,state57.process===0?'video':'story');
+    return `<main class="c57-zone">${zoneTop(progress)}<div class="c57-zone-grid">${stageNav(progress)}<section class="c57-workspace">${state57.error&&!body.includes('c57-error')?`<div class="c57-error">${esc(state57.error)}</div>`:''}${body}</section></div></main>`;
+  }
+
+  function completion(progress,score=100){
+    const r=record(progress),p=phase(state57.phase),process=p.processes[state57.process][0];
+    if(state57.review||completedToken(r,state57.phase,state57.process))return {};
+    const content=getContent(state57.boxId);
+    try{return {progress:LiplipProgress.recordCourseProcess(progress,{boxId:state57.boxId,phase:state57.phase,process,score,words:words(content).map(w=>({word:w.en,ar:w.ar})),grammar:[content.grammar.article]}),completed:true}}
+    catch(error){state57.error=error.message;return {}}
+  }
+  function speak(text,lang){const value=String(text||'').trim();if(!value)return;window.LiplipGeminiSpeech?.speak(value,{language:lang||'en-US',kind:'word'}).catch(()=>{state57.error=t('تعذر تشغيل صوت Gemini.','Gemini voice could not play.');UI?.render(false)})}
+  function recognition(expected,onUpdate){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){state57.revealed=true;state57.results[state57.item]=false;state57.feedback=t('التعرّف على النطق غير مدعوم في هذا المتصفح.','Speech recognition is not supported in this browser.');onUpdate();return}const r=new R();r.lang='en-US';r.interimResults=false;r.maxAlternatives=1;r.onresult=e=>{const heard=e.results?.[0]?.[0]?.transcript||'';const ok=norm(heard)===norm(expected);state57.revealed=true;state57.results[state57.item]=ok;state57.feedback=ok?t(`نطق صحيح: ${heard}`,`Correct pronunciation: ${heard}`):t(`سمعت: ${heard} · المطلوب: ${expected}`,`Heard: ${heard} · expected: ${expected}`);onUpdate()};r.onerror=()=>{state57.feedback=t('تعذر سماع النطق. حاول مجدداً.','Could not hear the pronunciation. Try again.');onUpdate()};try{r.start()}catch{}}
+  function resetQuestion(){state57.revealed=false;state57.drawn=false;state57.answer=null;state57.feedback='';state57.order=[]}
+  function evaluateAI(){const q=state57.exam?.[state57.item];if(!q)return;let ok=false;if(q.type==='reorder')ok=norm((state57.order||[]).join(' '))===norm(q.answer);else if(q.type==='correct_error')ok=norm(document.getElementById('c57-ai-text')?.value)===norm(q.answer);else ok=Number(state57.answer)===Number(q.correctIndex);state57.results[state57.item]=ok;state57.revealed=true}
+  function click(action,target,progress,onUpdate){
+    if(action==='level'){state57.level=Number(target.dataset.level);state57.map='boxes';return {}}
+    if(action==='levels'){state57.map='levels';return {}}
+    if(action==='box'){const id=Number(target.dataset.boxId),m=courseModel(progress),status=m.boxStatus(id);if(status==='locked')return {};start(id,progress,{review:status==='complete'});return {open:true}}
+    if(action==='exit'){state57.map='boxes';return {exit:true}}
+    if(action==='result-close'){state57.boxComplete=false;state57.map='boxes';return {exit:true}}
+    if(action==='result-next'){const next=LiplipProgress.courseSnapshot(progress).currentBox;if(next){start(next,progress);return {open:true}}return {}}
+    if(action==='phase'){state57.phase=target.dataset.phase;state57.process=0;resetActivity();return {}}
+    if(action==='process'){state57.process=Number(target.dataset.process)||0;resetActivity();return {}}
+    if(action==='item-prev'){state57.item=Math.max(0,state57.item-1);resetQuestion();return {}}
+    if(action==='item-next'){state57.item=Math.min(Number(target.dataset.total||1)-1,state57.item+1);resetQuestion();return {}}
+    if(action==='vocab-flip'){state57.flipped=!state57.flipped;return {}}
+    if(action==='speak'){speak(target.dataset.text,target.dataset.lang);return {noRender:true}}
+    if(action==='complete-study')return completion(progress,100);
+    if(action==='draw-done'){if(!state57.drawn){state57.feedback=t('ارسم أولاً داخل الحقل.','Draw in the field first.');return {}}state57.revealed=true;return {}}
+    if(action==='draw-grade'){state57.results[state57.item]=target.dataset.correct==='1';state57.revealed=true;return {}}
+    if(action==='write-done'){const value=document.getElementById('c57-write-answer')?.value||'',q=state57.exam?.[state57.item],ok=norm(value)===norm(q?.word?.ar);state57.answer=value;state57.results[state57.item]=ok;state57.feedback=ok?t('إجابة صحيحة','Correct answer'):t('راجع الإجابة الصحيحة ثم تابع.','Review the correct answer, then continue.');state57.revealed=true;return {}}
+    if(action==='pronounce'){recognition(target.dataset.expected,onUpdate);return {noRender:true}}
+    if(action==='exam-next'){state57.item++;resetQuestion();return {}}
+    if(action==='finish-vocab-attempt'){state57.answer='vocab-summary';return {}}
+    if(action==='generate-exam'){requestExam(target.dataset.kind,getContent(state57.boxId),onUpdate);return {noRender:true}}
+    if(action==='media-exam'){state57.mediaStep=1;requestExam(target.dataset.kind,getContent(state57.boxId),onUpdate);return {noRender:true}}
+    if(action==='choose-option'){state57.answer=Number(target.dataset.index);return {}}
+    if(action==='add-token'){const q=state57.exam?.[state57.item],word=q?.options?.[Number(target.dataset.index)];if(word)(state57.order||(state57.order=[])).push(word);return {}}
+    if(action==='remove-token'){state57.order.splice(Number(target.dataset.index),1);return {}}
+    if(action==='check-ai'){evaluateAI();return {}}
+    if(action==='ai-next'){if(state57.item>=state57.exam.length-1)state57.answer='summary';else{state57.item++;resetQuestion()}return {}}
+    if(action==='retry-exam'){const kind=target.dataset.kind;state57.answer=null;state57.exam=null;state57.results=[];state57.item=0;resetQuestion();if(kind==='vocabulary')return {};requestExam(kind,getContent(state57.boxId),onUpdate);return {noRender:true}}
+    if(action==='finish-exam'){return completion(progress,Number(target.dataset.score)||0)}
+    if(action==='manager-open'){state57.manager=true;return {}}
+    if(action==='manager-close'){state57.manager=false;return {}}
+    if(action==='schema-download'){downloadTemplate(target.dataset.phase).catch(e=>{state57.error=e.message;onUpdate()});return {noRender:true}}
+    return LEGACY.click?.(action,target,progress,onUpdate)||{};
+  }
+  function afterProgress(progress){const r=record(progress);resetActivity();if(r.completed?.length===6){state57.review=true;state57.boxComplete=true;state57.phase='watchRead';state57.process=1}else{state57.phase=r.currentPhase;state57.process=r.processIndex}}
+
+  function xml(value){return esc(value).replace(/'/g,'&apos;')}
+  function col(n){let s='';for(n++;n;n=Math.floor((n-1)/26))s=String.fromCharCode(65+(n-1)%26)+s;return s}
+  function sheetXML(rows){return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((row,ri)=>`<row r="${ri+1}">${row.map((v,ci)=>`<c r="${col(ci)}${ri+1}" t="inlineStr"><is><t xml:space="preserve">${xml(v)}</t></is></c>`).join('')}</row>`).join('')}</sheetData></worksheet>`}
+  function sampleRows(kind){const h=HEADERS[kind];if(kind==='vocabulary')return [h,[1,1,'hello','مرحباً'],[1,1,'family','عائلة'],[1,1,'book','كتاب'],[1,1,'water','ماء'],[1,1,'school','مدرسة']];if(kind==='grammar')return [h,[1,1,'Present simple','Use for routines and facts.','Subject + verb + object.','Subject + do/does not + verb.','Do/Does + subject + verb?','Use does with he/she/it.|Use the base verb after does.','I study English every day.|She reads a book at school.|Do you visit your family?']];return [h,[1,1,'Ali studies English every morning. He reads a book and learns five new words.','https://www.youtube.com/watch?v=VIDEO_ID','Daily English routine']]}
+  async function workbook(rows){if(typeof JSZip==='undefined')throw Error('Excel support is unavailable.');const z=new JSZip();z.file('[Content_Types].xml','<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');z.file('_rels/.rels','<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');z.file('xl/workbook.xml','<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Content" sheetId="1" r:id="rId1"/></sheets></workbook>');z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>');z.file('xl/worksheets/sheet1.xml',sheetXML(rows));return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+  function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+  async function downloadTemplate(kind){if(!HEADERS[kind])throw Error('Unknown schema');download(await workbook(sampleRows(kind)),`liplip-${kind}-minimal.xlsx`)}
+  function csvRows(text){const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<=text.length;i++){const ch=text[i]??'\n';if(ch==='"'&&quoted&&text[i+1]==='"'){cell+='"';i++}else if(ch==='"')quoted=!quoted;else if(ch===','&&!quoted){row.push(cell);cell=''}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);cell='';if(row.some(x=>x.trim()))rows.push(row);row=[]}else cell+=ch}return rows}
+  async function xlsxRows(file){const zip=await JSZip.loadAsync(await file.arrayBuffer()),read=async p=>zip.file(p)?.async('string');const sharedText=await read('xl/sharedStrings.xml'),shared=[];if(sharedText){const doc=new DOMParser().parseFromString(sharedText,'application/xml');doc.querySelectorAll('si').forEach(si=>shared.push([...si.querySelectorAll('t')].map(x=>x.textContent).join('')))}const sheet=await read('xl/worksheets/sheet1.xml');if(!sheet)throw Error('Excel file needs a first worksheet.');const doc=new DOMParser().parseFromString(sheet,'application/xml'),rows=[];doc.querySelectorAll('row').forEach(node=>{const out=[];node.querySelectorAll('c').forEach(c=>{const ref=c.getAttribute('r')||'A1',letters=/^[A-Z]+/.exec(ref)?.[0]||'A';let index=0;for(const x of letters)index=index*26+x.charCodeAt(0)-64;index--;const type=c.getAttribute('t'),v=c.querySelector('v')?.textContent||'',inline=[...c.querySelectorAll('t')].map(x=>x.textContent).join('');out[index]=type==='s'?shared[Number(v)]||'':type==='inlineStr'?inline:v});rows.push(out)});return rows}
+  function sameHeaders(row,headers){return headers.every((x,i)=>String(row?.[i]||'').trim()===x)}
+  async function importAnyFile(file){
+    try{const rows=file.name.toLowerCase().endsWith('.csv')?csvRows(await file.text()):await xlsxRows(file);const kind=Object.keys(HEADERS).find(k=>sameHeaders(rows[0],HEADERS[k]));if(!kind)throw Error('The Excel headers do not match a minimal Liplip schema.');const grouped=new Map();for(let i=1;i<rows.length;i++){const row=rows[i]||[];if(!row.some(x=>String(x??'').trim()))continue;const level=Number(row[0]),box=Number(row[1]);if(!Number.isInteger(level)||level<1||level>5||!Number.isInteger(box)||box<1||box>50)throw Error(`Row ${i+1}: Level or Box is invalid.`);const id=gid(level,box),content=grouped.get(id)||getContent(id);if(kind==='vocabulary'){if(!grouped.has(id))content.vocabulary={items:[]};const en=String(row[2]||'').trim(),ar=String(row[3]||'').trim();if(!en||!ar)throw Error(`Row ${i+1}: English and Arabic are required.`);content.vocabulary.items.push({type:'word',order:content.vocabulary.items.length+1,en,ar,voice:en})}else if(kind==='grammar'){content.grammar={article:{title:String(row[2]||''),rule:String(row[3]||''),normal:String(row[4]||''),negative:String(row[5]||''),question:String(row[6]||''),notes:String(row[7]||'').split('|').map(x=>x.trim()).filter(Boolean),examples:String(row[8]||'').split('|').map(x=>({text:x.trim()})).filter(x=>x.text)}}}else content.watchRead={video:{youtube:String(row[3]||'').trim(),title:String(row[4]||'').trim()},story:[{order:1,title:`Box ${box} story`,text:String(row[2]||'').trim(),arabic:''}]};grouped.set(id,content)}for(const [id,content] of grouped)saveContent(id,content);state57.error='';state57.manager=false;window.LiplipContentBackend?.publish?.();return true}catch(error){state57.error=error.message||'Import failed.';return false}}
+  async function importFile(_phase,file){return importAnyFile(file)}
+  function managerChange(){return false}
+  function managerSubmit(){return false}
+  function submit(){return {}}
+
+  Object.assign(LiplipCourse,{PHASES,HEADERS,LEVEL_BOXES:BOXES,mapPage,start,render,click,submit,afterProgress,getContent,downloadTemplate,importAnyFile,importFile,managerChange,managerSubmit});
+
+  let drawing=null;
+  document.addEventListener('pointerdown',event=>{const canvas=event.target.closest?.('[data-c57-canvas]');if(!canvas)return;event.preventDefault();canvas.setPointerCapture?.(event.pointerId);const ctx=canvas.getContext('2d'),rect=canvas.getBoundingClientRect(),point=e=>({x:(e.clientX-rect.left)*canvas.width/rect.width,y:(e.clientY-rect.top)*canvas.height/rect.height});const p=point(event);ctx.strokeStyle='#51366d';ctx.lineWidth=Math.max(5,canvas.width/115);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(p.x,p.y);drawing={canvas,ctx,rect,pointer:event.pointerId};state57.drawn=true},true);
+  document.addEventListener('pointermove',event=>{if(!drawing||drawing.pointer!==event.pointerId)return;event.preventDefault();const p={x:(event.clientX-drawing.rect.left)*drawing.canvas.width/drawing.rect.width,y:(event.clientY-drawing.rect.top)*drawing.canvas.height/drawing.rect.height};drawing.ctx.lineTo(p.x,p.y);drawing.ctx.stroke()},true);
+  document.addEventListener('pointerup',event=>{if(drawing?.pointer===event.pointerId)drawing=null},true);
+
+  if(typeof state!=='undefined'&&state.page==='app'&&state.nav==='الدراسة')setTimeout(()=>window.render?.(false),0);
+})();
