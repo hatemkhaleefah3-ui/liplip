@@ -1,4 +1,4 @@
-/* v65: instant native-first voice with explicit letter-name pronunciation; Gemini is fallback. */
+/* v72: instant native-first voice with explicit letter-name pronunciation; Gemini is fallback. */
 (() => {
   'use strict';
 
@@ -11,7 +11,7 @@
   const nativeCancel = synth?.cancel?.bind(synth);
   const KINDS = new Set(['letter', 'number', 'word', 'sentence']);
   const LETTER_NAMES = {
-    A:'ay',B:'bee',C:'cee',D:'dee',E:'ee',F:'ef',G:'gee',H:'aitch',I:'eye',J:'jay',
+    A:'eigh',B:'bee',C:'cee',D:'dee',E:'ee',F:'ef',G:'gee',H:'aitch',I:'eye',J:'jay',
     K:'kay',L:'el',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'ar',S:'ess',T:'tee',
     U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee'
   };
