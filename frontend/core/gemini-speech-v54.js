@@ -1,4 +1,4 @@
-/* v62: instant native-first voice for learning; Gemini is fallback, not the latency path. */
+/* v65: instant native-first voice with explicit letter-name pronunciation; Gemini is fallback. */
 (() => {
   'use strict';
 
@@ -10,6 +10,11 @@
   const nativeSpeak = synth?.speak?.bind(synth);
   const nativeCancel = synth?.cancel?.bind(synth);
   const KINDS = new Set(['letter', 'number', 'word', 'sentence']);
+  const LETTER_NAMES = {
+    A:'ay',B:'bee',C:'cee',D:'dee',E:'ee',F:'ef',G:'gee',H:'aitch',I:'eye',J:'jay',
+    K:'kay',L:'el',M:'em',N:'en',O:'oh',P:'pee',Q:'cue',R:'ar',S:'ess',T:'tee',
+    U:'you',V:'vee',W:'double you',X:'ex',Y:'why',Z:'zee'
+  };
   const cache = new Map();
   const pending = new Map();
   let activeAudio = null;
@@ -40,13 +45,17 @@
     }
   }
 
-  function nativeVoice(text, { language = 'en-US', volume = 1 } = {}) {
+  function nativeVoice(text, { language = 'en-US', volume = 1, kind = 'word' } = {}) {
     if (!nativeSpeak || !NativeUtterance) return Promise.reject(new Error('native_speech_unavailable'));
     const token = generation;
     return new Promise((resolve, reject) => {
       try {
         nativeCancel?.();
-        const u = new NativeUtterance(String(text));
+        const raw = String(text).trim();
+        const spoken = kind === 'letter' && /^[A-Za-z]$/.test(raw)
+          ? (LETTER_NAMES[raw.toUpperCase()] || raw.toLowerCase())
+          : raw;
+        const u = new NativeUtterance(spoken);
         u.lang = language;
         u.rate = language.toLowerCase().startsWith('ar') ? 0.86 : 0.92;
         u.pitch = 1;
@@ -109,11 +118,8 @@
     const volume = Math.max(0, Math.min(1, Number(options.volume ?? 1)));
 
     stop();
-    // Zero network wait: use the device voice immediately. Gemini remains a fallback
-    // for browsers/devices without a usable local speech engine.
     try {
-      const result = await nativeVoice(value, { language, volume });
-      // Warm Gemini in the background so a fallback is already cached if needed later.
+      const result = await nativeVoice(value, { language, volume, kind });
       fetchGemini(value, { language, kind }).catch(() => {});
       return result;
     } catch (nativeError) {
@@ -130,15 +136,15 @@
     return fetchGemini(value, { language, kind }).then(() => undefined).catch(() => undefined);
   }
 
-  // Legacy callers become instant as well: no network wait through speechSynthesis.
   if (synth && typeof synth.speak === 'function') {
     try {
       synth.speak = utterance => {
         const text = String(utterance?.text || '').trim();
         if (!text) return nativeSpeak?.(utterance);
+        const kind = classify(text);
         speak(text, {
           language: utterance.lang || 'en-US',
-          kind: classify(text),
+          kind,
           volume: utterance.volume
         }).then(() => emit(utterance, 'end')).catch(error => {
           if (error?.name !== 'AbortError') emit(utterance, 'error', { error });
