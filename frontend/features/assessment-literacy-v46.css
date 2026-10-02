@@ -1,6 +1,9 @@
 /* v46 literacy + assessment presentation. */
 .lit36-face.front b,.lit36-face.back b{white-space:nowrap}
 .lit36-face.back b[dir="rtl"]{font-family:var(--ui-font-ar);letter-spacing:0!important}
+.lit43-flashcards[data-lit43-deck="letters"] .lit36-face.front b{font-size:clamp(118px,27vw,205px)!important;letter-spacing:-.07em!important}
+.lit43-flashcards[data-lit43-deck="numbers"] .lit36-face.front b{font-size:clamp(54px,13vw,108px)!important;letter-spacing:-.04em!important}
+.lit43-flashcards[data-lit43-deck="numbers"] .lit36-face.back b{font-size:clamp(54px,12vw,96px)!important}
 
 .lit36-canvas-card:has(.lit46-draw-grid){padding:0!important;background:transparent!important;box-shadow:none!important;border:0!important;overflow:visible!important}
 .lit46-draw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;width:min(920px,94vw);margin-inline:auto}
@@ -29,6 +32,7 @@
 .story-spread>figure>img,.story-page-player .story-spread>figure>img{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:center!important;clip-path:none!important;transform:none!important}
 
 @media(max-width:700px){
+  .lit43-flashcards[data-lit43-deck="numbers"] .lit36-face.front b{font-size:clamp(48px,13vw,74px)!important}
   .lit46-draw-grid{grid-template-columns:1fr;width:94vw;gap:15px}
   .lit46-draw-field{border-radius:24px;padding:11px}
   .lit46-draw-surface{aspect-ratio:1.25/1;min-height:250px}
