@@ -1,0 +1,13 @@
+/* v74: browser speech recognition for English letters, numbers, and words. */
+(() => {
+  'use strict';
+  const norm=v=>String(v??'').trim().toLowerCase().normalize('NFKC').replace(/[.,?!:;"'’“”_-]/g,'').replace(/\s+/g,' ');
+  const LETTER_NAMES={
+    a:['a','ay','eigh'],b:['b','bee','be'],c:['c','see','sea'],d:['d','dee'],e:['e','ee'],f:['f','eff'],g:['g','gee'],h:['h','aitch','h'],i:['i','eye'],j:['j','jay'],k:['k','kay'],l:['l','el'],m:['m','em'],n:['n','en'],o:['o','oh'],p:['p','pee'],q:['q','cue','queue'],r:['r','are'],s:['s','ess'],t:['t','tee'],u:['u','you'],v:['v','vee'],w:['w','double u','double you'],x:['x','ex'],y:['y','why'],z:['z','zee','zed']
+  };
+  const NUMBER_NAMES=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty one','twenty two','twenty three','twenty four','twenty five','twenty six','twenty seven','twenty eight','twenty nine','thirty','thirty one','thirty two','thirty three','thirty four'];
+  function distance(a,b){a=norm(a);b=norm(b);const r=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let p=r[0];r[0]=i;for(let j=1;j<=b.length;j++){const o=r[j];r[j]=Math.min(r[j]+1,r[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=o}}return r[b.length]}
+  function match(heard,expected){const h=norm(heard),e=norm(expected);if(!h||!e)return false;if(h===e)return true;if(/^[a-z]$/.test(e))return (LETTER_NAMES[e]||[]).some(x=>norm(x)===h);if(/^\d+$/.test(e)){const name=NUMBER_NAMES[Number(e)]||'';return h===norm(name)||h===e}if(Math.max(h.length,e.length)>=6&&distance(h,e)<=1)return true;return false}
+  function recognize(expected,cb){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){cb(false,'',localStorage.getItem('liplip-ui-language')==='en'?'Speech recognition is not supported in this browser.':'التعرّف على النطق غير مدعوم في هذا المتصفح.');return}const r=new R();r.lang='en-US';r.interimResults=false;r.continuous=false;r.maxAlternatives=8;r.onresult=e=>{const alts=[...(e.results?.[0]||[])].map(x=>String(x.transcript||''));const heard=alts[0]||'';cb(alts.some(x=>match(x,expected)),heard,'')};r.onerror=()=>cb(false,'',localStorage.getItem('liplip-ui-language')==='en'?'Could not hear the pronunciation. Try again.':'تعذر سماع النطق. حاول مرة أخرى.');try{r.start()}catch{cb(false,'',localStorage.getItem('liplip-ui-language')==='en'?'Could not start the microphone.':'تعذر تشغيل الميكروفون.')}}
+  window.LiplipSpeechRecognition={recognize,match,source:'browser-v74'};
+})();
