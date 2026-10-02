@@ -1,5 +1,7 @@
 const encoder = new TextEncoder();
-const ITERATIONS = 210000;
+// Keep PBKDF2 adaptive and salted, but stay within Cloudflare Pages Functions CPU budgets.
+// The iteration count is stored per account, so older accounts remain verifiable if this changes later.
+const ITERATIONS = 30000;
 
 function bytesToHex(bytes){return [...bytes].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function hexToBytes(hex){const out=new Uint8Array(hex.length/2);for(let i=0;i<out.length;i++)out[i]=parseInt(hex.slice(i*2,i*2+2),16);return out}
@@ -9,10 +11,11 @@ export function validEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(norma
 export function validPassword(value){const s=String(value||'');return s.length>=10&&s.length<=128}
 
 export async function hashPassword(password,{saltHex,iterations=ITERATIONS}={}){
+  const safeIterations=Math.max(10000,Math.min(300000,Number(iterations)||ITERATIONS));
   const salt=saltHex?hexToBytes(saltHex):crypto.getRandomValues(new Uint8Array(16));
   const key=await crypto.subtle.importKey('raw',encoder.encode(String(password)),'PBKDF2',false,['deriveBits']);
-  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations},key,256);
-  return {salt:bytesToHex(salt),hash:bytesToHex(new Uint8Array(bits)),iterations};
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:safeIterations},key,256);
+  return {salt:bytesToHex(salt),hash:bytesToHex(new Uint8Array(bits)),iterations:safeIterations};
 }
 
 export async function verifyPassword(password,row){
