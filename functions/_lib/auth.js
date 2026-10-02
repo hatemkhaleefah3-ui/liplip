@@ -5,16 +5,17 @@ export async function requireSession(context) {
   if (!token || !context.env.DB) return null;
   const tokenHash = await sha256(token);
   const row = await context.env.DB.prepare(
-    `SELECT s.user_id AS userId, s.expires_at AS expiresAt, u.kind,
-            a.email, a.status
-       FROM sessions s
-       JOIN users u ON u.id = s.user_id
-       LEFT JOIN user_accounts a ON a.user_id = u.id
+    `SELECT s.user_id AS userId, s.expires_at AS expiresAt, u.kind
+       FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = ? LIMIT 1`
   ).bind(tokenHash).first();
   if (!row || Number(row.expiresAt) <= Date.now()) return null;
-  if (row.status && row.status !== 'active') return null;
-  return { userId: row.userId, tokenHash, kind: row.kind || 'anonymous', email: row.email || null };
+  let email=null,status=null;
+  if(row.kind==='registered'){
+    try{const account=await context.env.DB.prepare('SELECT email,status FROM user_accounts WHERE user_id=? LIMIT 1').bind(row.userId).first();email=account?.email||null;status=account?.status||null}catch{}
+    if(status&&status!=='active')return null;
+  }
+  return { userId: row.userId, tokenHash, kind: row.kind || 'anonymous', email };
 }
 
 async function createSessionForUser(context,userId,{maxAgeDays=365}={}){
