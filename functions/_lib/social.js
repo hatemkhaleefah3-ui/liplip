@@ -44,7 +44,11 @@ export async function completeIdentityLogin(context, identity) {
   if (existingIdentity) userId = existingIdentity.userId;
 
   const current = await requireSession(context);
-  if (!userId && identity.email) {
+  // Never merge accounts solely on an email claim unless the identity provider
+  // explicitly attested that the address is verified. Otherwise a provider
+  // account with an unverified/attacker-controlled email could take over an
+  // existing password account that uses the same address.
+  if (!userId && identity.email && identity.emailVerified === true) {
     const account = await context.env.DB.prepare('SELECT user_id AS userId FROM user_accounts WHERE email=? LIMIT 1').bind(String(identity.email).toLowerCase()).first();
     if (account) userId = account.userId;
   }
