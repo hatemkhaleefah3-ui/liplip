@@ -1,9 +1,8 @@
-/* v86: literacy audio is user-triggered only; cancel speech before microphone recognition. */
+/* v87: allow only intentional literacy audio (current-card autoplay/manual); block stale A/0 speech and stop during mic recognition. */
 (() => {
   'use strict';
 
-  let explicitUntil = 0;
-  let explicitKind = '';
+  let permit = null;
   let listening = false;
 
   function literacyVisible(){
@@ -31,53 +30,59 @@
     try{window.speechSynthesis?.cancel?.()}catch{}
   }
 
+  function authorize(source='manual',key=''){
+    permit={source,key:String(key||''),until:Date.now()+1800};
+  }
+
+  function setListening(value){
+    listening=Boolean(value);
+    if(listening){permit=null;stopAll()}
+  }
+
   document.addEventListener('click',e=>{
     const hear=e.target.closest?.('[data-v74="hear"],[data-v74="hear-ar"],[data-v82="hear"]');
     const mic=e.target.closest?.('[data-v74="mic"],[data-v82="mic"]');
     if(hear && literacyVisible()){
-      explicitUntil=Date.now()+1500;
-      explicitKind=hear.matches('[data-v74="hear-ar"]')?'arabic':'target';
+      authorize('manual',`click:${visibleSymbol()}`);
       return;
     }
-    if(mic && literacyVisible()){
-      explicitUntil=0;
-      explicitKind='';
-      listening=true;
-      stopAll();
-      setTimeout(()=>{listening=false},12000);
-    }
+    if(mic && literacyVisible()) setListening(true);
   },true);
 
   function install(){
     const svc=window.LiplipGeminiSpeech;
-    if(!svc?.speak || svc.__v86Guard) return false;
+    if(!svc?.speak || svc.__v87Guard) return false;
     const baseSpeak=svc.speak.bind(svc);
     const baseCancel=svc.cancel?.bind(svc);
 
     svc.speak=async function(text,options={}){
       if(!literacyVisible()) return baseSpeak(text,options);
       if(listening) return {source:'blocked-during-mic'};
-      if(Date.now()>explicitUntil) return {source:'blocked-non-user-literacy-audio'};
+      if(!permit || Date.now()>permit.until) return {source:'blocked-stale-literacy-audio'};
 
       const raw=String(text??'').trim();
       const symbol=visibleSymbol();
-      if(explicitKind==='target'){
-        const kind=String(options?.kind||'');
-        if(kind==='letter' && /^[A-Za-z]$/.test(raw) && raw.toUpperCase()!==symbol.toUpperCase()){
-          return {source:'blocked-wrong-literacy-letter'};
-        }
-        if(kind==='number' && /^\d+$/.test(raw) && raw!==symbol){
-          return {source:'blocked-wrong-literacy-number'};
-        }
+      const kind=String(options?.kind||'');
+
+      // English target audio must belong to the symbol that is currently on screen.
+      if(kind==='letter' && /^[A-Za-z]$/.test(raw) && raw.toUpperCase()!==symbol.toUpperCase()){
+        permit=null;
+        return {source:'blocked-wrong-literacy-letter'};
+      }
+      if(kind==='number' && /^\d+$/.test(raw) && raw!==symbol){
+        permit=null;
+        return {source:'blocked-wrong-literacy-number'};
       }
 
-      explicitUntil=0;
-      const result=await baseSpeak(text,options);
-      return result;
+      permit=null;
+      return baseSpeak(text,options);
     };
 
-    svc.cancel=function(){explicitUntil=0;explicitKind='';listening=false;return baseCancel?.()};
-    Object.defineProperty(svc,'__v86Guard',{value:true});
+    svc.cancel=function(){
+      permit=null;
+      return baseCancel?.();
+    };
+    Object.defineProperty(svc,'__v87Guard',{value:true});
     return true;
   }
 
@@ -86,5 +91,13 @@
     const timer=setInterval(()=>{n++;if(install()||n>60)clearInterval(timer)},100);
   }
 
-  window.addEventListener('liplip:voice-recognition-finished',()=>{listening=false},{passive:true});
+  window.LiplipLiteracyAudioGate={
+    authorizeAuto:key=>authorize('auto',key),
+    authorizeManual:key=>authorize('manual',key),
+    setListening,
+    cancel:stopAll,
+    isListening:()=>listening
+  };
+
+  window.addEventListener('liplip:voice-recognition-finished',()=>setListening(false),{passive:true});
 })();
