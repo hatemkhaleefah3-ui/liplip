@@ -11,6 +11,7 @@
   const nativeSpeak = synth.speak.bind(synth);
   const nativeCancel = synth.cancel.bind(synth);
   let activeAudio = null;
+  let pendingRequest = null;
   let generation = 0;
 
   function classify(text) {
@@ -31,6 +32,8 @@
 
   function stop() {
     generation += 1;
+    pendingRequest?.abort();
+    pendingRequest = null;
     if (!activeAudio) return;
     try { activeAudio.pause(); activeAudio.currentTime = 0; } catch {}
     activeAudio = null;
@@ -50,14 +53,21 @@
     const language = String(options.language || 'en-US');
     const kind = KINDS.has(options.kind) ? options.kind : classify(value);
     const key = `${kind}:${language}:${value}`;
+    stop();
+    const token = generation;
     let url = cache.get(key);
     if (!url) {
+      const controller = new AbortController();
+      pendingRequest = controller;
       const response = await fetch('/api/gemini/speech', {
         method: 'POST',
         credentials: 'same-origin',
+        signal: controller.signal,
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text: value, language, kind })
       });
+      if (pendingRequest === controller) pendingRequest = null;
+      if (token !== generation) throw new DOMException('Speech replaced', 'AbortError');
       if (!response.ok) throw new Error(`gemini_speech_${response.status}`);
       const blob = await response.blob();
       if (!blob.type.startsWith('audio/')) throw new Error('invalid_speech_response');
@@ -65,15 +75,14 @@
       remember(key, url);
     }
 
-    stop();
-    const token = generation;
+    if (token !== generation) throw new DOMException('Speech replaced', 'AbortError');
     const audio = new Audio(url);
     activeAudio = audio;
     audio.volume = Math.max(0, Math.min(1, Number(options.volume ?? 1)));
     return new Promise((resolve, reject) => {
       audio.onended = () => { if (token === generation) activeAudio = null; resolve(); };
       audio.onerror = () => { if (token === generation) activeAudio = null; reject(new Error('audio_playback_failed')); };
-      audio.play().catch(reject);
+      audio.play().catch(error => { if (token === generation) activeAudio = null; reject(error); });
     });
   }
 
@@ -84,7 +93,9 @@
       language: utterance.lang || 'en-US',
       kind: classify(text),
       volume: utterance.volume
-    }).then(() => emit(utterance, 'end')).catch(() => nativeSpeak(utterance));
+    }).then(() => emit(utterance, 'end')).catch(error => {
+      if (error?.name !== 'AbortError') emit(utterance, 'error', { error });
+    });
   };
 
   synth.cancel = () => { stop(); nativeCancel(); };
