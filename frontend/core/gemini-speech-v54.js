@@ -7,6 +7,7 @@
   if (!ui) return;
 
   const KINDS = new Set(['letter', 'number', 'word', 'sentence']);
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAACAgICA';
   const cache = new Map();
   const nativeSpeak = synth?.speak?.bind(synth);
   const nativeCancel = synth?.cancel?.bind(synth);
@@ -55,6 +56,13 @@
     const key = `${kind}:${language}:${value}`;
     stop();
     const token = generation;
+    const volume = Math.max(0, Math.min(1, Number(options.volume ?? 1)));
+    // Unlock one media element synchronously inside the user's tap. Mobile
+    // Safari may otherwise reject play() after the Gemini fetch has finished.
+    const audio = new Audio(SILENT_WAV);
+    activeAudio = audio;
+    audio.volume = 0;
+    const unlocked = audio.play().catch(() => {});
     let url = cache.get(key);
     if (!url) {
       const controller = new AbortController();
@@ -80,9 +88,12 @@
     }
 
     if (token !== generation) throw new DOMException('Speech replaced', 'AbortError');
-    const audio = new Audio(url);
-    activeAudio = audio;
-    audio.volume = Math.max(0, Math.min(1, Number(options.volume ?? 1)));
+    await unlocked;
+    if (token !== generation) throw new DOMException('Speech replaced', 'AbortError');
+    try { audio.pause(); } catch {}
+    audio.src = url;
+    audio.currentTime = 0;
+    audio.volume = volume;
     return new Promise((resolve, reject) => {
       audio.onended = () => { if (token === generation) activeAudio = null; resolve(); };
       audio.onerror = () => { if (token === generation) activeAudio = null; reject(new Error('audio_playback_failed')); };
