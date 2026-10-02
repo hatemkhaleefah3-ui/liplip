@@ -1,4 +1,4 @@
-/* v67: on-device handwriting judging with Tesseract.js; intercepts drawing grading locally. */
+/* v68: forgiving on-device handwriting judging with Tesseract.js. */
 (() => {
   'use strict';
 
@@ -9,7 +9,7 @@
   function normalize(value, target) {
     const text = String(value || '').trim().replace(/\s+/g, ' ');
     const expected = String(target || '').trim();
-    if (/^[A-Za-z]$/.test(expected)) return text.replace(/[^A-Za-z]/g, '').slice(0, 1);
+    if (/^[A-Za-z]$/.test(expected)) return text.replace(/[^A-Za-z]/g, '').slice(0, 1).toLowerCase();
     if (/^\d{1,2}$/.test(expected)) return text.replace(/[^0-9]/g, '');
     if (/^[A-Za-z][A-Za-z -]*$/.test(expected)) return text.toLowerCase().replace(/[^a-z]/g, '');
     return text.normalize('NFKC').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').replace(/[\s\p{P}\p{S}]/gu, '');
@@ -17,10 +17,30 @@
 
   function expectedNormalized(target) {
     const value = String(target || '').trim();
-    if (/^[A-Za-z]$/.test(value)) return value;
+    if (/^[A-Za-z]$/.test(value)) return value.toLowerCase();
     if (/^\d{1,2}$/.test(value)) return value;
     if (/^[A-Za-z][A-Za-z -]*$/.test(value)) return value.toLowerCase().replace(/[^a-z]/g, '');
     return value.normalize('NFKC').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').replace(/[\s\p{P}\p{S}]/gu, '');
+  }
+
+  function editDistance(a, b) {
+    a = String(a || ''); b = String(b || '');
+    const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      let prev = row[0]; row[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const old = row[j];
+        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = old;
+      }
+    }
+    return row[b.length];
+  }
+
+  function equivalentSingle(recognized, expected) {
+    if (recognized === expected) return true;
+    const groups = ['o0q','i1lj','s5','b8','z2','g9','a4'];
+    return groups.some(group => group.includes(recognized) && group.includes(expected));
   }
 
   async function getWorker() {
@@ -72,8 +92,19 @@
     const confidence = Math.max(0, Math.min(1, Number(result?.data?.confidence || 0) / 100));
     const recognized = normalize(raw, target);
     const expected = expectedNormalized(target);
-    const threshold = expected.length <= 2 ? 0.30 : expected.length <= 4 ? 0.40 : 0.45;
-    return { correct: recognized === expected && confidence >= threshold, confidence, text: raw, normalized: recognized };
+
+    let correct = false;
+    if (expected.length === 1) {
+      correct = equivalentSingle(recognized, expected) && confidence >= 0.08;
+    } else {
+      const distance = editDistance(recognized, expected);
+      const allowedErrors = expected.length <= 3 ? 1 : Math.max(1, Math.floor(expected.length * 0.34));
+      const closeEnough = distance <= allowedErrors;
+      const startsWell = expected.length >= 5 && recognized.length >= 3 && expected.startsWith(recognized.slice(0, 3));
+      correct = (closeEnough || startsWell) && confidence >= 0.12;
+    }
+
+    return { correct, confidence, text: raw, normalized: recognized, expected };
   }
 
   async function gradePair(items) {
@@ -86,7 +117,7 @@
       correct,
       confidence: correct ? Math.max(0.9, rawConfidence) : rawConfidence,
       results,
-      source: 'tesseract-local'
+      source: 'tesseract-local-forgiving'
     };
   }
 
@@ -121,7 +152,7 @@
       if (items.length === 1) {
         const result = await judge(items[0]);
         if (result.correct) result.confidence = Math.max(0.9, result.confidence);
-        return localJson({ ...result, source: 'tesseract-local' });
+        return localJson({ ...result, source: 'tesseract-local-forgiving' });
       }
       return localJson(await gradePair(items));
     } catch (error) {
@@ -130,7 +161,7 @@
     }
   };
 
-  window.LiplipLocalDrawingJudge = { warmup, judge, gradePair, progress: () => lastProgress, source: 'tesseract-local' };
+  window.LiplipLocalDrawingJudge = { warmup, judge, gradePair, progress: () => lastProgress, source: 'tesseract-local-forgiving' };
 
   const scheduleWarmup = () => {
     const run = () => warmup();
