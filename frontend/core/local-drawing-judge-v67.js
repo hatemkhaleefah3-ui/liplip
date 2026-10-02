@@ -80,9 +80,11 @@
     if (!Array.isArray(items) || items.length !== 2) throw new Error('invalid_local_drawing_pair');
     const results = [];
     for (const item of items) results.push(await judge(item));
+    const correct = results.every(result => result.correct);
+    const rawConfidence = Math.min(...results.map(result => result.confidence));
     return {
-      correct: results.every(result => result.correct),
-      confidence: Math.min(...results.map(result => result.confidence)),
+      correct,
+      confidence: correct ? Math.max(0.9, rawConfidence) : rawConfidence,
       results,
       source: 'tesseract-local'
     };
@@ -107,7 +109,7 @@
     if (!/\/?api\/gemini\/drawing(?:\?|$)/.test(url)) return originalFetch(input, init);
 
     try {
-      let body = init?.body;
+      const body = init?.body;
       if (typeof body !== 'string') return localJson({ error: 'invalid_local_drawing_input' }, 400);
       const payload = JSON.parse(body);
       const items = Array.isArray(payload?.items)
@@ -116,8 +118,12 @@
           ? [{ target: payload.target, kind: payload.kind, image: payload.image }]
           : [];
       if (!items.length) return localJson({ error: 'invalid_local_drawing_input' }, 400);
-      const result = items.length === 1 ? await judge(items[0]) : await gradePair(items);
-      return localJson(result);
+      if (items.length === 1) {
+        const result = await judge(items[0]);
+        if (result.correct) result.confidence = Math.max(0.9, result.confidence);
+        return localJson({ ...result, source: 'tesseract-local' });
+      }
+      return localJson(await gradePair(items));
     } catch (error) {
       console.error('[liplip] local drawing judge failed', error);
       return localJson({ error: String(error?.message || 'local_drawing_judge_failed') }, 503);
