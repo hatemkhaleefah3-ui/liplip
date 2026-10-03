@@ -111,7 +111,7 @@ assert.match(app.innerHTML,/class="course-boxes"/);
 assert.match(app.innerHTML,/course-box complete phase-3/,'completed box keeps its final color');
 
 click('nav','تحدّث');
-assert.match(app.innerHTML,/talk-section-head/);
+assert.match(app.innerHTML,/talk-select/);
 assert.doesNotMatch(app.innerHTML,/talk-intro|status-strip/);
 
 click('nav','خزانتي');
