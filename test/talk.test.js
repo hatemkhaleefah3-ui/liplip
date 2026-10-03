@@ -1,6 +1,6 @@
 const fs=require('node:fs');
 const assert=require('node:assert/strict');
-const app=fs.readFileSync('stepper-test/app.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
 const css=fs.readFileSync('talk.css','utf8');
 
 for(const phase of ["talkPhase:'select'","?'waiting':'select'","talkPhase='active'","talkPhase='rating'"])assert.ok(app.includes(phase),`missing phase marker ${phase}`);
