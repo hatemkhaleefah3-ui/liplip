@@ -1,3 +1,5 @@
+import { readJson } from '../../_lib/http.js';
+
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
   headers: {
@@ -51,11 +53,8 @@ export async function onRequestPost({ request, env }) {
   if (request.headers.get('sec-fetch-site') === 'cross-site') return json({ error: 'forbidden' }, 403);
 
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: 'invalid_json' }, 400);
-  }
+  try { body = await readJson(request, 16 * 1024); }
+  catch (e) { return json({ error: e.code || 'invalid_json' }, e.status || 400); }
 
   const inputText = String(body?.text || '').trim();
   const kind = String(body?.kind || '');
