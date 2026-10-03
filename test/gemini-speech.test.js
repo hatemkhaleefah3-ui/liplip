@@ -38,7 +38,7 @@ const path = require('node:path');
   };
   vm.createContext(context);
   vm.runInContext(
-    fs.readFileSync(path.join(__dirname, '..', 'frontend/core/gemini-speech-v54.js'), 'utf8'),
+    fs.readFileSync(path.join(__dirname, '..', 'frontend/core/gemini-speech-v114.js'), 'utf8'),
     context
   );
 
