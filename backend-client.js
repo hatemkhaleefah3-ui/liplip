@@ -4,6 +4,7 @@
   /* Only user-owned data belongs here. Course/fast-practice content is global and
      is synchronized separately by backend-content-v49.js. */
   const KEYS = ['liplip-progress-v1', 'liplip-v45-progression', 'liplip-ui-language'];
+  let activeSync = null;
   const stateFromStorage = () => {
     const out = {};
     for (const key of KEYS) {
@@ -21,6 +22,7 @@
       else localStorage.removeItem(key);
     }
     if (Object.prototype.hasOwnProperty.call(data, 'liplip-preview')) sessionStorage.setItem('liplip-preview', String(data['liplip-preview']));
+    else sessionStorage.removeItem('liplip-preview');
   };
   const fingerprint = value => JSON.stringify(Object.keys(value).sort().reduce((o,k)=>(o[k]=value[k],o),{}));
   const readMeta = () => { try { return JSON.parse(localStorage.getItem(META_KEY) || '{}'); } catch { return {}; } };
@@ -35,7 +37,7 @@
     if (r.res.status === 401) r = await request('/api/session', { method: 'POST', body: '{}' });
     return r.res.ok;
   }
-  async function syncNow() {
+  async function runSync() {
     try {
       if (!(await ensureSession())) return { ok: false, reason: 'session' };
       const remote = await request('/api/state');
@@ -68,6 +70,11 @@
       }
       return { ok: true, action: 'noop' };
     } catch (error) { console.warn('[liplip backend] sync unavailable', error); return { ok: false, reason: 'network' }; }
+  }
+  function syncNow() {
+    if (activeSync) return activeSync;
+    activeSync = runSync().finally(() => { activeSync = null; });
+    return activeSync;
   }
   window.LiplipBackend = { syncNow, resetIdentity(){ localStorage.removeItem(META_KEY); } };
   window.addEventListener('load', () => setTimeout(syncNow, 400), { once: true });
