@@ -3,11 +3,12 @@ const fs = require('node:fs');
 const zlib = require('node:zlib');
 
 const html = fs.readFileSync('index.html', 'utf8');
-assert.match(html, /<meta name="liplip-build" content="111" \/>/);
+const build = html.match(/<meta name="liplip-build" content="(\d+)" \/>/)?.[1];
+assert.ok(build, 'numeric site build is declared');
 assert.doesNotMatch(html, /study-content-force|study-workbook-importer-fix/);
 
-const parserRef = 'frontend/features/study-workbook-importer-v104.js?v=111';
-const controllerRef = 'frontend/features/study-local-cpu-controller-v107.js?v=111';
+const parserRef = `frontend/features/study-workbook-importer-v104.js?v=${build}`;
+const controllerRef = `frontend/features/study-local-cpu-controller-v107.js?v=${build}`;
 assert.ok(html.indexOf(parserRef) >= 0, 'parser is referenced');
 assert.ok(html.indexOf(controllerRef) > html.indexOf(parserRef), 'parser loads before the sole UI controller');
 

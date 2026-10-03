@@ -110,3 +110,6 @@ jobs:
 
       - name: Test Study importer regression
         run: node test/study-import-regression.test.js
+
+      - name: Test Study exam UI regression
+        run: node test/study-exam-ui-regression.test.js

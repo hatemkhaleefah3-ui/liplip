@@ -1,0 +1,278 @@
+/* Build 112: playful, accessible Study exam controls. */
+
+.v112-vocab-question{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:500px;
+  border:1px solid #dfd2ea;
+  background:
+    radial-gradient(circle at 12% 14%,#ffe498 0 54px,transparent 55px),
+    radial-gradient(circle at 91% 88%,#bcebd8 0 76px,transparent 77px),
+    linear-gradient(145deg,#fffdfb 0%,#fbf6ff 54%,#f3fbf8 100%);
+  box-shadow:0 10px 0 #d9c9e3,0 24px 52px #4c356916;
+}
+.v112-vocab-question:before,
+.v112-vocab-question:after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  border:1px dashed #9872bb55;
+  border-radius:50%;
+  pointer-events:none;
+}
+.v112-vocab-question:before{width:160px;height:160px;inset:-82px auto auto -66px}
+.v112-vocab-question:after{width:120px;height:120px;inset:auto -54px -58px auto;border-color:#4c9a7c55}
+
+.v112-vocab-prompt{text-align:center;margin:0 auto 28px}
+.v112-vocab-prompt small{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 13px;
+  border-radius:999px;
+  background:#efe6fa;
+  color:#77509d;
+  font:900 10px 'DM Sans',sans-serif;
+  letter-spacing:.12em;
+}
+.v112-vocab-prompt small i{font-style:normal;color:#d4779d}
+.v112-vocab-prompt h2{
+  margin:20px 0 0;
+  color:#292239;
+  font:900 clamp(38px,7vw,66px)/1.25 'DM Sans','Readex Pro',sans-serif;
+  letter-spacing:-.035em;
+  overflow-wrap:anywhere;
+}
+.v112-vocab-write{
+  width:min(640px,100%);
+  margin:0 auto;
+  gap:10px;
+}
+.v112-vocab-write>span{
+  color:#6d6177;
+  font-size:12px;
+  font-weight:800;
+}
+.v112-vocab-write input{
+  min-height:74px;
+  border:2px solid #d4c1e0;
+  border-radius:22px;
+  background:#fff;
+  color:#2d2539;
+  padding:16px 20px;
+  font:800 clamp(18px,3vw,28px) 'Readex Pro','DM Sans',sans-serif;
+  box-shadow:0 7px 0 #e4d8eb;
+  transition:border-color .18s,box-shadow .18s,transform .18s;
+}
+.v112-vocab-write input:focus{
+  outline:0;
+  border-color:#7b56a5;
+  box-shadow:0 0 0 5px #7b56a51c,0 7px 0 #cdb7da;
+  transform:translateY(-1px);
+}
+
+.v112-vocab-actions{
+  width:min(800px,100%);
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+}
+.v112-vocab-actions button{
+  min-width:0;
+  min-height:62px;
+  border-radius:19px;
+  font-size:16px;
+  transition:transform .16s,box-shadow .16s,filter .16s;
+}
+.v112-vocab-actions button:hover{transform:translateY(-2px);filter:saturate(1.05)}
+.v112-vocab-actions button:active{transform:translateY(2px)}
+.v112-vocab-actions .primary{
+  background:linear-gradient(135deg,#5f3d86,#342941);
+  box-shadow:0 7px 0 #1d1724;
+}
+.v112-vocab-actions button:not(.primary){
+  border:2px solid #b8dccd;
+  background:#e9f8f1;
+  color:#286950;
+  box-shadow:0 6px 0 #cce7dc;
+}
+
+.v112-pronounce-card{
+  width:min(660px,100%);
+  margin:auto;
+  padding:clamp(24px,5vw,48px);
+  text-align:center;
+  border:1px solid #ded0eb;
+  border-radius:34px;
+  background:
+    radial-gradient(circle at 8% 8%,#ffe79b 0 42px,transparent 43px),
+    radial-gradient(circle at 92% 88%,#b9ead8 0 56px,transparent 57px),
+    linear-gradient(150deg,#fff 0%,#f6edff 48%,#effaf6 100%);
+  box-shadow:0 9px 0 #d6c3e2;
+}
+.v112-pronounce-card>small{
+  display:block;
+  margin-top:22px;
+  color:#8059a3;
+  font:900 10px 'DM Sans',sans-serif;
+  letter-spacing:.16em;
+}
+.v112-pronounce-card>h2{
+  margin:10px 0 5px;
+  color:#292139;
+  font:900 clamp(42px,8vw,72px)/1.15 'DM Sans',sans-serif;
+  letter-spacing:-.04em;
+}
+.v112-pronounce-card>p{
+  margin:0 auto 24px;
+  color:#756a7e;
+  font-size:12px;
+  line-height:1.8;
+}
+.v112-sound-stage{
+  position:relative;
+  width:146px;
+  height:132px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  border-radius:42% 58% 53% 47%;
+  color:#fff;
+  background:linear-gradient(145deg,#7452aa,#b26da8 58%,#e8a45c);
+  box-shadow:0 10px 0 #51366f,0 20px 38px #694c872e;
+  transform:rotate(-3deg);
+}
+.v112-sound-stage span{
+  position:absolute;
+  inset:50% auto auto 50%;
+  width:54px;
+  height:54px;
+  display:grid;
+  place-items:center;
+  border-radius:19px;
+  background:#ffffffeb;
+  color:#6d4895;
+  transform:translate(-50%,-50%) rotate(3deg);
+  box-shadow:0 6px 18px #33213b2b;
+}
+.v112-sound-stage svg{width:29px;height:29px}
+.v112-sound-stage i{
+  width:5px;
+  height:28px;
+  border-radius:99px;
+  background:#ffffff72;
+  animation:v112-wave 1.25s ease-in-out infinite alternate;
+}
+.v112-sound-stage i:nth-child(2){height:48px;animation-delay:-.4s}
+.v112-sound-stage i:nth-child(3){height:70px;animation-delay:-.8s}
+.v112-sound-stage i:nth-child(4){height:46px;animation-delay:-.2s}
+.v112-sound-stage i:nth-child(5){height:30px;animation-delay:-.65s}
+.v112-pronounce-card.is-listening .v112-sound-stage{
+  background:linear-gradient(145deg,#e46b8d,#f19b5a,#f3cc5f);
+  animation:v112-pulse 1s ease-in-out infinite alternate;
+}
+.v112-speech-actions{
+  display:grid;
+  grid-template-columns:1fr 1.2fr;
+  gap:12px;
+}
+.v112-speech-actions button{
+  min-height:66px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  border:2px solid #c9ded7;
+  border-radius:21px;
+  background:#edf9f5;
+  color:#286c57;
+  font:900 15px 'Readex Pro',sans-serif;
+  box-shadow:0 6px 0 #d1e8df;
+  transition:transform .16s,box-shadow .16s;
+}
+.v112-speech-actions button svg{width:25px;height:25px;flex:none}
+.v112-speech-actions button.primary{
+  border-color:#65438c;
+  background:linear-gradient(135deg,#7651a5,#4d3769);
+  color:#fff;
+  box-shadow:0 6px 0 #312140;
+}
+.v112-speech-actions button:hover{transform:translateY(-2px)}
+.v112-speech-actions button:active{transform:translateY(2px);box-shadow:0 3px 0 #c8dcd5}
+.v112-speech-actions button.primary.is-listening{
+  border-color:#dc6387;
+  background:linear-gradient(135deg,#dc6387,#ee9360);
+  box-shadow:0 6px 0 #9b3f5d;
+}
+
+.c57-options{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.c57-options button{
+  position:relative;
+  min-height:68px;
+  padding:15px 18px;
+  overflow:hidden;
+  border:2px solid #dfd3e8;
+  border-radius:20px;
+  background:#fff;
+  color:#40354d;
+  text-align:start;
+  font-size:14px;
+  box-shadow:0 5px 0 #ece3f1;
+  transition:transform .16s,border-color .16s,box-shadow .16s,background .16s;
+}
+.c57-options button:nth-child(4n+1){background:#fff8df;border-color:#eed996;box-shadow:0 5px 0 #f3e7b9}
+.c57-options button:nth-child(4n+2){background:#eef9f4;border-color:#b9dfcf;box-shadow:0 5px 0 #d4ebe1}
+.c57-options button:nth-child(4n+3){background:#f5effc;border-color:#d7c2e8;box-shadow:0 5px 0 #e5d8ef}
+.c57-options button:nth-child(4n+4){background:#fff0f3;border-color:#ecc5d0;box-shadow:0 5px 0 #f2d8df}
+.c57-options button>span{display:block;width:100%;font:800 14px/1.65 'Readex Pro','DM Sans',sans-serif}
+.c57-options button>b{display:none!important}
+.c57-options button:hover{transform:translateY(-2px)}
+.c57-options button:active{transform:translateY(2px);box-shadow:0 2px 0 #ddd1e5}
+.c57-options button.selected{
+  border-color:#714d9a;
+  background:linear-gradient(145deg,#7652a6,#9a69b7);
+  color:#fff;
+  box-shadow:0 6px 0 #4e346b;
+}
+.c57-options button:focus-visible,
+.v112-speech-actions button:focus-visible,
+.v112-vocab-actions button:focus-visible{
+  outline:4px solid #efb94e88;
+  outline-offset:3px;
+}
+
+@keyframes v112-wave{to{transform:scaleY(.48);opacity:.55}}
+@keyframes v112-pulse{to{transform:rotate(3deg) scale(1.045)}}
+
+@media(max-width:767px){
+  .v112-vocab-question{min-height:470px;padding:24px 16px}
+  .v112-vocab-prompt{margin-bottom:23px}
+  .v112-vocab-prompt h2{font-size:44px}
+  .v112-vocab-write input{min-height:66px;border-radius:19px}
+  .v112-vocab-actions{grid-template-columns:1fr 1fr;gap:8px}
+  .v112-vocab-actions button{min-height:58px;font-size:14px}
+  .v112-pronounce-card{padding:27px 17px;border-radius:27px}
+  .v112-sound-stage{width:122px;height:111px}
+  .v112-pronounce-card>h2{font-size:49px}
+  .v112-speech-actions{grid-template-columns:1fr 1fr;gap:8px}
+  .v112-speech-actions button{min-height:60px;padding:10px 8px;font-size:13px;border-radius:18px}
+  .c57-options{grid-template-columns:1fr;gap:10px}
+  .c57-options button{min-height:62px;padding:13px 16px;border-radius:18px}
+}
+@media(max-width:390px){
+  .v112-vocab-actions{grid-template-columns:1fr}
+  .v112-speech-actions{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  .v112-sound-stage i,
+  .v112-pronounce-card.is-listening .v112-sound-stage{animation:none}
+  .v112-speech-actions button,
+  .v112-vocab-actions button,
+  .c57-options button{transition:none}
+}
