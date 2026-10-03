@@ -3,7 +3,7 @@
   const META_KEY = 'liplip-backend-meta-v1';
   /* Only user-owned data belongs here. Course/fast-practice content is global and
      is synchronized separately by backend-content-v49.js. */
-  const KEYS = ['liplip-progress-v1', 'liplip-v45-progression', 'liplip-ui-language'];
+  const KEYS = ['liplip-progress-v1', 'liplip-v45-progression', 'liplip-ui-language', 'liplip-profile-v1'];
   let activeSync = null;
   const stateFromStorage = () => {
     const out = {};
@@ -79,5 +79,6 @@
   window.LiplipBackend = { syncNow, resetIdentity(){ localStorage.removeItem(META_KEY); } };
   window.addEventListener('load', () => setTimeout(syncNow, 400), { once: true });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncNow(); });
+  window.addEventListener('pagehide', () => { syncNow(); });
   setInterval(syncNow, 15000);
 })();
