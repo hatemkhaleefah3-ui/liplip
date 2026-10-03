@@ -1,4 +1,4 @@
-import { createRegisteredSession, requireSession, revokeSession } from './auth.js';
+import { REGISTERED_SESSION_MAX_AGE_SECONDS, createRegisteredSession, requireSession, revokeSession } from './auth.js';
 import { cookie, getCookie, sha256 } from './http.js';
 
 const OAUTH_TTL_MS = 10 * 60 * 1000;
@@ -30,8 +30,6 @@ export async function consumeOAuthState(context, provider, suppliedState) {
     if (row) await context.env.DB.prepare('DELETE FROM oauth_states WHERE state_hash=?').bind(stateHash).run();
     return null;
   }
-  // SELECT provides the state payload; the conditional DELETE is the single-use claim.
-  // Parallel callbacks can both read the row, but only one can delete it and proceed.
   const consumed=await context.env.DB.prepare(
     'DELETE FROM oauth_states WHERE state_hash=? AND provider=? AND expires_at>?'
   ).bind(stateHash,provider,now).run();
@@ -81,8 +79,6 @@ export async function completeIdentityLogin(context, identity, { userIdHint = nu
   if (!userId && userIdHint) userId = await existingUser(context, userIdHint);
   if (!userId && useCurrentSession && current) userId = current.userId;
 
-  // Re-read immediately before claiming ownership. If another callback attached this identity
-  // after our first read, its owner is authoritative and replaces any candidate chosen above.
   const ownerBeforeClaim=await identityOwner(context,provider,subject);
   if(ownerBeforeClaim){
     userId=ownerBeforeClaim;
@@ -99,8 +95,6 @@ export async function completeIdentityLogin(context, identity, { userIdHint = nu
         statements.push(context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now,candidate));
       }
       statements.push(identityInsert(context,candidate,identity,now));
-      // D1 batch() is transactional. If another callback claims this provider identity first,
-      // the UNIQUE(provider,subject) failure rolls back candidate creation/promotion as well.
       await context.env.DB.batch(statements);
       userId=candidate;
     }catch(identityRace){
@@ -110,7 +104,6 @@ export async function completeIdentityLogin(context, identity, { userIdHint = nu
     }
   }
 
-  // Existing identities, including a winner resolved after a race, retain their owner.
   await context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now,userId).run();
   await context.env.DB.prepare(
     `UPDATE auth_identities SET email=?,display_name=?,avatar_url=?,updated_at=? WHERE provider=? AND subject=?`
@@ -123,8 +116,6 @@ export async function completeIdentityLogin(context, identity, { userIdHint = nu
     subject
   ).run();
 
-  // Establish the replacement session before revoking the current one. A transient session
-  // insert failure should not turn an otherwise valid current session into an avoidable lockout.
   const session = await createRegisteredSession(context, userId);
   if (current) await revokeSession(context, current);
   return { userId, session };
@@ -132,7 +123,7 @@ export async function completeIdentityLogin(context, identity, { userIdHint = nu
 
 export function socialRedirectResponse(session, provider, oauthStateCookie) {
   const headers = new Headers({ location: `/?auth=${encodeURIComponent(provider)}` });
-  headers.append('set-cookie', cookie('liplip_session', session.token, { maxAge: 30 * 24 * 60 * 60 }));
+  headers.append('set-cookie', cookie('liplip_session', session.token, { maxAge: REGISTERED_SESSION_MAX_AGE_SECONDS }));
   if (oauthStateCookie !== false) headers.append('set-cookie', cookie('liplip_oauth_state', '', { maxAge: 0 }));
   return new Response(null, { status: 302, headers });
 }
