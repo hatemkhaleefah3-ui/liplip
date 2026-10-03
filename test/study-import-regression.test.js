@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const zlib = require('node:zlib');
 
 const html = fs.readFileSync('index.html', 'utf8');
-const build = html.match(/<meta name="liplip-build" content="(\\d+)" \\/>/)?.[1];
+const build = html.match(/<meta name="liplip-build" content="(\d+)" \/>/)?.[1];
 assert.ok(build, 'numeric site build is declared');
 assert.doesNotMatch(html, /study-content-force|study-workbook-importer-fix/);
 
