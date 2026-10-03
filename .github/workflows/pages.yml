@@ -129,6 +129,7 @@ jobs:
           - test/reception-template-v18.test.js
           - test/study-exam-ui-regression.test.js
           - test/study-import-regression.test.js
+          - test/study-book-question-bank-v120.test.js
           - test/study-treasure-path-v113.test.js
           - test/progression-path-v114.test.js
           - test/study-closet-v115.test.js
