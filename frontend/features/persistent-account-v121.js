@@ -1,130 +1,15 @@
-/* v121: persistent registered-account resume + durable profile/progress sync. */
-(() => {
-  'use strict';
-
-  const ACCOUNT_KEY='liplip-account-state-v1';
-  const META_KEY='liplip-backend-meta-v1';
-  const DURABLE_KEYS=['liplip-progress-v1','liplip-v45-progression','liplip-ui-language',ACCOUNT_KEY];
-  const root=document.getElementById('app');
-  let syncTimer=0;
-
-  const parse=value=>{try{return JSON.parse(value||'null')}catch{return null}};
-  const managed=data=>{
-    const out={};
-    if(!data||typeof data!=='object')return out;
-    for(const key of DURABLE_KEYS)if(Object.prototype.hasOwnProperty.call(data,key))out[key]=String(data[key]);
-    return out;
-  };
-  const fingerprint=value=>JSON.stringify(Object.keys(value).sort().reduce((o,k)=>(o[k]=value[k],o),{}));
-  const readMeta=()=>parse(localStorage.getItem(META_KEY))||{};
-
-  function applyDurable(data){
-    const safe=managed(data);
-    for(const key of DURABLE_KEYS){
-      if(Object.prototype.hasOwnProperty.call(safe,key))localStorage.setItem(key,safe[key]);
-      else localStorage.removeItem(key);
-    }
-  }
-
-  function accountState(){
-    const record=parse(localStorage.getItem(ACCOUNT_KEY));
-    return record&&typeof record==='object'?record:null;
-  }
-
-  function persistProfile(){
-    if(typeof state==='undefined'||state.guest===true||!state.profile||typeof state.profile!=='object')return;
-    const previous=accountState()||{};
-    localStorage.setItem(ACCOUNT_KEY,JSON.stringify({
-      ...previous,
-      profile:state.profile,
-      updatedAt:Date.now()
-    }));
-  }
-
-  function applyRuntime(){
-    if(typeof state==='undefined')return;
-    const account=accountState();
-    if(account?.profile&&typeof account.profile==='object')state.profile=account.profile;
-    const progress=parse(localStorage.getItem('liplip-progress-v1'));
-    if(progress&&typeof LiplipProgress!=='undefined')state.progress=LiplipProgress.hydrate(progress);
-  }
-
-  function migrateLegacyProfile(remoteData){
-    if(localStorage.getItem(ACCOUNT_KEY)!==null)return false;
-    const raw=remoteData?.['liplip-preview'];
-    if(raw===undefined||raw===null)return false;
-    const legacy=parse(String(raw));
-    if(!legacy?.profile||typeof legacy.profile!=='object')return false;
-    localStorage.setItem(ACCOUNT_KEY,JSON.stringify({profile:legacy.profile,updatedAt:Date.now(),migratedFrom:'liplip-preview'}));
-    return true;
-  }
-
-  async function request(path,{timeout=2500}={}){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),timeout);
-    try{
-      const res=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
-      let body={};try{body=await res.json()}catch{}
-      return{res,body};
-    }finally{clearTimeout(timer)}
-  }
-
-  async function bootstrap(){
-    if(root){root.style.visibility='hidden';root.setAttribute('aria-busy','true')}
-    try{
-      const session=await request('/api/session');
-      if(!session.res.ok||session.body?.user?.kind!=='registered')return{authenticated:false};
-
-      const remote=await request('/api/state');
-      if(remote.res.ok){
-        const remoteRevision=Number(remote.body?.revision)||0;
-        const remoteData=remote.body?.data&&typeof remote.body.data==='object'?remote.body.data:{};
-        const meta=readMeta();
-        const localRevision=Number.isInteger(meta.revision)?meta.revision:null;
-
-        if(remoteRevision>0&&(localRevision===null||remoteRevision>localRevision)){
-          const durable=managed(remoteData);
-          applyDurable(durable);
-          localStorage.setItem(META_KEY,JSON.stringify({revision:remoteRevision,fingerprint:fingerprint(durable)}));
-        }
-        migrateLegacyProfile(remoteData);
-      }
-
-      applyRuntime();
-      if(typeof state!=='undefined'){
-        if(!state.profile&&session.body?.user?.email)state.profile={email:session.body.user.email};
-        state.guest=false;
-        state.nav='الرئيسية';
-        const keys=state.profile&&typeof state.profile==='object'?Object.keys(state.profile).filter(k=>k!=='email'&&state.profile[k]):[];
-        state.page=keys.length?'app':'profile';
-        if(typeof render==='function')render();
-      }
-      return{authenticated:true,user:session.body.user};
-    }catch(error){
-      console.warn('[liplip account] persistent session check unavailable',error);
-      return{authenticated:false,reason:'network'};
-    }finally{
-      if(root){root.style.visibility='';root.removeAttribute('aria-busy')}
-    }
-  }
-
-  function scheduleSync(){
-    clearTimeout(syncTimer);
-    syncTimer=setTimeout(()=>window.LiplipBackend?.syncNow?.(),180);
-  }
-
-  if(typeof save==='function'){
-    const baseSave=save;
-    const wrappedSave=function(){
-      persistProfile();
-      const result=baseSave.apply(this,arguments);
-      scheduleSync();
-      return result;
-    };
-    try{save=wrappedSave}catch{}
-    try{window.save=wrappedSave}catch{}
-  }
-
-  const ready=bootstrap();
-  window.LiplipAccountSession={ready,persistProfile,scheduleSync,applyRuntime};
+/* v121: resume registered accounts and keep profile/progress durable. */
+(()=>{'use strict';
+const A='liplip-account-state-v1',M='liplip-backend-meta-v1',K=['liplip-progress-v1','liplip-v45-progression','liplip-ui-language',A],root=document.getElementById('app');let timer=0;
+const parse=v=>{try{return JSON.parse(v||'null')}catch{return null}},pick=d=>{const o={};if(!d||typeof d!=='object')return o;for(const k of K)if(Object.prototype.hasOwnProperty.call(d,k))o[k]=String(d[k]);return o},fp=v=>JSON.stringify(Object.keys(v).sort().reduce((o,k)=>(o[k]=v[k],o),{}));
+function accountState(){const v=parse(localStorage.getItem(A));return v&&typeof v==='object'?v:null}
+function persistProfile(){if(typeof state==='undefined'||state.guest||!state.profile||typeof state.profile!=='object')return;localStorage.setItem(A,JSON.stringify({...accountState(),profile:state.profile,updatedAt:Date.now()}))}
+function applyDurable(d){d=pick(d);for(const k of K)Object.prototype.hasOwnProperty.call(d,k)?localStorage.setItem(k,d[k]):localStorage.removeItem(k)}
+function applyRuntime(){if(typeof state==='undefined')return;const a=accountState(),p=parse(localStorage.getItem('liplip-progress-v1'));if(a?.profile&&typeof a.profile==='object')state.profile=a.profile;if(p&&typeof LiplipProgress!=='undefined')state.progress=LiplipProgress.hydrate(p)}
+function migrateLegacyProfile(d){if(localStorage.getItem(A)!==null)return false;const x=parse(String(d?.['liplip-preview']??''));if(!x?.profile||typeof x.profile!=='object')return false;localStorage.setItem(A,JSON.stringify({profile:x.profile,updatedAt:Date.now()}));return true}
+async function request(path){const c=new AbortController(),t=setTimeout(()=>c.abort(),2500);try{const res=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:c.signal});let body={};try{body=await res.json()}catch{}return{res,body}}finally{clearTimeout(t)}}
+async function bootstrap(){if(root){root.style.visibility='hidden';root.setAttribute('aria-busy','true')}try{const s=await request('/api/session');if(!s.res.ok||s.body?.user?.kind!=='registered')return{authenticated:false};const r=await request('/api/state');if(r.res.ok){const rev=Number(r.body?.revision)||0,d=r.body?.data&&typeof r.body.data==='object'?r.body.data:{},meta=parse(localStorage.getItem(M))||{},local=Number.isInteger(meta.revision)?meta.revision:null;if(rev>0&&(local===null||rev>local)){const durable=pick(d);applyDurable(durable);localStorage.setItem(M,JSON.stringify({revision:rev,fingerprint:fp(durable)}))}migrateLegacyProfile(d)}applyRuntime();if(typeof state!=='undefined'){if(!state.profile&&s.body?.user?.email)state.profile={email:s.body.user.email};state.guest=false;state.nav='الرئيسية';const keys=state.profile&&typeof state.profile==='object'?Object.keys(state.profile).filter(k=>k!=='email'&&state.profile[k]):[];state.page=keys.length?'app':'profile';if(typeof render==='function')render()}return{authenticated:true,user:s.body.user}}catch(error){console.warn('[liplip account] session resume unavailable',error);return{authenticated:false,reason:'network'}}finally{if(root){root.style.visibility='';root.removeAttribute('aria-busy')}}}
+function scheduleSync(){clearTimeout(timer);timer=setTimeout(()=>window.LiplipBackend?.syncNow?.(),180)}
+if(typeof save==='function'){const baseSave=save,wrappedSave=function(){persistProfile();const out=baseSave.apply(this,arguments);scheduleSync();return out};try{save=wrappedSave}catch{}try{window.save=wrappedSave}catch{}}
+const ready=bootstrap();window.LiplipAccountSession={ready,persistProfile,scheduleSync,applyRuntime};
 })();
