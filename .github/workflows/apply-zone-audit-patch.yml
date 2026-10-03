@@ -1,0 +1,64 @@
+name: Apply transactional zone audit patch
+
+on:
+  push:
+    branches: [chatgpt/full-audit-fixes-20261003]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-zone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/full-audit-fixes-20261003
+      - name: Apply exact zone persistence fixes
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p=Path('zone.js')
+          s=p.read_text()
+          replacements=[
+            (
+              "function saveContent(id,value){if(!Number.isInteger(id)||id<1||id>1000)throw Error('صندوق غير صحيح.');contentEdits[id]=validateContent(value);try{localStorage.setItem(CONTENT_KEY,JSON.stringify(contentEdits));return true}catch{return false}}",
+              "function saveContent(id,value){if(!Number.isInteger(id)||id<1||id>1000)throw Error('صندوق غير صحيح.');const next={...contentEdits,[id]:validateContent(value)};try{localStorage.setItem(CONTENT_KEY,JSON.stringify(next));contentEdits=next;return true}catch{return false}}"
+            ),
+            (
+              "if(action==='confirm-delete'){const box=getContent(ui.targetBox);box[ui.process]=box[ui.process].filter(x=>x.id!==ui.selectedId);const stored=saveContent(ui.targetBox,box);resetAfterEdit(ui.targetBox);ui.deleteConfirm=false;ui.screen='edit-list';ui.draft=null;ui.notice=stored?'تم حذف العنصر.':'حُذف مؤقتاً؛ المتصفح منع الحفظ الدائم.';update();return {}}",
+              "if(action==='confirm-delete'){const box=getContent(ui.targetBox);box[ui.process]=box[ui.process].filter(x=>x.id!==ui.selectedId);const stored=saveContent(ui.targetBox,box);if(stored){resetAfterEdit(ui.targetBox);ui.deleteConfirm=false;ui.screen='edit-list';ui.draft=null;ui.notice='تم حذف العنصر.'}else{ui.notice='تعذّر حفظ الحذف؛ لم يتغير المحتوى.'}update();return {}}"
+            ),
+            (
+              "if(id==='zone-item-form'){const draft=readEditorDraft();try{const item=validateItem(ui.process,draft);const box=getContent(ui.targetBox||progress.boxId);const list=box[ui.process];if(ui.selectedId){const index=list.findIndex(x=>x.id===ui.selectedId);if(index<0)throw Error('العنصر لم يعد موجوداً.');list[index]=item}else{if(list.length>=MAX_ITEMS[ui.process])throw Error(`الحد الأقصى ${MAX_ITEMS[ui.process]} عنصراً في هذا الجزء.`);list.push(item)}const stored=saveContent(ui.targetBox||progress.boxId,box);resetAfterEdit(ui.targetBox||progress.boxId);ui.screen=ui.selectedId?'edit-list':'menu';ui.draft=null;ui.notice=stored?'تم حفظ المحتوى.':'تم التعديل مؤقتاً؛ المتصفح منع الحفظ الدائم.';update()}catch(error){ui.draft=draft;ui.notice=error.message;update()}return {}}",
+              "if(id==='zone-item-form'){const draft=readEditorDraft();try{const item=validateItem(ui.process,draft);const box=getContent(ui.targetBox||progress.boxId);const list=box[ui.process];if(ui.selectedId){const index=list.findIndex(x=>x.id===ui.selectedId);if(index<0)throw Error('العنصر لم يعد موجوداً.');list[index]=item}else{if(list.length>=MAX_ITEMS[ui.process])throw Error(`الحد الأقصى ${MAX_ITEMS[ui.process]} عنصراً في هذا الجزء.`);list.push(item)}const target=ui.targetBox||progress.boxId;if(!saveContent(target,box)){ui.draft=draft;ui.notice='تعذّر حفظ المحتوى؛ لم يتغير المحتوى.';update();return {}}resetAfterEdit(target);ui.screen=ui.selectedId?'edit-list':'menu';ui.draft=null;ui.notice='تم حفظ المحتوى.';update()}catch(error){ui.draft=draft;ui.notice=error.message;update()}return {}}"
+            )
+          ]
+          changed=0
+          for old,new in replacements:
+            count=s.count(old)
+            if count==1:
+              s=s.replace(old,new)
+              changed+=1
+            elif count==0 and new in s:
+              changed+=1
+            else:
+              raise SystemExit(f'unexpected zone.js source match count: {count}')
+          if changed!=3:
+            raise SystemExit(f'expected 3 validated replacements, got {changed}')
+          p.write_text(s)
+          PY
+          node --check zone.js
+      - name: Commit patch when needed
+        shell: bash
+        run: |
+          if git diff --quiet -- zone.js; then
+            echo 'zone.js already patched'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add zone.js
+          git commit -m 'Make zone content edits transactional [zone-patch-applied]'
+          git push origin HEAD:chatgpt/full-audit-fixes-20261003
