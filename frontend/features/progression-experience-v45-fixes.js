@@ -10,7 +10,7 @@
   const loc=id=>LiplipProgress.courseLocation(id);
   const done=()=>new Set(course().completedBoxes||[]);
   const cefr=()=>{const m=meta();if(!m.literacy?.letters||!m.literacy?.numbers)return'A0';const map=['A1','A2','B1','B2','C1','C2'];let n=0;for(let l=1;l<=5;l++){if(examPassed(l,50))n=l;else break}return map[n]};
-  const rank=()=>['A0','A1','A2','B1','B2','C1','C2'].indexOf(cefr());
+  const rank=()=>window.LiplipProgression114?.snapshot?.().rank??['A0','A1','A2','B1','B2','C1','C2'].indexOf(cefr());
   function pendingExam(){const c=done();for(let l=1;l<=5;l++)for(const e of [15,30,45,50]){const id=(l-1)*200+e;if(c.has(id)&&!examPassed(l,e))return{level:l,end:e}}return null}
   function bannerHTML(p){return `<div><span>${p.end===50?t('الامتحان النهائي','FINAL EXAM'):t('امتحان المرحلة','MILESTONE EXAM')}</span><h2>${p.end===50?t('أكمل الامتحان النهائي قبل فتح المستوى التالي.','Complete the final exam before the next level opens.'):t('يجب اجتياز الامتحان قبل متابعة الصناديق.','Pass this exam before continuing to later boxes.')}</h2></div><button data-v45-open-exam data-level="${p.level}" data-end="${p.end}">${t('ابدأ الامتحان','Start exam')}</button>`}
   function applyExamGate(root=document){
@@ -31,7 +31,6 @@
   UI.registerFeature('progression-experience-v45-fixes',{mount});
   new MutationObserver(()=>{applyExamGate(document);fixEditor(document)}).observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',e=>{
-    const study=e.target.closest?.('[data-v28="study-current"]');if(study&&rank()<1){e.preventDefault();e.stopImmediatePropagation();alert(t('الدراسة تفتح بعد إكمال الحروف والأرقام والوصول إلى A1.','Study unlocks after completing letters and numbers and reaching A1.'));return}
     const talk=e.target.closest?.('[data-v28="talk"],[data-talk]');if(talk&&rank()<3){e.preventDefault();e.stopImmediatePropagation();alert(t('المكالمة والدردشة تفتحان عند B1.','Call and chat unlock at B1.'));return}
   },true);
 })();

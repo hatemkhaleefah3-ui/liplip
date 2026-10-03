@@ -11,7 +11,6 @@
   let rerenderQueued = false;
 
   const t = (ar,en) => UI.t(ar,en);
-  const esc = value => UI.escapeHTML(String(value ?? ''));
   const isAdmin = () => sessionStorage.getItem('liplip-admin-v47') === '1';
   const read = (key,fallback) => UI.storage.get(key,fallback);
   const write = (key,value) => UI.storage.set(key,value);
@@ -43,9 +42,6 @@
     if (!value || value.version !== 1) { const created=initialState(); write(STORE,created); return created; }
     value.literacyLearn = value.literacyLearn || {letters:false,numbers:false};
     value.levels = value.levels || {};
-    // v82 literacy exams historically wrote their completion to the legacy
-    // progression record. Promote those passes into the unified source so an
-    // Exam completion is identical to finishing the full Learn flow.
     const legacy=legacyMeta();let changed=false;
     for(const mode of ['letters','numbers'])if(Boolean(legacy.literacy?.[mode])&&!value.literacyLearn[mode]){value.literacyLearn[mode]=true;changed=true;}
     if(changed)save(value);
@@ -78,14 +74,15 @@
   function snapshot() {
     const value=refreshFinals(load());
     const letters=Boolean(value.literacyLearn.letters), numbers=Boolean(value.literacyLearn.numbers);
-    let rank=letters&&numbers ? 1 : 0;
-    if (rank) for (let level=1;level<=5;level++) { if (value.levels[level]) rank=level+1; else break; }
+    let rank=letters&&numbers ? 1 : 0, studyRank=0;
+    for (let level=1;level<=5;level++) { if (value.levels[level]) studyRank=level+1; else break; }
+    rank=Math.max(rank,studyRank);
     if (isAdmin()) rank=99;
     return {
       letters,numbers,rank,
       cefr:rank===99?'ADMIN':LEVELS[Math.max(0,Math.min(6,rank))],
       levels:{...value.levels},
-      study:rank>=1,fastWrite:rank>=2,talk:rank>=3
+      study:true,fastWrite:rank>=2,talk:rank>=3
     };
   }
   function syncLegacy() {
@@ -101,11 +98,11 @@
   const stepData = s => [
     {n:1,key:'letters',title:t('أكمل تعلّم الحروف','Finish Letters Learn'),detail:t('الحروف الإنجليزية A–Z','English letters A–Z'),done:s.letters,active:!s.letters,reward:'A0'},
     {n:2,key:'numbers',title:t('أكمل تعلّم الأرقام','Finish Numbers Learn'),detail:t('بعدها تنتقل من A0 إلى A1','Then upgrade from A0 to A1'),done:s.numbers,active:s.letters&&!s.numbers,reward:'A1'},
-    {n:3,key:'level1',title:t('أكمل مستوى الدراسة 1','Finish Study Level 1'),detail:t('تصل إلى A2 وتفتح الكتابة السريعة','Reach A2 and unlock Fast Write'),done:Boolean(s.levels[1]),active:s.rank===1,reward:'A2'},
-    {n:4,key:'level2',title:t('أكمل مستوى الدراسة 2','Finish Study Level 2'),detail:t('تصل إلى B1 وتفتح الدردشة والمكالمة','Reach B1 and unlock Chat and Call'),done:Boolean(s.levels[2]),active:s.rank===2,reward:'B1'},
-    {n:5,key:'level3',title:t('أكمل مستوى الدراسة 3','Finish Study Level 3'),detail:t('ترتقي إلى B2','Upgrade to B2'),done:Boolean(s.levels[3]),active:s.rank===3,reward:'B2'},
-    {n:6,key:'level4',title:t('أكمل مستوى الدراسة 4','Finish Study Level 4'),detail:t('ترتقي إلى C1','Upgrade to C1'),done:Boolean(s.levels[4]),active:s.rank===4,reward:'C1'},
-    {n:7,key:'level5',title:t('أكمل مستوى الدراسة 5','Finish Study Level 5'),detail:t('تكمل المسار عند C2','Complete the path at C2'),done:Boolean(s.levels[5]),active:s.rank===5,reward:'C2'}
+    {n:3,key:'level1',title:t('أكمل مستوى الدراسة 1','Finish Study Level 1'),detail:t('تصل إلى A2 وتفتح الكتابة السريعة','Reach A2 and unlock Fast Write'),done:Boolean(s.levels[1]),active:!s.levels[1],reward:'A2'},
+    {n:4,key:'level2',title:t('أكمل مستوى الدراسة 2','Finish Study Level 2'),detail:t('تصل إلى B1 وتفتح الدردشة والمكالمة','Reach B1 and unlock Chat and Call'),done:Boolean(s.levels[2]),active:Boolean(s.levels[1])&&!s.levels[2],reward:'B1'},
+    {n:5,key:'level3',title:t('أكمل مستوى الدراسة 3','Finish Study Level 3'),detail:t('ترتقي إلى B2','Upgrade to B2'),done:Boolean(s.levels[3]),active:Boolean(s.levels[2])&&!s.levels[3],reward:'B2'},
+    {n:6,key:'level4',title:t('أكمل مستوى الدراسة 4','Finish Study Level 4'),detail:t('ترتقي إلى C1','Upgrade to C1'),done:Boolean(s.levels[4]),active:Boolean(s.levels[3])&&!s.levels[4],reward:'C1'},
+    {n:7,key:'level5',title:t('أكمل مستوى الدراسة 5','Finish Study Level 5'),detail:t('تكمل المسار عند C2','Complete the path at C2'),done:Boolean(s.levels[5]),active:Boolean(s.levels[4])&&!s.levels[5],reward:'C2'}
   ];
   function progressionMarkup(s) {
     const steps=stepData(s);
@@ -137,11 +134,11 @@
     const current=course(),hasCurrent=Boolean(current.currentBox),hasPrevious=Boolean(current.completedBoxes?.length);
     root.querySelectorAll('[data-v28="study-current"]').forEach(button=>{
       button.classList.remove('v47-home-study-blocked');
-      manageButton(button,{locked:!s.study,label:'A1',available:hasCurrent});
+      manageButton(button,{locked:false,label:'',available:hasCurrent});
     });
     root.querySelectorAll('[data-v28="review-last"]').forEach(button=>{
       button.classList.remove('v47-home-study-blocked');
-      manageButton(button,{locked:!s.study,label:'A1',available:hasPrevious});
+      manageButton(button,{locked:false,label:'',available:hasPrevious});
     });
     const letters=root.querySelector('[data-v45-literacy="letters"],[data-literacy="letters"]');
     if(letters){manageButton(letters,{locked:false,label:'A0'});stateBadge(letters,false,'A0');}
@@ -159,7 +156,7 @@
   }
   function decorateNav(root,s) {
     root.querySelectorAll('[data-nav="الدراسة"]').forEach(button=>{
-      button.classList.toggle('v114-nav-locked',!s.study);button.disabled=!s.study;button.dataset.v114Lock=!s.study?'A1':'';
+      button.classList.remove('v114-nav-locked');button.disabled=false;button.dataset.v114Lock='';
     });
     root.querySelectorAll('[data-nav="تحدّث"]').forEach(button=>{
       button.classList.toggle('v114-nav-locked',!s.talk);button.disabled=!s.talk;button.dataset.v114Lock=!s.talk?'B1':'';
