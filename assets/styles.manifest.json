@@ -1,0 +1,31 @@
+{
+  "build": 110,
+  "sources": [
+    "frontend/styles/tokens.css",
+    "styles.css",
+    "reception-template-v18.css",
+    "course.css",
+    "course-nav-fix.css",
+    "talk.css",
+    "home-closet-profile-v28.css",
+    "ux-content-v29.css",
+    "vocabulary-flashcards-v30.css",
+    "study-treasure-map-v32.css",
+    "study-profile-polish-v34.css",
+    "content-delete-v35.css",
+    "literacy-fastwrite-v36.css",
+    "literacy-flow-fix-v37.css",
+    "literacy-typewriter-v38.css",
+    "literacy-request-audit-v39.css",
+    "home-literacy-redesign-v40.css",
+    "frontend/features/learning-experience.css",
+    "frontend/features/literacy-pairs-v44.css",
+    "frontend/features/progression-experience-v45.css",
+    "frontend/features/assessment-literacy-v46.css",
+    "frontend/features/access-admin-profile-v47.css",
+    "frontend/features/social-auth-v50.css",
+    "frontend/features/literacy-responsive-v55.css",
+    "frontend/features/course-structure-v57.css",
+    "frontend/features/admin-access-content-control-v97.css"
+  ]
+}
