@@ -16,6 +16,25 @@
   const validLoc=(level,box)=>Number.isInteger(level)&&level>=1&&level<=LEVELS&&Number.isInteger(box)&&box>=1&&box<=BOXES;
   const splitList=v=>text(v).split(/\r?\n|\|/).map(x=>x.trim()).filter(Boolean);
 
+  let jsZipPromise=null;
+  function loadJSZip(){
+    if(window.JSZip)return Promise.resolve(window.JSZip);
+    if(jsZipPromise)return jsZipPromise;
+    jsZipPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      const timeout=setTimeout(()=>fail(Error(t('انتهت مهلة تحميل قارئ Excel.','Excel reader load timed out.'))),15000);
+      const cleanup=()=>{clearTimeout(timeout);script.onload=null;script.onerror=null};
+      const fail=error=>{cleanup();script.remove();jsZipPromise=null;reject(error)};
+      script.src=new URL('jszip.min.js?v=110',document.baseURI).href;
+      script.async=true;
+      script.dataset.liplipJszip='110';
+      script.onload=()=>{cleanup();window.JSZip?resolve(window.JSZip):fail(Error(t('تعذر تشغيل قارئ Excel.','Excel reader failed to initialize.')))};
+      script.onerror=()=>fail(Error(t('تعذر تحميل قارئ Excel.','Excel reader failed to load.')));
+      document.head.appendChild(script);
+    });
+    return jsZipPromise;
+  }
+
   const SHEETS={
     Vocabulary:['Level','Box','Order','English','Arabic','Voice'],
     Grammar:['Level','Box','Title','Rule','Normal Formula','Negative Formula','Question Formula','Notes','Examples'],
@@ -74,8 +93,8 @@
   }
 
   async function parseWorkbook(file){
-    if(typeof JSZip==='undefined')throw Error(t('قارئ Excel غير محمّل.','Excel reader is not loaded.'));
-    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+    const JSZipLib=await loadJSZip();
+    const zip=await JSZipLib.loadAsync(await file.arrayBuffer());
     const read=async p=>zip.file(p)?.async('string');
     const shared=[];
     const ss=await read('xl/sharedStrings.xml');
