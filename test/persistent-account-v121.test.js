@@ -45,7 +45,7 @@ assert.match(backendAuth,/liplip-account-state-v1/,'logout clears cached account
 assert.match(backendAuth,/state\.progress=LiplipProgress\.hydrate\(null\)/,'logout isolates the next user from previous progress');
 assert.match(backendAuth,/LiplipBackend\?\.resume\?\.\(\)/,'successful login or signup resumes sync');
 assert.match(backendAuth,/function resetNewAccountState\(email\)/,'signup has an explicit fresh-account reset');
-assert.match(backendAuth,/resetNewAccountState[\s\S]*liplip-progress-v1[\s\S]*liplip-v45-progression/,'fresh signup clears completed boxes and literacy completion flags');
+assert.match(backendAuth,/ACCOUNT_KEYS=\[[\s\S]*liplip-progress-v1[\s\S]*liplip-v45-progression/,'fresh signup clears completed boxes and literacy completion flags');
 assert.match(backendAuth,/if\(state\.mode==='signup'\)\{\s*resetNewAccountState\(email\)/,'fresh reset runs before a signup profile is saved');
 
 const accountIndex=html.indexOf('frontend/features/persistent-account-v121.js');
