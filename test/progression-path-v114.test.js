@@ -50,10 +50,13 @@ function boot(seed = {}) {
 {
   const { context, api } = boot();
   assert.equal(api.snapshot().cefr, 'A0', 'fresh learner starts at A0');
+  assert.equal(api.snapshot().study, true, 'Study is open immediately for a fresh learner');
+  assert.equal(api.stepData(api.snapshot()).find(step => step.key === 'level1').active, true, 'Study Level 1 is active from the beginning');
+
   context.window.LiplipLiteracy = { mode: 'letters', _v74: { phase: 'complete' } };
   assert.equal(api.markLearnCompletion(), true);
   assert.equal(api.snapshot().cefr, 'A0', 'letters alone do not award A1');
-  assert.equal(api.snapshot().study, false);
+  assert.equal(api.snapshot().study, true, 'letters are optional for Study access');
 
   context.window.LiplipLiteracy = { mode: 'numbers', _v74: { phase: 'complete' } };
   assert.equal(api.markLearnCompletion(), true);
@@ -67,12 +70,12 @@ function boot(seed = {}) {
   context.window.LiplipLiteracyExam82 = {mode:'letters',step:'complete',items:Array(15).fill('A'),results:Array(15).fill(true)};
   assert.equal(api.markLearnCompletion(),true,'finishing the Letters exam completes Letters');
   assert.equal(api.snapshot().letters,true);
-  assert.equal(api.snapshot().study,false,'Letters exam alone does not unlock Study');
+  assert.equal(api.snapshot().study,true,'Letters exam is not required to unlock Study');
   context.window.LiplipLiteracyExam82 = {mode:'numbers',step:'complete',items:Array(15).fill('1'),results:Array(15).fill(true)};
   assert.equal(api.markLearnCompletion(),true,'finishing the Numbers exam completes Numbers');
   assert.equal(api.snapshot().numbers,true);
   assert.equal(api.snapshot().cefr,'A1','both foundation exams award A1');
-  assert.equal(api.snapshot().study,true,'both foundation exams unlock Study');
+  assert.equal(api.snapshot().study,true);
   assert.equal(api.snapshot().fastWrite,false);
 }
 
@@ -83,6 +86,16 @@ function boot(seed = {}) {
   });
   assert.equal(api.snapshot().letters,true,'a valid older Letters exam completion is migrated');
   assert.equal(api.snapshot().numbers,false);
+  assert.equal(api.snapshot().study,true,'Study remains open regardless of migrated literacy state');
+}
+
+{
+  const { context, api } = boot({
+    'liplip-study-milestones-v113': { version: 1, baseline: {}, completed: { '1:final:50': true } }
+  });
+  context.state.progress.completedBoxes = [50];
+  assert.equal(api.snapshot().cefr, 'A2', 'Level 1 final advances progression even when letters and numbers are skipped');
+  assert.equal(api.snapshot().fastWrite, true, 'Fast Write still opens after Study Level 1');
 }
 
 {
@@ -115,5 +128,4 @@ function boot(seed = {}) {
 assert.match(css, /\.v114-path\s*\{/);
 assert.match(css, /\.v114-locked/);
 assert.match(css, /@media \(max-width: 640px\)/);
-console.log('progression-path-v114 regression tests passed');
-
+console.log('progression-path-v114 optional-literacy regression tests passed');
