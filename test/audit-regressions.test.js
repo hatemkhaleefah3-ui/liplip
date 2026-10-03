@@ -7,10 +7,12 @@ const root=path.join(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 const adminLogin=read('functions/api/admin/login.js');
+const passwordLib=read('functions/_lib/password.js');
 assert.match(adminLogin,/throttle\(context, key, \{ limit: 5/,'admin login is rate limited');
-assert.match(adminLogin,/recordFailure\(context, key\)/,'failed admin logins increment the limiter');
+assert.match(passwordLib,/INSERT INTO auth_attempts\(key,count,window_started_at,blocked_until\)/,'authentication attempts are claimed atomically');
+assert.match(passwordLib,/ELSE auth_attempts.count\+1/,'parallel attempts increment in the same UPSERT');
 assert.match(adminLogin,/clearFailures\(context, key\)/,'successful admin login clears the limiter');
-assert.match(adminLogin,/cf-connecting-ip/,'admin limiter is scoped by client address');
+assert.match(adminLogin,/cf-connecting-ip/,'admin limiter is scoped by Cloudflare client address');
 
 const whatsappVerify=read('functions/api/auth/whatsapp/verify.js');
 assert.match(whatsappVerify,/DELETE FROM whatsapp_otps WHERE phone=\? AND code_hash=\? AND expires_at>\? AND attempts<5/,'valid OTP is consumed atomically');
@@ -32,8 +34,11 @@ assert.match(backendClient,/if \(activeSync\) return activeSync/,'backend synchr
 assert.match(backendClient,/activeSync = runSync\(\)\.finally/);
 
 const bypass=read('frontend/features/admin-hard-bypass-v98.js');
-assert.match(bypass,/box<=200/,'admin bypass covers every box in each level');
-assert.doesNotMatch(bypass,/box<=50/,'obsolete 50-box admin geometry is gone');
+const level50=read('level50-progress-v29.js');
+assert.match(level50,/BOXES_PER_LEVEL = 50/,'live course exposes 50 boxes per level');
+assert.match(level50,/LEGACY_STRIDE = 200/,'legacy content IDs retain a 200-box stride');
+assert.match(bypass,/box<=50/,'admin bypass covers all live boxes in each level');
+assert.match(bypass,/\(level-1\)\*200\+box/,'admin bypass preserves the legacy ID stride');
 
 const health=read('functions/api/health.js');
 assert.match(health,/schema='v4'/);
@@ -42,8 +47,7 @@ assert.match(health,/SELECT state_hash FROM oauth_states/);
 
 const courseExam=read('functions/api/gemini/course-exam.js');
 assert.match(courseExam,/readJson\(request, 128 \* 1024\)/,'course exam JSON is bounded before parsing');
-assert.match(courseExam,/box > 200/,'Gemini exams support all 200 boxes in a level');
-assert.doesNotMatch(courseExam,/box > 50/,'obsolete 50-box Gemini limit is gone');
+assert.match(courseExam,/box > 50/,'Gemini exams follow the live 50-box-per-level geometry');
 
 const drawing=read('functions/api/gemini/drawing.js');
 assert.match(drawing,/readJson\(request, 5 \* 1024 \* 1024\)/,'drawing JSON is bounded before parsing');
