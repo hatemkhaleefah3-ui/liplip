@@ -138,6 +138,7 @@ jobs:
           - test/guest-study-corrections-v117.test.js
           - test/grammar-journey-v119.test.js
           - test/grammar-exam-flow-v120.test.js
+          - test/persistent-session-v121.test.js
           - test/talk.test.js
           - test/vocab-image-card.test.js
     steps:
