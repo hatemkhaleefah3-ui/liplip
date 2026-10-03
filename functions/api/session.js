@@ -1,5 +1,5 @@
-import { cookie, error, json } from '../_lib/http.js';
-import { createAnonymousSession, requireSession, revokeSession } from '../_lib/auth.js';
+import { cookie, error, getCookie, json } from '../_lib/http.js';
+import { createAnonymousSession, refreshRegisteredSession, REGISTERED_SESSION_DAYS, requireSession, revokeSession } from '../_lib/auth.js';
 
 function user(session){return {id:session.userId,kind:session.kind||'anonymous',email:session.email||null}}
 
@@ -7,7 +7,15 @@ export async function onRequestGet(context) {
   if (!context.env.DB) return error(503, 'database_unavailable', 'D1 binding DB is not configured.');
   const session = await requireSession(context);
   if (!session) return error(401, 'unauthorized', 'No active session.');
-  return json({ ok: true, user: user(session) });
+  const headers={};
+  if(session.kind==='registered'){
+    const refreshed=await refreshRegisteredSession(context,session);
+    if(refreshed.refreshed){
+      const token=getCookie(context.request,'liplip_session');
+      if(token)headers['set-cookie']=cookie('liplip_session',token,{maxAge:REGISTERED_SESSION_DAYS*24*60*60});
+    }
+  }
+  return json({ ok: true, user: user(session) },{headers});
 }
 
 export async function onRequestPost(context) {
