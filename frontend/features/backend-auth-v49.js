@@ -30,10 +30,12 @@
     try{
       const {r,data}=await request(path,{email,password});
       if(!r.ok){const el=document.querySelector('#auth-message');if(el){el.classList.add('error');el.textContent=data?.error?.message||t('تعذّر تسجيل الدخول.','Authentication failed.')}return;}
+      window.LiplipSessionPersistence?.markSignedIn?.(data?.user||{email});
       localStorage.removeItem('liplip-backend-meta-v1');
       state.guest=false;
       if(state.mode==='signup'){
         state.profile={...(state.profile||{}),email};state.page='profile';if(typeof save==='function')save();render();
+        window.LiplipSessionPersistence?.persistProfile?.();
         setTimeout(()=>window.LiplipBackend?.syncNow?.(),200);
       }else{
         const result=await window.LiplipBackend?.syncNow?.();
@@ -48,5 +50,6 @@
     const logout=e.target.closest?.('[data-action="logout"],[data-v28="logout"]');if(!logout)return;
     fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',keepalive:true}).catch(()=>{});
     localStorage.removeItem('liplip-backend-meta-v1');
+    window.LiplipSessionPersistence?.clearSignedOutState?.();
   },true);
 })();
