@@ -83,8 +83,12 @@ assert.match(app.innerHTML,/data-phase="vocabulary"/,'completed phase remains av
 clickCourse('complete-process');
 assert.match(app.innerHTML,/اختبار القواعد/);
 events.submit({target:{id:'course-exam-form',dataset:{phase:'grammar'},values:{q0:'0'},reportValidity(){return true}},preventDefault(){}});
-assert.match(app.innerHTML,/أنهيت الفيديو والأسئلة/);
+assert.match(app.innerHTML,/watch-video-player/,'watch & read starts on the video page');
+clickCourse('item-next',{total:'2'});
+assert.match(app.innerHTML,/أنهيت أسئلة الفيديو/);
 events.submit({target:{id:'course-exam-form',dataset:{phase:'watchRead',process:'video'},values:{q0:'0'},reportValidity(){return true}},preventDefault(){}});
+assert.match(app.innerHTML,/story-page-player/,'story process starts on the story page');
+clickCourse('item-next',{total:'2'});
 assert.match(app.innerHTML,/أنهيت القصة والأسئلة/);
 events.submit({target:{id:'course-exam-form',dataset:{phase:'watchRead',process:'story'},values:{q0:'0'},reportValidity(){return true}},preventDefault(){}});
 assert.match(app.innerHTML,/درجة الصندوق/);
