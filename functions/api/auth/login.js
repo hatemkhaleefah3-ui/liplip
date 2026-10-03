@@ -1,5 +1,5 @@
 import { cookie, error, json, readJson } from '../../_lib/http.js';
-import { createRegisteredSession, requireSession, revokeSession } from '../../_lib/auth.js';
+import { REGISTERED_SESSION_MAX_AGE_SECONDS, createRegisteredSession, requireSession, revokeSession } from '../../_lib/auth.js';
 import { clearFailures, normalizeEmail, throttle, validEmail, verifyPassword } from '../../_lib/password.js';
 
 export async function onRequestPost(context){
@@ -14,5 +14,5 @@ export async function onRequestPost(context){
   const current=await requireSession(context);if(current)await revokeSession(context,current);
   const session=await createRegisteredSession(context,row.userId);
   await context.env.DB.prepare('UPDATE users SET updated_at=? WHERE id=?').bind(Date.now(),row.userId).run();
-  return json({ok:true,user:{id:row.userId,kind:'registered',email:row.email}}, {headers:{'set-cookie':cookie('liplip_session',session.token,{maxAge:30*24*60*60})}});
+  return json({ok:true,user:{id:row.userId,kind:'registered',email:row.email}}, {headers:{'set-cookie':cookie('liplip_session',session.token,{maxAge:REGISTERED_SESSION_MAX_AGE_SECONDS})}});
 }

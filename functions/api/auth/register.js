@@ -1,5 +1,5 @@
 import { cookie, error, json, readJson } from '../../_lib/http.js';
-import { createRegisteredSession, requireSession, revokeSession } from '../../_lib/auth.js';
+import { REGISTERED_SESSION_MAX_AGE_SECONDS, createRegisteredSession, requireSession, revokeSession } from '../../_lib/auth.js';
 import { clearFailures, hashPassword, normalizeEmail, throttle, validEmail, validPassword } from '../../_lib/password.js';
 
 export async function onRequestPost(context){
@@ -18,7 +18,6 @@ export async function onRequestPost(context){
 
   try{
     if(current?.kind==='anonymous'){
-      // D1 batch() is transactional: either promotion and account creation both commit, or neither does.
       await context.env.DB.batch([
         context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now,userId),
         account
@@ -31,15 +30,12 @@ export async function onRequestPost(context){
       ]);
     }
   }catch(batchError){
-    // A concurrent registration can win the UNIQUE(email) race after the pre-check.
     const raced=await context.env.DB.prepare('SELECT user_id FROM user_accounts WHERE email=? LIMIT 1').bind(email).first().catch(()=>null);
     if(raced)return error(409,'email_in_use','An account already exists for this email.');
     console.error('[register]',batchError);
     return error(500,'registration_failed','Could not create the account. Try again.');
   }
 
-  // Create the replacement session before revoking the old anonymous one so a transient
-  // session-write failure cannot strand an upgraded account without a usable session.
   let session;
   try{session=await createRegisteredSession(context,userId)}catch(sessionError){
     console.error('[register session]',sessionError);
@@ -47,5 +43,5 @@ export async function onRequestPost(context){
   }
   if(current)await revokeSession(context,current);
   await clearFailures(context,key);
-  return json({ok:true,user:{id:userId,kind:'registered',email}}, {status:201,headers:{'set-cookie':cookie('liplip_session',session.token,{maxAge:30*24*60*60})}});
+  return json({ok:true,user:{id:userId,kind:'registered',email}}, {status:201,headers:{'set-cookie':cookie('liplip_session',session.token,{maxAge:REGISTERED_SESSION_MAX_AGE_SECONDS})}});
 }

@@ -1,28 +1,32 @@
 /* Backend sync bridge for Cloudflare Pages Functions + D1. */
 (() => {
   const META_KEY = 'liplip-backend-meta-v1';
-  /* Only user-owned data belongs here. Course/fast-practice content is global and
-     is synchronized separately by backend-content-v49.js. */
-  const KEYS = ['liplip-progress-v1', 'liplip-v45-progression', 'liplip-ui-language'];
+  /* Only durable user-owned data belongs here. Course/fast-practice content is global and
+     is synchronized separately by backend-content-v49.js. Session-only UI preview state is
+     deliberately excluded so closing the browser can never erase server progress. */
+  const KEYS = ['liplip-progress-v1', 'liplip-v45-progression', 'liplip-ui-language', 'liplip-account-state-v1'];
   let activeSync = null;
+  let suspended = false;
+  const managedData = data => {
+    const out = {};
+    if (!data || typeof data !== 'object') return out;
+    for (const key of KEYS) if (Object.prototype.hasOwnProperty.call(data, key)) out[key] = String(data[key]);
+    return out;
+  };
   const stateFromStorage = () => {
     const out = {};
     for (const key of KEYS) {
       const value = localStorage.getItem(key);
       if (value !== null) out[key] = value;
     }
-    const preview = sessionStorage.getItem('liplip-preview');
-    if (preview !== null) out['liplip-preview'] = preview;
     return out;
   };
   const applyState = data => {
-    if (!data || typeof data !== 'object') return;
+    const safe = managedData(data);
     for (const key of KEYS) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) localStorage.setItem(key, String(data[key]));
+      if (Object.prototype.hasOwnProperty.call(safe, key)) localStorage.setItem(key, safe[key]);
       else localStorage.removeItem(key);
     }
-    if (Object.prototype.hasOwnProperty.call(data, 'liplip-preview')) sessionStorage.setItem('liplip-preview', String(data['liplip-preview']));
-    else sessionStorage.removeItem('liplip-preview');
   };
   const fingerprint = value => JSON.stringify(Object.keys(value).sort().reduce((o,k)=>(o[k]=value[k],o),{}));
   const readMeta = () => { try { return JSON.parse(localStorage.getItem(META_KEY) || '{}'); } catch { return {}; } };
@@ -39,13 +43,15 @@
   }
   async function runSync() {
     try {
+      if (suspended) return { ok:false, reason:'suspended' };
       if (!(await ensureSession())) return { ok: false, reason: 'session' };
+      if (suspended) return { ok:false, reason:'suspended' };
       const remote = await request('/api/state');
       if (!remote.res.ok) return { ok: false, reason: 'load', status: remote.res.status };
       const meta = readMeta(), local = stateFromStorage(), localFp = fingerprint(local), lastFp = meta.fingerprint || '';
       const lastRevision = Number.isInteger(meta.revision) ? meta.revision : null;
       const remoteRevision = Number(remote.body.revision) || 0;
-      const remoteData = remote.body.data && typeof remote.body.data === 'object' ? remote.body.data : {};
+      const remoteData = managedData(remote.body.data);
       const remoteFp = fingerprint(remoteData);
       if (lastRevision === null) {
         if (remoteRevision === 0 && Object.keys(local).length) {
@@ -72,12 +78,21 @@
     } catch (error) { console.warn('[liplip backend] sync unavailable', error); return { ok: false, reason: 'network' }; }
   }
   function syncNow() {
+    if (suspended) return Promise.resolve({ok:false,reason:'suspended'});
     if (activeSync) return activeSync;
     activeSync = runSync().finally(() => { activeSync = null; });
     return activeSync;
   }
-  window.LiplipBackend = { syncNow, resetIdentity(){ localStorage.removeItem(META_KEY); } };
-  window.addEventListener('load', () => setTimeout(syncNow, 400), { once: true });
+  window.LiplipBackend = {
+    syncNow,
+    suspend(){suspended=true;},
+    resume(){suspended=false;},
+    resetIdentity(){ localStorage.removeItem(META_KEY); }
+  };
+  window.addEventListener('load', () => setTimeout(async()=>{
+    try{await window.LiplipAccountSession?.ready}catch{}
+    syncNow();
+  }, 100), { once: true });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncNow(); });
   setInterval(syncNow, 15000);
 })();

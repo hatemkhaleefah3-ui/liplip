@@ -18,6 +18,15 @@
     const notice=root.querySelector('#auth-message');if(notice&&!state.message)notice.textContent=state.mode==='signup'?t('أنشئ حساباً حقيقياً لحفظ تقدمك على أجهزتك.','Create an account to keep progress across devices.'):t('سجّل الدخول لمتابعة تقدمك المحفوظ.','Sign in to continue your saved progress.');
   }
 
+  function clearLocalAccount(){
+    window.LiplipBackend?.suspend?.();
+    for(const key of ['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'])localStorage.removeItem(key);
+    sessionStorage.removeItem('liplip-preview');
+    try{state.progress=LiplipProgress.hydrate(null)}catch{}
+    state.profile=null;
+    state.guest=false;
+  }
+
   UI.registerFeature('backend-auth-v49',{mount:({root})=>decorate(root)});
 
   document.addEventListener('submit',async e=>{
@@ -31,6 +40,7 @@
       const {r,data}=await request(path,{email,password});
       if(!r.ok){const el=document.querySelector('#auth-message');if(el){el.classList.add('error');el.textContent=data?.error?.message||t('تعذّر تسجيل الدخول.','Authentication failed.')}return;}
       localStorage.removeItem('liplip-backend-meta-v1');
+      window.LiplipBackend?.resume?.();
       state.guest=false;
       if(state.mode==='signup'){
         state.profile={...(state.profile||{}),email};state.page='profile';if(typeof save==='function')save();render();
@@ -46,7 +56,7 @@
 
   document.addEventListener('click',e=>{
     const logout=e.target.closest?.('[data-action="logout"],[data-v28="logout"]');if(!logout)return;
+    clearLocalAccount();
     fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',keepalive:true}).catch(()=>{});
-    localStorage.removeItem('liplip-backend-meta-v1');
   },true);
 })();

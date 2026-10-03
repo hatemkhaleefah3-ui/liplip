@@ -33,7 +33,8 @@ assert.match(social,/identity\.emailVerified === true/,'automatic email account 
 assert.match(social,/existingUser\(context, userIdHint\)/,'state user hint is checked against the database');
 
 const backendClient=read('backend-client.js');
-assert.match(backendClient,/else sessionStorage\.removeItem\('liplip-preview'\)/,'remote state deletion clears stale preview state');
+assert.doesNotMatch(backendClient,/sessionStorage\.getItem\('liplip-preview'\)/,'session-only preview state is not synchronized as durable account data');
+assert.match(backendClient,/liplip-account-state-v1/,'durable account profile state participates in backend synchronization');
 assert.match(backendClient,/if \(activeSync\) return activeSync/,'backend synchronization is single-flight');
 assert.match(backendClient,/activeSync = runSync\(\)\.finally/);
 
