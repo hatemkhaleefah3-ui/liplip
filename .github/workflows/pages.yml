@@ -26,7 +26,6 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs');
-          const path = require('node:path');
           const { spawnSync } = require('node:child_process');
 
           const fail = message => {
@@ -108,12 +107,32 @@ jobs:
           }, null, 2));
           NODE
 
-      - name: Run regression test suite
-        shell: bash
-        run: |
-          set -euo pipefail
-          for test_file in test/*.test.js; do
-            echo "::group::$test_file"
-            node "$test_file"
-            echo "::endgroup::"
-          done
+  tests:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        file:
+          - test/closet.test.js
+          - test/content-clear.test.js
+          - test/course.test.js
+          - test/frontend-architecture.test.js
+          - test/grammar-redesign.test.js
+          - test/image-content-system.test.js
+          - test/image.test.js
+          - test/import.test.js
+          - test/lesson.test.js
+          - test/progress.test.js
+          - test/reception-learning.test.js
+          - test/reception-template-v18.test.js
+          - test/study-exam-ui-regression.test.js
+          - test/study-import-regression.test.js
+          - test/study-treasure-path-v113.test.js
+          - test/talk.test.js
+          - test/vocab-image-card.test.js
+    steps:
+      - name: Check out site
+        uses: actions/checkout@v4
+      - name: Run ${{ matrix.file }}
+        run: node "${{ matrix.file }}"
