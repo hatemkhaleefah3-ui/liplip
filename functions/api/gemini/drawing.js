@@ -1,3 +1,5 @@
+import { readJson } from '../../_lib/http.js';
+
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const NUMBER_WORDS = new Set(['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven','twenty-eight','twenty-nine','thirty','thirty-one','thirty-two','thirty-three','thirty-four']);
 
@@ -23,7 +25,8 @@ export async function onRequestPost({ request, env }) {
   if (!env.GEMINI_API_KEY) return json({ error: 'gemini_not_configured' }, 503);
   if (request.headers.get('sec-fetch-site') === 'cross-site') return json({ error: 'forbidden' }, 403);
   let body;
-  try { body = await request.json(); } catch { return json({ error: 'invalid_json' }, 400); }
+  try { body = await readJson(request, 5 * 1024 * 1024); }
+  catch (e) { return json({ error: e.code || 'invalid_json' }, e.status || 400); }
 
   const sourceItems = Array.isArray(body?.items) ? body.items.slice(0, 2) : [body];
   if (!sourceItems.length || sourceItems.length > 2) return json({ error: 'invalid_drawing_input' }, 400);
@@ -41,9 +44,9 @@ export async function onRequestPost({ request, env }) {
   const model = env.GEMINI_DRAWING_MODEL || 'gemini-3.5-flash';
   let response;
   try {
-    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`, {
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify({
         contents: [{ role: 'user', parts }],
         generationConfig: {
