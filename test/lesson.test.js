@@ -66,7 +66,7 @@ assert.equal(heard.text,'goodbye');
 click('zone','audio-question',{process:'checkpointListen',index:'1'});
 assert.match(app.innerHTML,/aria-pressed="false"/);
 submit('zone-quiz-form',{cl1:'0',cl2:'1'});assert.match(app.innerHTML,/التحية والسؤال عن الحال/);
-assert.match(app.innerHTML,/بناء الجملة/);submit('zone-quiz-form',{gt:'0'});
+assert.match(app.innerHTML,/قانون تكوين الجملة العادية/);submit('zone-quiz-form',{gt:'0'});
 assert.match(app.innerHTML,/أثبت ما تعلّمته/);
 submit('zone-quiz-form',{e1:'1',e2:'0',e3:'hello'});
 assert.match(app.innerHTML,/تم إنجاز الصندوق/);
