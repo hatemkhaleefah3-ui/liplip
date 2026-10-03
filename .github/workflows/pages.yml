@@ -113,3 +113,6 @@ jobs:
 
       - name: Test Study exam UI regression
         run: node test/study-exam-ui-regression.test.js
+
+      - name: Test Study treasure path regression
+        run: node test/study-treasure-path-v113.test.js
