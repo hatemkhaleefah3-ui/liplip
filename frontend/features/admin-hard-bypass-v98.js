@@ -30,7 +30,7 @@
 
   function allBoxIds(){
     const ids=[];
-    for(let level=1;level<=5;level++)for(let box=1;box<=200;box++)ids.push((level-1)*200+box);
+    for(let level=1;level<=5;level++)for(let box=1;box<=50;box++)ids.push((level-1)*200+box);
     return ids;
   }
 
