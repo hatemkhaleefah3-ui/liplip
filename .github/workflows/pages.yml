@@ -134,6 +134,7 @@ jobs:
           - test/study-closet-v115.test.js
           - test/home-simple-milestones-v116.test.js
           - test/guest-study-corrections-v117.test.js
+          - test/grammar-journey-v119.test.js
           - test/talk.test.js
           - test/vocab-image-card.test.js
     steps:
