@@ -152,3 +152,17 @@ jobs:
           name: test-output-${{ strategy.job-index }}
           path: test-output.txt
           retention-days: 7
+
+  audit-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out site
+        uses: actions/checkout@v4
+      - name: Pack source tree
+        run: tar --exclude=.git --exclude=source-tree.tar.gz -czf source-tree.tar.gz .
+      - name: Upload source tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-tree
+          path: source-tree.tar.gz
+          retention-days: 1
