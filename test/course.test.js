@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
-const root=__dirname,storage=new Map();
+const root=path.join(__dirname,'..'),storage=new Map();
 const context={
   console,URL,Date,Number,String,Object,Array,Set,Map,Math,JSON,structuredClone,
   localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
