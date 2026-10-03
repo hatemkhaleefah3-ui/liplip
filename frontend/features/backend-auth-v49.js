@@ -3,6 +3,7 @@
   'use strict';
   const UI=window.LiplipFrontend;if(!UI||typeof state==='undefined')return;
   const t=(ar,en)=>UI.t(ar,en);
+  const ACCOUNT_KEYS=['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'];
   let busy=false;
 
   async function request(path,body){
@@ -18,26 +19,16 @@
     const notice=root.querySelector('#auth-message');if(notice&&!state.message)notice.textContent=state.mode==='signup'?t('أنشئ حساباً حقيقياً لحفظ تقدمك على أجهزتك.','Create an account to keep progress across devices.'):t('سجّل الدخول لمتابعة تقدمك المحفوظ.','Sign in to continue your saved progress.');
   }
 
-  function clearLocalAccount(){
+  function resetLocalAccount(profile){
     window.LiplipBackend?.suspend?.();
-    for(const key of ['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'])localStorage.removeItem(key);
+    for(const key of ACCOUNT_KEYS)localStorage.removeItem(key);
     sessionStorage.removeItem('liplip-preview');
     try{state.progress=LiplipProgress.hydrate(null)}catch{}
-    state.profile=null;
+    state.profile=profile;
     state.guest=false;
   }
-
-  function resetNewAccountState(email){
-    // A new registration must never inherit literacy flags, completed boxes, or progress
-    // left by a guest/previous account in this browser.
-    window.LiplipBackend?.suspend?.();
-    for(const key of ['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'])localStorage.removeItem(key);
-    sessionStorage.removeItem('liplip-preview');
-    try{state.progress=LiplipProgress.hydrate(null)}catch{}
-    state.profile={email};
-    state.guest=false;
-    state.nav='الرئيسية';
-  }
+  const clearLocalAccount=()=>resetLocalAccount(null);
+  function resetNewAccountState(email){resetLocalAccount({email});state.nav='الرئيسية'}
 
   UI.registerFeature('backend-auth-v49',{mount:({root})=>decorate(root)});
 
