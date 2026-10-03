@@ -1,5 +1,5 @@
 {
-  "build": 119,
+  "build": 120,
   "sources": [
     "frontend/styles/tokens.css",
     "styles.css",
@@ -33,6 +33,7 @@
     "study-closet-v115.css",
     "home-simple-milestones-v116.css",
     "guest-study-corrections-v117.css",
-    "grammar-journey-v119.css"
+    "grammar-journey-v119.css",
+    "grammar-exam-flow-v120.css"
   ]
 }
