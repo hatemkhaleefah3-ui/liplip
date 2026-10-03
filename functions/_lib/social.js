@@ -81,7 +81,12 @@ export async function completeIdentityLogin(context, identity, { userIdHint = nu
   if (!userId && userIdHint) userId = await existingUser(context, userIdHint);
   if (!userId && useCurrentSession && current) userId = current.userId;
 
-  if (!await identityOwner(context,provider,subject)) {
+  // Re-read immediately before claiming ownership. If another callback attached this identity
+  // after our first read, its owner is authoritative and replaces any candidate chosen above.
+  const ownerBeforeClaim=await identityOwner(context,provider,subject);
+  if(ownerBeforeClaim){
+    userId=ownerBeforeClaim;
+  }else{
     const candidate=userId||crypto.randomUUID(),isNew=!userId;
     try{
       const statements=[];
