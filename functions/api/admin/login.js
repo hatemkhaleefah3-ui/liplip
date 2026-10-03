@@ -1,11 +1,9 @@
 import { createAdminSession } from '../../_lib/admin.js';
 import { cookie, error, json, readJson, sha256 } from '../../_lib/http.js';
-import { clearFailures, recordFailure, throttle } from '../../_lib/password.js';
+import { clearFailures, throttle } from '../../_lib/password.js';
 
 function clientAddress(request) {
-  const direct = String(request.headers.get('cf-connecting-ip') || '').trim();
-  if (direct) return direct;
-  return String(request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  return String(request.headers.get('cf-connecting-ip') || '').trim() || 'unknown';
 }
 
 export async function onRequestPost(context) {
@@ -21,10 +19,7 @@ export async function onRequestPost(context) {
 
   const supplied = String(body.password || '');
   const [a,b] = await Promise.all([sha256(supplied), sha256(String(context.env.ADMIN_PASSWORD))]);
-  if (!supplied || a !== b) {
-    await recordFailure(context, key);
-    return error(401, 'invalid_admin_credentials', 'Invalid admin credentials.');
-  }
+  if (!supplied || a !== b) return error(401, 'invalid_admin_credentials', 'Invalid admin credentials.');
 
   await clearFailures(context, key);
   const session = await createAdminSession(context);
