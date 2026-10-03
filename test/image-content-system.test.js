@@ -68,7 +68,7 @@ const result=Z.submit('zone-quiz-form',{fields:{
   'q-match:0':'0','q-match:1':'1','q-match:2':'2','q-match:3':'3',
   'q-image-words':'0'
 }},()=>{});
-assert.deepEqual(result,{});
+assert.equal(Object.keys(result).length,0);
 html=Z.render({snapshot:{}});
 assert.match(html,/zone-listen-image-card/,'listen image item has dedicated image-only design');
 assert.doesNotMatch(html,/zone-pronounce-word/,'listen image item hides English/Arabic text');
