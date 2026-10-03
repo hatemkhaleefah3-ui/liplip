@@ -1,0 +1,11 @@
+/* Build 117: temporary Guest status and answer-flag states. */
+.v117-guest-note{display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:14px 18px;border:1px solid #e0c9a0;border-radius:18px;background:linear-gradient(135deg,#fff8e8,#fffdf7);color:#694f2f;box-shadow:0 8px 24px rgba(112,83,40,.08)}
+.v117-guest-note b{white-space:nowrap;color:#8e6027}.v117-guest-note span{font-size:.87rem;line-height:1.6}
+.v117-study-correction{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin:18px 0 0;padding:16px;border:2px solid #e68b8b;border-radius:20px;background:linear-gradient(135deg,#fff1f2,#fff9f5);color:#7e3546}
+.v117-study-correction>span{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#d95768;color:#fff;font-size:1.4rem;box-shadow:0 7px 0 #ac3f50}
+.v117-study-correction strong{display:block;font-size:1rem}.v117-study-correction p{margin:4px 0 0;font-size:.86rem;line-height:1.55}
+.v117-study-correction button{min-height:44px;padding:0 18px;border:0;border-radius:14px;background:#7d55ad;color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.v117-exam-flag{display:flex;flex-direction:column;gap:3px;margin:0 0 10px;padding:10px 12px;border-radius:13px;background:#fff0cf;color:#7d531e;text-align:start}
+.v117-exam-flag b,.v117-inline-flag{font-weight:900}.v117-exam-flag span{font-size:.82rem;line-height:1.5}
+.v117-inline-flag{display:block;width:max-content;max-width:100%;margin:0 0 9px;padding:7px 11px;border-radius:999px;background:#ffe4b5;color:#784d18;font-size:.78rem}
+@media(max-width:650px){.v117-guest-note{align-items:flex-start;flex-direction:column;gap:4px}.v117-study-correction{grid-template-columns:auto 1fr}.v117-study-correction button{grid-column:1/-1;width:100%}}
