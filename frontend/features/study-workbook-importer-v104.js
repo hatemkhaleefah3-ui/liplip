@@ -1,4 +1,4 @@
-/* v104: standalone unified study workbook importer for the website-ready schema. */
+/* Build 111: parser/storage service for the unified study workbook. UI ownership belongs to the v107 controller. */
 (() => {
   'use strict';
 
@@ -44,8 +44,30 @@
     Story_Questions:['Level','Box','Order','Question','Correct Answer','Option 1','Option 2','Option 3','Option 4']
   };
 
+  let storeCacheRaw=null;
+  let storeCache={};
   function readStore(){
-    try{const v=JSON.parse(localStorage.getItem(STORE)||'{}');return v&&typeof v==='object'?v:{}}catch{return {}}
+    const raw=localStorage.getItem(STORE)||'{}';
+    if(raw===storeCacheRaw)return storeCache;
+    try{
+      const parsed=JSON.parse(raw);
+      storeCache=parsed&&typeof parsed==='object'?parsed:{};
+    }catch{
+      storeCache={};
+    }
+    storeCacheRaw=raw;
+    return storeCache;
+  }
+  function writeStore(value){
+    const serialized=JSON.stringify(value);
+    try{
+      localStorage.setItem(STORE,serialized);
+    }catch(error){
+      if(error?.name==='QuotaExceededError')throw Error(t('مساحة التخزين المحلية ممتلئة. صدّر بياناتك أو امسح محتوى دراسة قديم ثم حاول مجدداً.','Browser storage is full. Export your data or clear old Study content, then retry.'));
+      throw error;
+    }
+    storeCacheRaw=serialized;
+    storeCache=value;
   }
   function clone(v){try{return structuredClone(v)}catch{return JSON.parse(JSON.stringify(v||{}))}}
   function baseContent(id){
@@ -248,7 +270,7 @@
     if(!updates.size)throw Error(t('لم يتم العثور على محتوى مملوء في الملف.','No filled content was found in the workbook.'));
     const store=readStore();
     for(const [id,c] of updates)store[String(id)]=c;
-    localStorage.setItem(STORE,JSON.stringify(store));
+    writeStore(store);
 
     const verify=readStore();
     for(const id of updates.keys())if(!verify[String(id)])throw Error(t('فشل التحقق من حفظ المحتوى في المتصفح.','Browser storage verification failed.'));
@@ -335,8 +357,7 @@
     paintStatus(status);
   }
 
-  let queued=false;function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;patchUI()})}
-  const root=document.getElementById('app')||document.body;new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-  window.LiplipStudyWorkbookImporter104={importWorkbook,chooseAndImport};
+  // Do not install another MutationObserver or content-control button here.
+  // Multiple controllers previously removed and recreated each other's controls every frame.
+  window.LiplipStudyWorkbookImporter104={importWorkbook};
 })();
