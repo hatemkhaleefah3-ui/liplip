@@ -27,6 +27,18 @@
     state.guest=false;
   }
 
+  function resetNewAccountState(email){
+    // A new registration must never inherit literacy flags, completed boxes, or progress
+    // left by a guest/previous account in this browser.
+    window.LiplipBackend?.suspend?.();
+    for(const key of ['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'])localStorage.removeItem(key);
+    sessionStorage.removeItem('liplip-preview');
+    try{state.progress=LiplipProgress.hydrate(null)}catch{}
+    state.profile={email};
+    state.guest=false;
+    state.nav='الرئيسية';
+  }
+
   UI.registerFeature('backend-auth-v49',{mount:({root})=>decorate(root)});
 
   document.addEventListener('submit',async e=>{
@@ -39,13 +51,17 @@
     try{
       const {r,data}=await request(path,{email,password});
       if(!r.ok){const el=document.querySelector('#auth-message');if(el){el.classList.add('error');el.textContent=data?.error?.message||t('تعذّر تسجيل الدخول.','Authentication failed.')}return;}
-      localStorage.removeItem('liplip-backend-meta-v1');
-      window.LiplipBackend?.resume?.();
-      state.guest=false;
       if(state.mode==='signup'){
-        state.profile={...(state.profile||{}),email};state.page='profile';if(typeof save==='function')save();render();
+        resetNewAccountState(email);
+        state.page='profile';
+        if(typeof save==='function')save();
+        render();
+        window.LiplipBackend?.resume?.();
         setTimeout(()=>window.LiplipBackend?.syncNow?.(),200);
       }else{
+        localStorage.removeItem('liplip-backend-meta-v1');
+        window.LiplipBackend?.resume?.();
+        state.guest=false;
         const result=await window.LiplipBackend?.syncNow?.();
         if(!result||result.action!=='initial-pull'){state.page='app';state.nav='الرئيسية';render();}
       }
