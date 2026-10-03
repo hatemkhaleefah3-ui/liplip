@@ -68,7 +68,7 @@ export async function onRequestPost({ request, env }) {
   const source = String(body?.source || '').trim();
   const level = Number(body?.level), box = Number(body?.box);
   if (!Object.hasOwn(LIMITS, kind) || !source || source.length > LIMITS[kind]) return json({ error: 'invalid_source' }, 400);
-  if (!Number.isInteger(level) || level < 1 || level > 5 || !Number.isInteger(box) || box < 1 || box > 200) return json({ error: 'invalid_location' }, 400);
+  if (!Number.isInteger(level) || level < 1 || level > 5 || !Number.isInteger(box) || box < 1 || box > 50) return json({ error: 'invalid_location' }, 400);
   if (kind === 'video' && !/^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(source)) return json({ error: 'invalid_youtube_url' }, 400);
 
   const model = env.GEMINI_COURSE_MODEL || 'gemini-3.8-flash';
