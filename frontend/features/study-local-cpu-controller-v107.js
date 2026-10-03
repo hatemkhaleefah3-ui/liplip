@@ -1,4 +1,4 @@
-/* v107: local-device study content controller. Opens admin content control reliably and imports workbook entirely on the user's device CPU. */
+/* Build 111: the single owner of Study content-control UI and local workbook imports. */
 (() => {
   'use strict';
 
@@ -77,12 +77,22 @@
   function chooseFile(){
     return new Promise(resolve=>{
       const input=document.createElement('input');
+      let settled=false;
+      const finish=file=>{
+        if(settled)return;
+        settled=true;
+        input.remove();
+        resolve(file||null);
+      };
       input.type='file';
       input.accept='.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       input.style.cssText='position:fixed;left:-10000px;top:-10000px;opacity:0;pointer-events:none';
       document.body.appendChild(input);
-      input.addEventListener('change',()=>{const file=input.files?.[0]||null;input.remove();resolve(file)},{once:true});
+      input.addEventListener('change',()=>finish(input.files?.[0]),{once:true});
       input.click();
+      setTimeout(()=>window.addEventListener('focus',()=>setTimeout(()=>{
+        if(!input.files?.length)finish(null);
+      },300),{once:true}),0);
     });
   }
 
@@ -108,8 +118,11 @@
       await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
       const stats=await importer.importWorkbook(file);
       const after=localStorage.getItem(STORE)||'';
-      if(!after || after===before) throw Error(t('لم يتم حفظ أي محتوى جديد على الجهاز.','No new content was saved on the device.'));
-      setStatus('success',t('✓ تم استيراد Excel بنجاح على الجهاز.','✓ Excel imported successfully on this device.'),t(`الصناديق: ${stats?.boxes??'-'} · المفردات: ${stats?.vocabulary??'-'} · أسئلة القواعد: ${stats?.grammarQuestions??'-'} · الفيديو: ${stats?.videoQuestions??'-'} · القصة: ${stats?.storyQuestions??'-'}`,`Boxes: ${stats?.boxes??'-'} · Vocabulary: ${stats?.vocabulary??'-'} · Grammar Q: ${stats?.grammarQuestions??'-'} · Video Q: ${stats?.videoQuestions??'-'} · Story Q: ${stats?.storyQuestions??'-'}`));
+      if(!after) throw Error(t('تعذر التحقق من المحتوى المحفوظ.','Saved content could not be verified.'));
+      const saved=JSON.parse(after);
+      if(!saved||typeof saved!=='object'||!Object.keys(saved).length) throw Error(t('تعذر التحقق من المحتوى المحفوظ.','Saved content could not be verified.'));
+      const unchanged=after===before;
+      setStatus('success',t('✓ تم استيراد Excel بنجاح على الجهاز.','✓ Excel imported successfully on this device.'),t(`الصناديق: ${stats?.boxes??'-'} · المفردات: ${stats?.vocabulary??'-'} · أسئلة القواعد: ${stats?.grammarQuestions??'-'} · الفيديو: ${stats?.videoQuestions??'-'} · القصة: ${stats?.storyQuestions??'-'}${unchanged?' · المحتوى مطابق للنسخة المحفوظة':''}`,`Boxes: ${stats?.boxes??'-'} · Vocabulary: ${stats?.vocabulary??'-'} · Grammar Q: ${stats?.grammarQuestions??'-'} · Video Q: ${stats?.videoQuestions??'-'} · Story Q: ${stats?.storyQuestions??'-'}${unchanged?' · Content already matched the saved copy':''}`));
     }catch(error){
       setStatus('error',t('✕ فشل استيراد Excel.','✕ Excel import failed.'),String(error?.message||error||'Unknown error'));
       console.error('[liplip] v107 local CPU import failed',error);
@@ -124,7 +137,9 @@
     const root=panel();
     if(!root) return;
 
-    // Remove all older file inputs/buttons so there is exactly one import path.
+    // Remove legacy status surfaces and controls so exactly one controller mutates this panel.
+    root.querySelectorAll('.v100-import-status,.v103-import-status,.v104-import-status').forEach(node=>node.remove());
+    document.querySelectorAll('.v100-import-toast,.v103-import-toast,.v104-import-toast').forEach(node=>node.remove());
     root.querySelectorAll('input[type="file"]').forEach(input=>{
       const label=input.closest('label');
       if(label) label.remove(); else input.remove();
@@ -141,7 +156,7 @@
       actions.appendChild(b);
     }
 
-    paintStatus(readStatus()||{kind:'ready',title:t('المستورد المحلي جاهز · build 107','Local importer ready · build 107'),detail:t('المعالجة والحفظ تتم على جهاز المستخدم، بدون انتظار الخادم.','Processing and saving run on the user device, without waiting for the server.')});
+    paintStatus(readStatus()||{kind:'ready',title:t('المستورد المحلي جاهز · build 111','Local importer ready · build 111'),detail:t('المعالجة والحفظ تتم على جهاز المستخدم، بدون انتظار الخادم.','Processing and saving run on the user device, without waiting for the server.')});
   }
 
   // Register before the legacy importer loads. Capture manager/import clicks and keep them local/reliable.

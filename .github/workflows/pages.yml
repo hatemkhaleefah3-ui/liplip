@@ -107,3 +107,6 @@ jobs:
             stylesheetSources: manifest.sources.length
           }, null, 2));
           NODE
+
+      - name: Test Study importer regression
+        run: node test/study-import-regression.test.js
