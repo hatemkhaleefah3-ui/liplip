@@ -1,36 +1,109 @@
-name: Deploy liplip to GitHub Pages
+name: Validate liplip static site
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Check out site
         uses: actions/checkout@v4
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: .
-      - name: Deploy site
-        id: deployment
-        uses: actions/deploy-pages@v4
+
+      - name: Validate build, assets, and JavaScript
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { spawnSync } = require('node:child_process');
+
+          const fail = message => {
+            console.error(`::error::${message}`);
+            process.exitCode = 1;
+          };
+
+          const html = fs.readFileSync('index.html', 'utf8');
+          const build = html.match(/<meta name="liplip-build" content="(\d+)" \/>/)?.[1];
+          if (!build) fail('index.html is missing the numeric liplip-build meta tag.');
+
+          const refs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+            .map(match => match[1])
+            .filter(ref => !/^(?:https?:|data:|#)/.test(ref));
+
+          const missing = [];
+          let initialBytes = 0;
+          for (const ref of refs) {
+            const file = decodeURIComponent(ref.split(/[?#]/, 1)[0].replace(/^\//, ''));
+            if (!fs.existsSync(file)) {
+              missing.push(file);
+              continue;
+            }
+            initialBytes += fs.statSync(file).size;
+          }
+          if (missing.length) fail(`Missing local assets: ${[...new Set(missing)].join(', ')}`);
+
+          const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)]
+            .map(match => match[1])
+            .filter(ref => !/^https?:/.test(ref));
+          const staleScripts = scripts.filter(ref => new URL(ref, 'https://liplip.invalid/').searchParams.get('v') !== build);
+          if (staleScripts.length) fail(`Scripts without build version ${build}: ${staleScripts.join(', ')}`);
+
+          const styles = [...html.matchAll(/<link\s+rel="stylesheet"\s+href="([^"]+)"/g)]
+            .map(match => match[1])
+            .filter(ref => !/^https?:/.test(ref));
+          if (styles.length !== 1 || styles[0] !== `assets/liplip-v${build}.css`) {
+            fail(`Expected one local stylesheet bundle for build ${build}; found: ${styles.join(', ')}`);
+          }
+
+          if (refs.length > 75) fail(`Initial local asset count regressed to ${refs.length}; limit is 75.`);
+          if (initialBytes > 1_500_000) fail(`Initial local payload regressed to ${initialBytes} bytes; limit is 1,500,000.`);
+
+          for (const ref of scripts) {
+            const file = ref.split(/[?#]/, 1)[0].replace(/^\//, '');
+            const checked = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+            if (checked.status !== 0) {
+              process.stderr.write(checked.stderr || checked.stdout || '');
+              fail(`JavaScript syntax check failed: ${file}`);
+            }
+          }
+
+          const manifest = JSON.parse(fs.readFileSync('assets/styles.manifest.json', 'utf8'));
+          if (String(manifest.build) !== build) fail(`Stylesheet manifest build ${manifest.build} does not match ${build}.`);
+          const banner =
+            `/* liplip build ${build} stylesheet bundle.\n` +
+            ` * Generated from ${manifest.sources.length} ordered source stylesheets to preserve cascade order.\n` +
+            ' * Do not edit directly; update source stylesheets and regenerate the bundle.\n' +
+            ' */\n';
+          const generated = banner + manifest.sources.map(file => {
+            if (!fs.existsSync(file)) {
+              fail(`Stylesheet source is missing: ${file}`);
+              return '';
+            }
+            return `\n/* ===== ${file} ===== */\n${fs.readFileSync(file, 'utf8')}\n`;
+          }).join('');
+          const bundlePath = `assets/liplip-v${build}.css`;
+          if (fs.readFileSync(bundlePath, 'utf8') !== generated) {
+            fail(`${bundlePath} is stale; regenerate it from assets/styles.manifest.json.`);
+          }
+
+          if (process.exitCode) process.exit(process.exitCode);
+          console.log(JSON.stringify({
+            build,
+            localAssets: refs.length,
+            scripts: scripts.length,
+            initialBytes,
+            stylesheetSources: manifest.sources.length
+          }, null, 2));
+          NODE
