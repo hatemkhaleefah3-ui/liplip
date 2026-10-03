@@ -76,7 +76,7 @@ events.submit({target:{id:'course-exam-form',dataset:{phase:'vocabulary'},values
 assert.match(app.innerHTML,/المرحلة 02 · العملية 01/);
 assert.match(app.innerHTML,/grammar-step-card law normal/,'grammar article opens on its first paginated law');
 const grammarItems=C.grammarItems(C.getContent(1).grammar.article);
-assert.deepEqual(grammarItems.filter(x=>x.kind==='law').map(x=>x.type),['normal','negative','question']);
+assert.equal(JSON.stringify([...grammarItems.filter(x=>x.kind==='law').map(x=>x.type)]),JSON.stringify(['normal','negative','question']));
 assert.equal(grammarItems.filter(x=>x.kind==='example').length,10);
 assert.ok(grammarItems.filter(x=>x.kind==='example').every(x=>['easy','medium','difficult'].includes(x.difficulty)));
 assert.match(app.innerHTML,/data-phase="vocabulary"/,'completed phase remains available from the toggle');
