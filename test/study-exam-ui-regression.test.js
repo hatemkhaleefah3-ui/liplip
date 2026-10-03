@@ -20,7 +20,7 @@ assert.match(localExam, /S\.feedback\|\|''/, 'Speech feedback must participate i
 assert.match(redesign, /\.v112-speech-actions/, 'Pronunciation action styles are required.');
 assert.match(redesign, /\.v112-vocab-actions/, 'Vocabulary action styles are required.');
 assert.match(redesign, /\.c57-options button>b\{display:none!important\}/, 'Legacy alphabet badges must stay hidden.');
-assert.match(redesign, /@media \(max-width:390px\)/, 'Narrow mobile layouts must be covered.');
+assert.match(redesign, /@media\s*\(max-width:390px\)/, 'Narrow mobile layouts must be covered.');
 
 assert.match(index, /<meta name="liplip-build" content="112" \/>/);
 assert.match(index, /assets\/liplip-v112\.css/);
