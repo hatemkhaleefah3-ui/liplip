@@ -31,7 +31,13 @@ export async function consumeOAuthState(context, provider, suppliedState) {
   return row;
 }
 
-export async function completeIdentityLogin(context, identity) {
+async function existingUser(context, userId) {
+  if (!userId) return null;
+  const row = await context.env.DB.prepare('SELECT id FROM users WHERE id=? LIMIT 1').bind(userId).first();
+  return row?.id || null;
+}
+
+export async function completeIdentityLogin(context, identity, { userIdHint = null, useCurrentSession = true } = {}) {
   const provider = String(identity.provider || '');
   const subject = String(identity.subject || '');
   if (!provider || !subject) throw new Error('invalid_social_identity');
@@ -44,11 +50,12 @@ export async function completeIdentityLogin(context, identity) {
   if (existingIdentity) userId = existingIdentity.userId;
 
   const current = await requireSession(context);
-  if (!userId && identity.email) {
+  if (!userId && identity.email && identity.emailVerified === true) {
     const account = await context.env.DB.prepare('SELECT user_id AS userId FROM user_accounts WHERE email=? LIMIT 1').bind(String(identity.email).toLowerCase()).first();
     if (account) userId = account.userId;
   }
-  if (!userId && current) userId = current.userId;
+  if (!userId && userIdHint) userId = await existingUser(context, userIdHint);
+  if (!userId && useCurrentSession && current) userId = current.userId;
 
   if (!userId) {
     userId = crypto.randomUUID();
