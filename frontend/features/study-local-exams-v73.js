@@ -1,4 +1,4 @@
-/* v73: local study/exam engine. No Gemini in vocabulary, grammar, video, or story phases. */
+/* Build 112: local study/exam engine with accessible, playful vocabulary interactions. */
 (() => {
   'use strict';
   if (!window.LiplipCourse || !window.LiplipCourse57) return;
@@ -64,18 +64,50 @@
   function feedback(q){if(!S.revealed)return'';const ok=Boolean(S.results[S.item]);return `<div class="c57-feedback ${ok?'correct':'wrong'}"><strong>${ok?T('صحيح','Correct'):T('غير صحيح — صحح إجابتك','Not correct — correct your answer')}</strong>${!ok?`<p>${T('الإجابة الصحيحة','Correct answer')}: <b>${esc(q.answer||q.word?.[q.type==='en_ar'?'ar':'en']||'')}</b></p>`:''}${S.feedback?`<p>${esc(S.feedback)}</p>`:''}</div>`}
   function nextButton(total){if(!S.revealed||!S.results[S.item])return'';if(S.item>=total-1)return `<button class="primary" data-v73-summary>${T('عرض النتيجة','Show result')}</button>`;return `<button class="primary" data-v73-next>${T('التالي','Next')}</button>`}
 
-  function renderVocab(){ensureExam('vocabulary');const list=S.exam||[];if(S.answer==='v73-summary')return summary('vocabulary');const q=list[S.item];if(!q)return empty(T('لا توجد كلمات مفردات في هذا الصندوق.','No vocabulary words are available in this box.'));let body='';if(q.type==='en_ar')body=`<small>ENGLISH → العربية</small><h2 dir="ltr">${esc(q.word.en)}</h2><label class="c57-correction"><span>${T('اكتب الترجمة العربية','Write the Arabic translation')}</span><input id="v73-answer" dir="rtl" autocomplete="off" value="${esc(S.answer||'')}"></label>`;else if(q.type==='ar_en')body=`<small>العربية → ENGLISH</small><h2>${esc(q.word.ar)}</h2><label class="c57-correction"><span>${T('اكتب الترجمة الإنجليزية','Write the English translation')}</span><input id="v73-answer" dir="ltr" autocomplete="off" value="${esc(S.answer||'')}"></label>`;else body=`<small>PRONUNCIATION</small><h2 dir="ltr">${esc(q.word.en)}</h2><div class="v73-speech-actions"><button data-v73-hear data-text="${esc(q.word.en)}">🔈 ${T('استمع','Hear')}</button><button class="primary" data-v73-pronounce data-expected="${esc(q.word.en)}">🎙 ${T('انطق الكلمة','Pronounce word')}</button></div>`;const check=q.type==='speak'?'':`<button class="primary" data-v73-check>${S.revealed&&!S.results[S.item]?T('تحقق مرة أخرى','Check again'):T('تحقق','Check')}</button>`;return examShell(T('اختبار المفردات','Vocabulary exam'),list.length,`<article class="c57-question">${body}${feedback(q)}</article><nav class="c57-question-next">${check}${nextButton(list.length)}</nav>`)}
+  function soundIcon(){
+    return '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z"/><path d="M15 9.5a4 4 0 0 1 0 5"/><path d="M18 7a7 7 0 0 1 0 10"/></svg>';
+  }
+  function micIcon(){
+    return '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg>';
+  }
+  function renderVocab(){
+    ensureExam('vocabulary');
+    const list=S.exam||[];
+    if(S.answer==='v73-summary')return summary('vocabulary');
+    const q=list[S.item];
+    if(!q)return empty(T('لا توجد كلمات مفردات في هذا الصندوق.','No vocabulary words are available in this box.'));
+    let body='';
+    if(q.type==='en_ar'){
+      body=`<div class="v112-vocab-prompt"><small>ENGLISH <i>→</i> العربية</small><h2 dir="ltr">${esc(q.word.en)}</h2></div><label class="c57-correction v112-vocab-write"><span>${T('اكتب الترجمة العربية','Write the Arabic translation')}</span><input id="v73-answer" dir="rtl" autocomplete="off" inputmode="text" value="${esc(S.answer||'')}"></label>`;
+    }else if(q.type==='ar_en'){
+      body=`<div class="v112-vocab-prompt"><small>العربية <i>→</i> ENGLISH</small><h2>${esc(q.word.ar)}</h2></div><label class="c57-correction v112-vocab-write"><span>${T('اكتب الترجمة الإنجليزية','Write the English translation')}</span><input id="v73-answer" dir="ltr" autocomplete="off" inputmode="text" value="${esc(S.answer||'')}"></label>`;
+    }else{
+      const listening=/Listening|استمع/.test(S.feedback||'');
+      body=`<div class="v112-pronounce-card ${listening?'is-listening':''}">
+        <div class="v112-sound-stage" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span>${micIcon()}</span></div>
+        <small>${T('تحدّي النطق','PRONUNCIATION CHALLENGE')}</small>
+        <h2 dir="ltr">${esc(q.word.en)}</h2>
+        <p>${T('استمع أولاً، ثم قل الكلمة بصوت واضح.','Listen first, then say the word clearly.')}</p>
+        <div class="v112-speech-actions">
+          <button type="button" data-v73-hear data-text="${esc(q.word.en)}" aria-label="${T('استمع إلى الكلمة','Hear the word')}">${soundIcon()}<span>${T('استمع','Listen')}</span></button>
+          <button type="button" class="primary ${listening?'is-listening':''}" data-v73-pronounce data-expected="${esc(q.word.en)}" aria-label="${T('ابدأ نطق الكلمة','Start pronunciation')}">${micIcon()}<span>${listening?T('أستمع إليك…','Listening…'):T('قل الكلمة','Say the word')}</span></button>
+        </div>
+      </div>`;
+    }
+    const check=q.type==='speak'?'':`<button class="primary" data-v73-check>${S.revealed&&!S.results[S.item]?T('تحقق مرة أخرى','Check again'):T('تحقق','Check')}</button>`;
+    return examShell(T('اختبار المفردات','Vocabulary exam'),list.length,`<article class="c57-question v112-vocab-question v112-${q.type}">${body}${feedback(q)}</article><nav class="c57-question-next v112-vocab-actions">${check}${nextButton(list.length)}</nav>`);
+  }
 
   function renderGrammar(){ensureExam('grammar');const list=S.exam||[];if(S.answer==='v73-summary')return summary('grammar');const q=list[S.item];if(!q)return empty(T('أضف جمل أمثلة للقواعد حتى ينشئ الموقع الأسئلة.','Add grammar example sentences so the site can build questions.'));return examShell(T('اختبار القواعد','Grammar exam'),list.length,`<article class="c57-question"><small>${T('من أمثلة القاعدة','From the grammar examples')}</small><h2 dir="ltr">${esc(q.prompt)}</h2><label class="c57-correction"><span>${T('اكتب الكلمة الناقصة','Write the missing word')}</span><input id="v73-answer" dir="ltr" autocomplete="off" value="${esc(S.answer||'')}"></label>${feedback(q)}</article><nav class="c57-question-next"><button class="primary" data-v73-check>${S.revealed&&!S.results[S.item]?T('تحقق مرة أخرى','Check again'):T('تحقق','Check')}</button>${nextButton(list.length)}</nav>`)}
 
-  function renderMedia(kind){ensureExam(kind);const list=S.exam||[];if(S.answer==='v73-summary')return summary(kind);const q=list[S.item];if(!q)return empty(T('لا توجد أسئلة اختيار من متعدد لهذا المحتوى. أضفها من مخطط Excel.','No multiple-choice questions are available. Add them with the Excel schema.'));const opts=shuffle([...new Set([q.answer,...q.options])]).slice(0,4);if(!q._opts)q._opts=opts;return examShell(kind==='video'?T('اختبار الفيديو','Video exam'):T('اختبار القصة','Story exam'),list.length,`<article class="c57-question"><small>MCQ</small><h2>${esc(q.prompt)}</h2><div class="c57-options">${q._opts.map((x,i)=>`<button data-v73-option data-value="${esc(x)}" class="${S.answer===x?'selected':''}"><b>${String.fromCharCode(65+i)}</b><span>${esc(x)}</span></button>`).join('')}</div>${feedback(q)}</article><nav class="c57-question-next"><button class="primary" data-v73-check ${S.answer==null?'disabled':''}>${S.revealed&&!S.results[S.item]?T('تحقق مرة أخرى','Check again'):T('تحقق','Check')}</button>${nextButton(list.length)}</nav>`)}
+  function renderMedia(kind){ensureExam(kind);const list=S.exam||[];if(S.answer==='v73-summary')return summary(kind);const q=list[S.item];if(!q)return empty(T('لا توجد أسئلة اختيار من متعدد لهذا المحتوى. أضفها من مخطط Excel.','No multiple-choice questions are available. Add them with the Excel schema.'));const opts=shuffle([...new Set([q.answer,...q.options])]).slice(0,4);if(!q._opts)q._opts=opts;return examShell(kind==='video'?T('اختبار الفيديو','Video exam'):T('اختبار القصة','Story exam'),list.length,`<article class="c57-question"><small>MCQ</small><h2>${esc(q.prompt)}</h2><div class="c57-options">${q._opts.map((x,i)=>`<button data-v73-option data-value="${esc(x)}" class="${S.answer===x?'selected':''}"><span>${esc(x)}</span></button>`).join('')}</div>${feedback(q)}</article><nav class="c57-question-next"><button class="primary" data-v73-check ${S.answer==null?'disabled':''}>${S.revealed&&!S.results[S.item]?T('تحقق مرة أخرى','Check again'):T('تحقق','Check')}</button>${nextButton(list.length)}</nav>`)}
 
   function examShell(title,total,body){return `<section class="c57-exam c57-ai-exam v73-local-exam"><header><span>${T('اختبار محلي','LOCAL EXAM')}</span><h1>${esc(title)}</h1><p>${T('سؤال واحد في كل مرة. يمكنك تصحيح الإجابة الخاطئة قبل المتابعة.','One question at a time. Wrong answers can be corrected before continuing.')}</p></header>${pager(total)}${body}</section>`}
   function empty(text){return `<section class="c57-ai-start v73-local-exam"><h1>${T('المحتوى غير مكتمل','Content needed')}</h1><p>${esc(text)}</p></section>`}
   function summary(kind){const total=(S.exam||[]).length,sc=score();return `<section class="c57-summary ${sc>=60?'pass':'fail'}"><span>${sc>=60?'✓':'↻'}</span><h1>${T('نتيجة الاختبار','Exam result')}</h1><strong>${sc}%</strong><p>${T(`أجبت عن ${S.results.filter(Boolean).length} من ${total} بشكل صحيح.`,`You answered ${S.results.filter(Boolean).length} of ${total} correctly.`)}</p><div class="c57-complete-actions"><button data-v73-retry data-kind="${kind}">${T('إعادة الاختبار','Retry exam')}</button><button class="primary" data-course="finish-exam" data-score="${sc}">${T('إنهاء والمتابعة','Finish and continue')}</button></div></section>`}
 
   function shouldCustom(){if(!S.boxId)return null;if(S.phase==='vocabulary'&&Number(S.process)===1)return'vocabulary';if(S.phase==='grammar'&&Number(S.process)===1)return'grammar';if(S.phase==='watchRead'&&Number(S.mediaStep)===1)return Number(S.process)===0?'video':'story';return null}
-  function mount(){const ws=document.querySelector('.c57-workspace');if(!ws)return;const kind=shouldCustom();if(kind){const key=`${examKey(kind)}:${S.item}:${S.revealed}:${S.answer}:${S.results?.[S.item]}`;if(ws.dataset.v73Key!==key){ws.dataset.v73Key=key;ws.innerHTML=kind==='vocabulary'?renderVocab():kind==='grammar'?renderGrammar():renderMedia(kind)}}else delete ws.dataset.v73Key;
+  function mount(){const ws=document.querySelector('.c57-workspace');if(!ws)return;const kind=shouldCustom();if(kind){const key=`${examKey(kind)}:${S.item}:${S.revealed}:${S.answer}:${S.results?.[S.item]}:${S.feedback||''}`;if(ws.dataset.v73Key!==key){ws.dataset.v73Key=key;ws.innerHTML=kind==='vocabulary'?renderVocab():kind==='grammar'?renderGrammar():renderMedia(kind)}}else delete ws.dataset.v73Key;
     document.querySelectorAll('.c57-manager p').forEach(p=>{if(/Gemini|جيميني/i.test(p.textContent||''))p.textContent=T('الموقع ينشئ الاختبارات محلياً من محتوى الصندوق. أسئلة الفيديو والقصة تأتي من ملف Excel.','The site builds exams locally from box content. Video and story MCQs come from the Excel file.')});
     document.querySelectorAll('.c57-schema-grid article').forEach(a=>{const b=a.querySelector('[data-phase="watchRead"]');if(b){const s=a.querySelector('small');if(s)s.textContent=HEADERS.watchRead.join(' · ')}});
     document.querySelectorAll('.c57-media p').forEach(p=>{p.textContent=(Number(S.process)===0)?T('شاهد بتركيز ثم ابدأ الأسئلة المحفوظة لهذا الصندوق.','Watch carefully, then answer the saved questions for this box.'):T('اقرأ النص ثم ابدأ الأسئلة المحفوظة لهذا الصندوق.','Read the story, then answer the saved questions for this box.')});
