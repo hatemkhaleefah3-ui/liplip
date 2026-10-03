@@ -132,6 +132,7 @@ jobs:
           - test/study-treasure-path-v113.test.js
           - test/progression-path-v114.test.js
           - test/study-closet-v115.test.js
+          - test/home-simple-milestones-v116.test.js
           - test/talk.test.js
           - test/vocab-image-card.test.js
     steps:
