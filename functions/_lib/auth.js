@@ -1,6 +1,7 @@
 import { getCookie, sha256 } from './http.js';
 
 export const REGISTERED_SESSION_DAYS = 365;
+const REGISTERED_REFRESH_THRESHOLD_DAYS = 60;
 
 export async function requireSession(context) {
   const token = getCookie(context.request, 'liplip_session');
@@ -29,6 +30,16 @@ async function createSessionForUser(context,userId,{maxAgeDays=365}={}){
     `INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`
   ).bind(tokenHash,userId,now,expiresAt).run();
   return {userId,token,tokenHash,expiresAt};
+}
+
+export async function refreshRegisteredSession(context,session){
+  if(!session||session.kind!=='registered'||!session.tokenHash)return {refreshed:false,expiresAt:session?.expiresAt||0};
+  const now=Date.now();
+  const threshold=REGISTERED_REFRESH_THRESHOLD_DAYS*24*60*60*1000;
+  if(Number(session.expiresAt)-now>threshold)return {refreshed:false,expiresAt:Number(session.expiresAt)||0};
+  const expiresAt=now+REGISTERED_SESSION_DAYS*24*60*60*1000;
+  const result=await context.env.DB.prepare('UPDATE sessions SET expires_at=? WHERE token_hash=?').bind(expiresAt,session.tokenHash).run();
+  return {refreshed:(result.meta?.changes||0)===1,expiresAt};
 }
 
 export async function createAnonymousSession(context) {
