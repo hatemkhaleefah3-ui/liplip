@@ -135,4 +135,20 @@ jobs:
       - name: Check out site
         uses: actions/checkout@v4
       - name: Run ${{ matrix.file }}
-        run: node "${{ matrix.file }}"
+        shell: bash
+        run: |
+          set +e
+          {
+            echo "TEST_FILE=${{ matrix.file }}"
+            node "${{ matrix.file }}"
+          } > test-output.txt 2>&1
+          status=$?
+          cat test-output.txt
+          exit "$status"
+      - name: Upload failing test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-${{ strategy.job-index }}
+          path: test-output.txt
+          retention-days: 7
