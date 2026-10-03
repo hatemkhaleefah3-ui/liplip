@@ -14,6 +14,10 @@ assert.match(passwordLib,/ELSE auth_attempts.count\+1/,'parallel attempts increm
 assert.match(adminLogin,/clearFailures\(context, key\)/,'successful admin login clears the limiter');
 assert.match(adminLogin,/cf-connecting-ip/,'admin limiter is scoped by Cloudflare client address');
 
+const whatsappSend=read('functions/api/auth/whatsapp/send.js');
+assert.match(whatsappSend,/WHERE whatsapp_otps\.last_sent_at <= \?/,'WhatsApp send cooldown is claimed atomically');
+assert.match(whatsappSend,/claimed\.meta\?\.changes/,'WhatsApp sender checks whether it won the cooldown claim');
+assert.match(whatsappSend,/DELETE FROM whatsapp_otps WHERE phone=\? AND code_hash=\?/,'send failures only remove the OTP created by that request');
 const whatsappVerify=read('functions/api/auth/whatsapp/verify.js');
 assert.match(whatsappVerify,/DELETE FROM whatsapp_otps WHERE phone=\? AND code_hash=\? AND expires_at>\? AND attempts<5/,'valid OTP is consumed atomically');
 assert.match(whatsappVerify,/UPDATE whatsapp_otps SET attempts=attempts\+1 WHERE phone=\? AND expires_at>\? AND attempts<5/,'wrong OTP attempt is claimed atomically');
