@@ -1,4 +1,3 @@
-/* v49: registered account authentication bridge. */
 (() => {
   'use strict';
   const UI=window.LiplipFrontend;if(!UI||typeof state==='undefined')return;
