@@ -24,6 +24,10 @@ assert.match(login,/REGISTERED_SESSION_MAX_AGE_SECONDS/,'password login uses per
 assert.match(register,/REGISTERED_SESSION_MAX_AGE_SECONDS/,'signup uses persistent cookie duration');
 assert.match(social,/REGISTERED_SESSION_MAX_AGE_SECONDS/,'social login uses persistent cookie duration');
 
+assert.match(register,/current=await requireSession\(context\),userId=crypto\.randomUUID\(\)/,'new registration gets a fresh user identity instead of promoting anonymous progress');
+assert.doesNotMatch(register,/current\?\.kind==='anonymous'\?current\.userId/,'anonymous user state is never inherited by a new account');
+assert.match(register,/INSERT INTO user_state\(user_id,revision,data_json,updated_at\) VALUES\(\?,0,'\{\}',\?\)/,'new registered server state starts empty');
+
 assert.match(backend,/liplip-account-state-v1/,'backend sync includes durable account profile state');
 assert.doesNotMatch(backend,/sessionStorage\.getItem\('liplip-preview'\)/,'session-only preview is not synchronized as durable state');
 assert.match(backend,/await window\.LiplipAccountSession\?\.ready/,'backend sync waits for account resume bootstrap');
@@ -40,9 +44,12 @@ assert.match(backendAuth,/LiplipBackend\?\.suspend\?\.\(\)/,'logout pauses sync 
 assert.match(backendAuth,/liplip-account-state-v1/,'logout clears cached account identity');
 assert.match(backendAuth,/state\.progress=LiplipProgress\.hydrate\(null\)/,'logout isolates the next user from previous progress');
 assert.match(backendAuth,/LiplipBackend\?\.resume\?\.\(\)/,'successful login or signup resumes sync');
+assert.match(backendAuth,/function resetNewAccountState\(email\)/,'signup has an explicit fresh-account reset');
+assert.match(backendAuth,/ACCOUNT_KEYS=\[[\s\S]*liplip-progress-v1[\s\S]*liplip-v45-progression/,'fresh signup clears completed boxes and literacy completion flags');
+assert.match(backendAuth,/if\(state\.mode==='signup'\)\{\s*resetNewAccountState\(email\)/,'fresh reset runs before a signup profile is saved');
 
 const accountIndex=html.indexOf('frontend/features/persistent-account-v121.js');
 const backendIndex=html.indexOf('backend-client.js');
 assert.ok(accountIndex>0&&backendIndex>accountIndex,'persistent session bootstrap loads before backend-client sync');
 
-console.log('Persistent account session and progress regressions passed');
+console.log('Persistent account session, fresh signup, and progress regressions passed');

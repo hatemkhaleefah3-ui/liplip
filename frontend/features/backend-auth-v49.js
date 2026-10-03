@@ -1,8 +1,8 @@
-/* v49: registered account authentication bridge. */
 (() => {
   'use strict';
   const UI=window.LiplipFrontend;if(!UI||typeof state==='undefined')return;
   const t=(ar,en)=>UI.t(ar,en);
+  const ACCOUNT_KEYS=['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'];
   let busy=false;
 
   async function request(path,body){
@@ -18,14 +18,16 @@
     const notice=root.querySelector('#auth-message');if(notice&&!state.message)notice.textContent=state.mode==='signup'?t('أنشئ حساباً حقيقياً لحفظ تقدمك على أجهزتك.','Create an account to keep progress across devices.'):t('سجّل الدخول لمتابعة تقدمك المحفوظ.','Sign in to continue your saved progress.');
   }
 
-  function clearLocalAccount(){
+  function resetLocalAccount(profile){
     window.LiplipBackend?.suspend?.();
-    for(const key of ['liplip-backend-meta-v1','liplip-account-state-v1','liplip-progress-v1','liplip-v45-progression'])localStorage.removeItem(key);
+    for(const key of ACCOUNT_KEYS)localStorage.removeItem(key);
     sessionStorage.removeItem('liplip-preview');
     try{state.progress=LiplipProgress.hydrate(null)}catch{}
-    state.profile=null;
+    state.profile=profile;
     state.guest=false;
   }
+  const clearLocalAccount=()=>resetLocalAccount(null);
+  function resetNewAccountState(email){resetLocalAccount({email});state.nav='الرئيسية'}
 
   UI.registerFeature('backend-auth-v49',{mount:({root})=>decorate(root)});
 
@@ -39,13 +41,17 @@
     try{
       const {r,data}=await request(path,{email,password});
       if(!r.ok){const el=document.querySelector('#auth-message');if(el){el.classList.add('error');el.textContent=data?.error?.message||t('تعذّر تسجيل الدخول.','Authentication failed.')}return;}
-      localStorage.removeItem('liplip-backend-meta-v1');
-      window.LiplipBackend?.resume?.();
-      state.guest=false;
       if(state.mode==='signup'){
-        state.profile={...(state.profile||{}),email};state.page='profile';if(typeof save==='function')save();render();
+        resetNewAccountState(email);
+        state.page='profile';
+        if(typeof save==='function')save();
+        render();
+        window.LiplipBackend?.resume?.();
         setTimeout(()=>window.LiplipBackend?.syncNow?.(),200);
       }else{
+        localStorage.removeItem('liplip-backend-meta-v1');
+        window.LiplipBackend?.resume?.();
+        state.guest=false;
         const result=await window.LiplipBackend?.syncNow?.();
         if(!result||result.action!=='initial-pull'){state.page='app';state.nav='الرئيسية';render();}
       }

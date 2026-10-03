@@ -12,23 +12,18 @@ export async function onRequestPost(context){
   const existing=await context.env.DB.prepare('SELECT user_id FROM user_accounts WHERE email=? LIMIT 1').bind(email).first();
   if(existing)return error(409,'email_in_use','An account already exists for this email.');
 
-  const current=await requireSession(context),userId=current?.kind==='anonymous'?current.userId:crypto.randomUUID(),now=Date.now();
+  // Registration always creates a fresh registered identity. Never promote the current
+  // anonymous session, because anonymous/local preview progress must not leak into a new account.
+  const current=await requireSession(context),userId=crypto.randomUUID(),now=Date.now();
   const pw=await hashPassword(password);
   const account=context.env.DB.prepare(`INSERT INTO user_accounts(user_id,email,password_salt,password_hash,password_iterations,email_verified,status,created_at,updated_at) VALUES(?,?,?,?,?,0,'active',?,?)`).bind(userId,email,pw.salt,pw.hash,pw.iterations,now,now);
 
   try{
-    if(current?.kind==='anonymous'){
-      await context.env.DB.batch([
-        context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now,userId),
-        account
-      ]);
-    }else{
-      await context.env.DB.batch([
-        context.env.DB.prepare("INSERT INTO users(id,kind,created_at,updated_at) VALUES(?,'registered',?,?)").bind(userId,now,now),
-        context.env.DB.prepare("INSERT INTO user_state(user_id,revision,data_json,updated_at) VALUES(?,0,'{}',?)").bind(userId,now),
-        account
-      ]);
-    }
+    await context.env.DB.batch([
+      context.env.DB.prepare("INSERT INTO users(id,kind,created_at,updated_at) VALUES(?,'registered',?,?)").bind(userId,now,now),
+      context.env.DB.prepare("INSERT INTO user_state(user_id,revision,data_json,updated_at) VALUES(?,0,'{}',?)").bind(userId,now),
+      account
+    ]);
   }catch(batchError){
     const raced=await context.env.DB.prepare('SELECT user_id FROM user_accounts WHERE email=? LIMIT 1').bind(email).first().catch(()=>null);
     if(raced)return error(409,'email_in_use','An account already exists for this email.');
