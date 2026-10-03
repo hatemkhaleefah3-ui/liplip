@@ -25,14 +25,35 @@ export async function verifyPassword(password,row){
   let diff=0;for(let i=0;i<expected.length;i++)diff|=derived.hash.charCodeAt(i)^expected.charCodeAt(i);return diff===0;
 }
 
+// Claim one authentication attempt atomically. Failed authentication leaves the claim in
+// place; successful authentication must call clearFailures(). The single UPSERT removes the
+// read-then-increment race that otherwise lets parallel guesses all pass the same pre-check.
 export async function throttle(context,key,{limit=8,windowMs=15*60*1000,blockMs=15*60*1000}={}){
-  const now=Date.now(),db=context.env.DB;
-  const row=await db.prepare('SELECT count, window_started_at AS windowStartedAt, blocked_until AS blockedUntil FROM auth_attempts WHERE key=? LIMIT 1').bind(key).first();
+  const now=Date.now(),until=now+blockMs,db=context.env.DB;
+  await db.prepare(`
+    INSERT INTO auth_attempts(key,count,window_started_at,blocked_until)
+    VALUES(?,1,?,0)
+    ON CONFLICT(key) DO UPDATE SET
+      count=CASE
+        WHEN auth_attempts.blocked_until>? THEN auth_attempts.count
+        WHEN ?-auth_attempts.window_started_at>? THEN 1
+        ELSE auth_attempts.count+1
+      END,
+      window_started_at=CASE
+        WHEN auth_attempts.blocked_until>? THEN auth_attempts.window_started_at
+        WHEN ?-auth_attempts.window_started_at>? THEN ?
+        ELSE auth_attempts.window_started_at
+      END,
+      blocked_until=CASE
+        WHEN auth_attempts.blocked_until>? THEN auth_attempts.blocked_until
+        WHEN ?-auth_attempts.window_started_at>? THEN 0
+        WHEN auth_attempts.count+1>? THEN ?
+        ELSE 0
+      END
+  `).bind(key,now,now,now,windowMs,now,now,windowMs,now,now,now,windowMs,limit,until).run();
+  const row=await db.prepare('SELECT blocked_until AS blockedUntil FROM auth_attempts WHERE key=? LIMIT 1').bind(key).first();
   if(row&&Number(row.blockedUntil)>now)return {ok:false,retryAfterMs:Number(row.blockedUntil)-now};
-  if(!row||now-Number(row.windowStartedAt)>windowMs){await db.prepare('INSERT INTO auth_attempts(key,count,window_started_at,blocked_until) VALUES(?,0,?,0) ON CONFLICT(key) DO UPDATE SET count=0,window_started_at=excluded.window_started_at,blocked_until=0').bind(key,now).run();return {ok:true}}
-  if(Number(row.count)>=limit){const until=now+blockMs;await db.prepare('UPDATE auth_attempts SET blocked_until=? WHERE key=?').bind(until,key).run();return {ok:false,retryAfterMs:blockMs}}
   return {ok:true};
 }
 
-export async function recordFailure(context,key){await context.env.DB.prepare('UPDATE auth_attempts SET count=count+1 WHERE key=?').bind(key).run()}
 export async function clearFailures(context,key){await context.env.DB.prepare('DELETE FROM auth_attempts WHERE key=?').bind(key).run()}
