@@ -108,11 +108,12 @@ jobs:
           }, null, 2));
           NODE
 
-      - name: Test Study importer regression
-        run: node test/study-import-regression.test.js
-
-      - name: Test Study exam UI regression
-        run: node test/study-exam-ui-regression.test.js
-
-      - name: Test Study treasure path regression
-        run: node test/study-treasure-path-v113.test.js
+      - name: Run regression test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in test/*.test.js; do
+            echo "::group::$test_file"
+            node "$test_file"
+            echo "::endgroup::"
+          done
