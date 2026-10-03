@@ -22,8 +22,10 @@ assert.match(redesign, /\.v112-vocab-actions/, 'Vocabulary action styles are req
 assert.match(redesign, /\.c57-options button>b\{display:none!important\}/, 'Legacy alphabet badges must stay hidden.');
 assert.match(redesign, /@media\s*\(max-width:390px\)/, 'Narrow mobile layouts must be covered.');
 
-assert.match(index, /<meta name="liplip-build" content="112" \/>/);
-assert.match(index, /assets\/liplip-v112\.css/);
-assert.doesNotMatch(index, /\?v=111/);
+const build = index.match(/<meta name="liplip-build" content="(\\d+)" \\/>/)?.[1];
+assert.ok(build, 'numeric site build is declared');
+assert.match(index, new RegExp(`assets/liplip-v${build}\\\\.css`));
+const localScripts = [...index.matchAll(/<script\\s+src="([^"]+)"/g)].map(match => match[1]).filter(ref => !/^https?:/.test(ref));
+assert.ok(localScripts.every(ref => new URL(ref, 'https://liplip.invalid/').searchParams.get('v') === build), 'all local scripts use the active build version');
 
 console.log('Study exam UI regression checks passed.');
