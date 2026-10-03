@@ -41,11 +41,16 @@ function cleanQuestions(value, kind) {
       answer: String(item?.answer || '').trim().slice(0, 500),
       explanation: String(item?.explanation || '').trim().slice(0, 700)
     };
-    if (!allowed.has(type) || !question.prompt || !question.answer || options.length < 2 || question.correctIndex >= options.length) return null;
+    if (!allowed.has(type) || !question.prompt || !question.answer || options.length < 2 || question.correctIndex < 0 || question.correctIndex >= options.length) return null;
+    if ((kind === 'story' || kind === 'video' || type === 'fill_blank') && options.length !== 4) return null;
+    if ((type === 'reorder' || type === 'correct_error') && question.correctIndex !== 0) return null;
     return question;
   });
   if (result.some(x => !x)) return null;
-  if (kind === 'grammar' && !['fill_blank', 'reorder', 'correct_error'].every(type => result.some(q => q.type === type))) return null;
+  if (kind === 'grammar') {
+    const counts = ['fill_blank', 'reorder', 'correct_error'].map(type => result.filter(q => q.type === type).length).sort((a, b) => a - b);
+    if (counts.join(',') !== '1,2,2') return null;
+  }
   return result;
 }
 

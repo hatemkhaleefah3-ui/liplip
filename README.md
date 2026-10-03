@@ -1,47 +1,94 @@
 # liplip
 
-موقع عربي RTL لتعلّم الإنجليزية في العراق. المشروع ثابت ويُنشر من جذر المستودع عبر Cloudflare Pages دون أمر بناء.
+موقع عربي RTL لتعلّم الإنجليزية في العراق. الواجهة ثابتة وتُنشر من جذر المستودع عبر Cloudflare Pages بلا خطوة build للواجهة، بينما تعمل واجهات الخادم عبر Cloudflare Pages Functions وD1.
 
-## التعلّم
+## الدراسة الحالية
 
-الخريطة الموحّدة: **٥ مستويات × ٢٠٠ صندوق = ١٠٠٠ صندوق**. حُذفت طبقة الخطوات؛ يختار المتعلم المستوى الحالي أو المكتمل ثم يرى صناديق المستوى مباشرة. يبقى رقم الصندوق الداخلي القديم ثابتاً لحماية المحتوى والتقدم المخزنين، لكن الواجهة تعرض رقم الصندوق ١–٢٠٠ داخل مستواه.
+المسار الفعّال في build 113 هو **٥ مستويات × ٥٠ صندوقاً تعليمياً = ٢٥٠ صندوقاً مؤلفاً**. داخل كل مستوى تضيف واجهة كنز الدراسة محطات مراجعة وامتحانات دورية وامتحاناً نهائياً من دون استبدال الصناديق الخمسين.
 
-لكل صندوق ثلاث مراحل مرتبة، ولكل مرحلة عمليتان:
+لأسباب توافق مع التقدم والمحتوى القديم، يبقى ترقيم الصناديق الداخلي بخطوة `200` بين المستويات: المستوى الأول يستخدم المعرّفات `1–50`، والثاني `201–250`، وهكذا. الواجهة تعرض رقم الصندوق داخل المستوى من ١ إلى ٥٠.
 
-1. **المفردات:** كلمات وجمل وصور وأصوات، ثم اختبار مفردات وصوت وصورة.
-2. **القواعد:** مقال طويل يضم القانون وصيغ الجملة العادية والمنفية والاستفهامية والملاحظات و١٠–٢٠ مثالاً من السهل إلى الصعب، ثم اختبار القواعد.
-3. **شاهد واقرأ:** فيديو YouTube وأسئلته، ثم القصة وأسئلتها.
+لكل صندوق ثلاث مراحل مرتبة:
 
-لا يفتح الصندوق التالي إلا بعد إكمال العمليات الست. يتغير لون الصندوق بعد كل مرحلة مكتملة، وتعرض صفحة الصندوق مفتاح تبديل للرجوع إلى أي مرحلة مكتملة. داخل المرحلة المكتملة يمكن مراجعة عمليتيها دون تغيير التقدم.
+1. **المفردات** — تعلم المحتوى ثم الاختبار.
+2. **القواعد** — المقال/القواعد ثم الاختبار.
+3. **شاهد واقرأ** — الفيديو وأسئلته ثم القصة وأسئلتها.
 
-يظهر زر **إدارة المحتوى** عائماً في صفحة الدراسة فقط، قرب شريط التنقل. تفتح منه نافذة سفلية تتيح إضافة المحتوى يدوياً بعد اختيار المستوى والصندوق والمرحلة والعملية، أو استيراد ملف Excel، أو تعديل العناصر الموجودة وحذفها. تنزيل القوالب يعطي ملف `liplip-content-templates.zip` الذي يحتوي ثلاثة قوالب Excel مستقلة:
+التقدم المحفوظ يحتفظ بالمعرّفات القديمة لتفادي كسر بيانات المستخدمين.
 
-- `liplip-vocabulary.xlsx` وقيمة `Phase = vocabulary`.
-- `liplip-grammar.xlsx` وقيمة `Phase = grammar`.
-- `liplip-watch-read.xlsx` وقيمة `Phase = watch&read`.
+## إدارة محتوى Study وExcel
 
-تبدأ القوالب الثلاثة بالأعمدة `Phase | Level | Box | Feature` ولا تحتوي عمود `Step`. يجب أن تحمل كل صفوف الملف قيمة المرحلة الوحيدة الخاصة بقالبها. يدعم قالب المفردات ميزات الكلمات والجمل والصور والأصوات وأسئلة الاختبار، ويدعم قالب القواعد المقال والأمثلة وأسئلة الاختبار، ويدعم قالب شاهد واقرأ الفيديو وأسئلته وصفحات القصة وأسئلتها. تُقرأ ملفات `.xlsx` محلياً في المتصفح وتُحفظ للصندوق المحدد بالمستوى ورقم الصندوق.
+مستورد Study الفعّال هو `frontend/features/study-workbook-importer-v114.js`. يستورد ملف `.xlsx` موحداً يتضمن الأوراق التالية بعناوين أعمدة مطابقة تماماً:
 
-تُنقل بيانات التقدم القديمة دون تغيير أرقام الصناديق: الصندوق الدراسي القديم المكتمل يُعامل كمفردات وقواعد مكتملتين، وتُضاف حالة شاهد واقرأ القديمة إن كانت موجودة. يبقى المحتوى والتقدم محليين لهذا المتصفح.
+- `Vocabulary`: `Level | Box | Order | English | Arabic | Voice`
+- `Grammar`: `Level | Box | Title | Rule | Normal Formula | Negative Formula | Question Formula | Notes | Examples`
+- `Grammar_Questions`: `Level | Box | Order | Type | Question | Correct Answer | Option 1 | Option 2 | Option 3 | Option 4`
+- `Watch_Read`: `Level | Box | Story Order | Story Title | Story English | Story Arabic | YouTube URL | Video Title`
+- `Video_Questions`: `Level | Box | Order | Question | Correct Answer | Option 1 | Option 2 | Option 3 | Option 4`
+- `Story_Questions`: نفس بنية `Video_Questions`.
 
-تُحفظ الكلمات بعد اختبار المفردات والقواعد بعد اختبار القواعد. بعد نجاح أسئلة الفيديو تفتح القصة مباشرة، وبعد إنهاء القصة وأسئلتها تظهر صفحة نتيجة الصندوق مع أزرار الإغلاق والتالي والتكرار. تعتمد الدرجة النهائية على إجابات الاختبارات فقط: ثلث للمفردات، وثلث للقواعد، وثلث لشاهد واقرأ (متوسط أسئلة الفيديو والقصة). التكرار يفتح الصندوق المكتمل للمراجعة من دون تغيير الدرجة. تعرض الخزانة الكلمات والقواعد المحفوظة للمراجعة.
+الحد الأقصى للملف 20 MiB. يجب أن تطابق `Correct Answer` أحد الخيارات في أسئلة الاختيار و`fill_blank`؛ يرفض المستورد مفتاح الإجابة غير المتطابق بدلاً من تحويله تلقائياً إلى الخيار الأول. تتم كتابة المحتوى محلياً أولاً ثم يُنشر إلى الخادم عند توفر واجهة نشر المحتوى وصلاحية الإدارة.
 
-يعرض شريط التنقل صفحة **الملف الشخصي** بدلاً من صفحة الإعدادات المباشرة. تحتوي صفحة الملف على ملخص الرحلة وزر وصول إلى الإعدادات وإدارة البيانات المحلية.
+## الحسابات والمزامنة
 
-## الحدود
+`backend-client.js` محمّل فعلياً في `index.html` ويزامن حالة المتعلم مع `/api/session` و`/api/state` باستخدام revisions لمنع الاستبدال الصامت عند التعارض.
 
-مؤشر A0–C2 داخلي وتجريبي، وليس شهادة CEFR؛ يتطلب تقدماً وتقييمات عبر مهارات أخرى لم تُفعّل بعد، لذلك الدراسة وحدها لا ترفع المستوى تلقائياً. الحساب الحالي وصول تجريبي بلا تحقق أو مزامنة. أزرار Google وFacebook وWhatsApp ليست تسجيل دخول فعلياً. بيانات الملف والتقدم والمحتوى محلية في المتصفح، مع نسخة جلسة للتقدم. لا تجمع بيانات شخصية حقيقية عبر هذه النسخة قبل إعداد هوية وخزن آمنين وسياسة خصوصية واضحة.
+يدعم الخادم:
 
-## التحقق والنشر
+- جلسات ضيف؛
+- حسابات بريد/كلمة مرور؛
+- Google/Facebook OAuth عند ضبط أسرار المزوّد؛
+- WhatsApp OTP عند ضبط أسرار WhatsApp؛
+- نشر المحتوى المشترك عبر جلسة إدارة مستقلة.
 
-شغّل `node test/progress.test.js` و`node test/lesson.test.js` و`node test/import.test.js` و`node test/image.test.js` و`node test/closet.test.js`. في Cloudflare Pages اختر الفرع `main`، والإطار `None`، واترك أمر البناء فارغاً، ومجلد المخرجات `.`.
+راجع `BACKEND.md` قبل تشغيل الهوية الاجتماعية في الإنتاج؛ توجد نقاط hardening موثقة هناك، خصوصاً rate limiting لبعض المسارات وحماية استهلاك Gemini.
 
+## Gemini والصوت
 
-## Phase Excel content templates
+الصوت في المتصفح يستخدم Web Speech المحلي أولاً. `frontend/core/gemini-speech-v114.js` يستدعي Gemini TTS فقط إذا فشل الصوت المحلي أو عند طلب prefetch صريح، لتجنب استهلاك API غير الضروري.
 
-The Study content manager downloads three separate workbooks: vocabulary, grammar, and watch & read. Every workbook uses `Phase`, `Level`, `Box`, `Process`, `Feature`, and `Order`; the old `Step` column is not used.
+واجهات Gemini الخادمية:
 
-- Vocabulary content supports `flashcardWord`, `flashcardSentence`, `imageToWord`, `voiceToSpeak`, and `imageToSpeak`.
-- Grammar articles support `sentenceBuildLaw`, `importantNote`, and `example`, including normal, negative, and question formulas plus easy-to-difficult examples.
-- Every phase supports the same six exam types: `mcq`, `fillBlank`, `voiceToSpeak`, `imageToVoice`, `match`, and `trueFalse`.
-- The bundled examples include 28 vocabulary rows, 30 grammar rows, and 18 watch & read rows so editors can copy a complete pattern instead of starting from an empty sheet.
+- `/api/gemini/speech`
+- `/api/gemini/drawing`
+- `/api/gemini/course-exam`
+
+## الكاش والإصدارات
+
+`_headers` يمنح ملفات `*.js` و`*.css` كاشاً immutable طويل الأجل. لذلك **لا يكفي تعديل محتوى ملف JavaScript منشور مع إبقاء URL نفسه**. أي إصلاح Runtime يجب أن يستخدم اسماً/URL جديداً أو bump متناسقاً للإصدار. لهذا تُحمّل إصلاحات هذا التدقيق من ملفات `v114` جديدة بدلاً من تغيير الملفات القديمة فقط.
+
+حزمة CSS الفعّالة تُولد من المصادر المرتبة في `assets/styles.manifest.json`. لا تعدّل `assets/liplip-vNN.css` يدوياً.
+
+## التحقق
+
+شغّل جميع اختبارات JavaScript من جذر المستودع:
+
+```bash
+for test_file in test/*.test.js; do node "$test_file"; done
+```
+
+GitHub Actions يتحقق أيضاً من:
+
+- وجود كل الأصول المحلية المحمّلة؛
+- صحة syntax لكل JavaScript فعّال؛
+- تطابق query version للأصول مع build المعلن؛
+- حد عدد الأصول وحجم payload الأولي؛
+- تطابق build حزمة CSS مع manifest؛
+- إعادة توليد حزمة CSS byte-for-byte من مصادرها؛
+- كامل ملفات `test/*.test.js`.
+
+## النشر
+
+في Cloudflare Pages:
+
+- الفرع: `main`
+- framework: `None`
+- frontend build command: فارغ
+- output directory: `.`
+- D1 binding: `DB`
+
+طبّق كل migrations في `migrations/` بالترتيب واضبط الأسرار المطلوبة كما هو موضح في `BACKEND.md`.
+
+## ملاحظة المستوى
+
+مؤشر A0–C2 داخل التطبيق مؤشر تعليمي داخلي وتجريبي، وليس شهادة CEFR رسمية.

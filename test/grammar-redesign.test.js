@@ -118,7 +118,7 @@ assert.equal((html.match(/class="zone-question /g)||[]).length,5);
 
 const fields=Object.fromEntries(questions.map(q=>[q.id,'0']));
 const result=Z.submit('zone-quiz-form',{fields},()=>{});
-assert.deepEqual(result,{});
+assert.equal(Object.keys(result).length,0);
 html=Z.render({snapshot:{}});
 assert.match(html,/أثبت ما تعلّمته/,'five correct grammar questions advance to exam');
 

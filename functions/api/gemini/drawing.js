@@ -6,7 +6,8 @@ function normalizeItem(raw) {
   const target = String(raw?.target || '').trim();
   const image = String(raw?.image || '');
   const validLetter = kind === 'letter' && /^[A-Za-z]$/.test(target);
-  const validNumber = kind === 'number' && (/^\d{1,2}$/.test(target) || NUMBER_WORDS.has(target));
+  const numericTarget = /^\d{1,2}$/.test(target) ? Number(target) : NaN;
+  const validNumber = kind === 'number' && ((Number.isInteger(numericTarget) && numericTarget >= 0 && numericTarget <= 34) || NUMBER_WORDS.has(target));
   const validWord = kind === 'word' && target.length > 0 && target.length <= 80 && !/[\r\n]/.test(target);
   if (!(validLetter || validNumber || validWord) || !/^data:image\/(png|webp|jpeg);base64,/.test(image)) return null;
   const [meta, data] = image.split(',', 2);
@@ -25,8 +26,8 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'invalid_json' }, 400); }
 
-  const sourceItems = Array.isArray(body?.items) ? body.items.slice(0, 2) : [body];
-  if (!sourceItems.length || sourceItems.length > 2) return json({ error: 'invalid_drawing_input' }, 400);
+  const sourceItems = Array.isArray(body?.items) ? body.items : [body];
+  if (sourceItems.length < 1 || sourceItems.length > 2) return json({ error: 'invalid_drawing_input' }, 400);
   const items = sourceItems.map(normalizeItem);
   if (items.some(item => !item)) return json({ error: 'invalid_drawing_input' }, 400);
 

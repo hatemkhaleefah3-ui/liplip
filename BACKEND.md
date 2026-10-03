@@ -1,122 +1,143 @@
-# Backend v2
+# Backend
 
 The production backend runs as Cloudflare Pages Functions under `/functions` with Cloudflare D1 as the primary database.
 
-## Implemented
+## Identity and sessions
 
-### Identity and sessions
-
-- Anonymous device sessions remain supported for guests.
-- Registered email/password accounts are now supported.
-- `POST /api/auth/register` upgrades an anonymous session in place when possible, preserving the user's existing progress.
+- Anonymous device sessions are supported for guests.
+- Registered email/password accounts are supported.
+- `POST /api/auth/register` upgrades an anonymous session in place when possible.
 - `POST /api/auth/login` signs into an existing account.
-- `GET /api/auth/me` returns the current account/session identity.
+- `GET /api/auth/me` returns the current identity.
 - `POST /api/auth/logout` revokes the current user session.
-- Passwords are never stored directly. They use PBKDF2-HMAC-SHA256 with a per-account random salt and 210,000 iterations.
-- Login and registration attempts are throttled in D1.
-- User sessions are random HttpOnly, Secure, SameSite=Lax cookies; only SHA-256 token hashes are stored in D1.
+- Session cookies are random `HttpOnly; Secure; SameSite=Lax` values; only SHA-256 token hashes are stored in D1.
+- Passwords use PBKDF2-HMAC-SHA256 with a per-account random 16-byte salt. The current default is **30,000 iterations**, stored per account so the verifier can support future iteration changes.
+- Email login failures are counted in `auth_attempts` and throttled. Registration currently calls the throttle gate but does not record failed attempts; do not treat registration as abuse-rate-limited until that path is fixed.
 
-### User state
+### Social identity
 
-- `GET|PUT /api/state` stores progress/profile state with optimistic revision control.
-- User state now contains only user-owned data: progress, literacy/level milestones, UI language, and local profile preview.
-- Shared course content is no longer copied into each user's state.
-- `backend-client.js` performs offline-first synchronization and refuses silent overwrite on concurrent edits.
+Migration `0004_social_auth.sql` enables:
 
-### Shared content
+- Google OAuth;
+- Facebook OAuth;
+- WhatsApp one-time-code identity;
+- provider identity records and short-lived OAuth state rows.
 
-- `GET /api/content` returns the published course and fast-practice content bundle.
-- `GET|PUT /api/admin/content` lets an authenticated admin publish the shared content bundle using revision compare-and-swap.
-- `frontend/features/backend-content-v49.js` pulls published content for users and publishes local admin edits back to the server.
-- Published content changes are recorded in `audit_log`.
+Required provider credentials/secrets must be configured in Cloudflare before the corresponding flow is usable.
 
-### Administration
+## User state
 
-- Server-authenticated admin sessions remain separate from user sessions.
+- `GET|PUT /api/state` stores learner-owned state with optimistic revision control.
+- The write path performs both a revision precheck and a conditional update, preventing silent last-writer overwrite.
+- `backend-client.js` is active in `index.html`; it creates/loads sessions, synchronizes state, and reports concurrent-change conflicts instead of silently overwriting them.
+
+Limits:
+
+- request/state payload: 512 KiB;
+- user state: 512 KiB serialized JSON.
+
+## Shared content
+
+- `GET /api/content` returns published shared content.
+- `GET|PUT /api/admin/content` requires a server-validated admin session and uses revision compare-and-swap.
+- publishing records an `audit_log` entry;
+- shared published content is capped at 2 MiB.
+
+`frontend/features/backend-content-v49.js` is the browser-side transport for published content.
+
+## Administration
+
+Admin sessions are independent from normal user sessions.
+
+Endpoints:
+
 - `POST /api/admin/login`
 - `POST /api/admin/logout`
 - `GET /api/admin/users`
 - `GET /api/admin/user/:id`
 - `GET|PUT /api/admin/content`
 
-The admin password exists only as the Cloudflare secret `ADMIN_PASSWORD`; it is not embedded in frontend code.
+`ADMIN_PASSWORD` exists only as a Cloudflare secret and is never embedded in frontend JavaScript.
+
+**Current security gap:** `/api/admin/login` does not have a server-side attempt throttle. Use a high-entropy unique secret and add rate limiting before exposing the endpoint to hostile traffic.
 
 ## Database migrations
 
-Apply all migrations in order:
+Apply every migration in order:
 
 ```sh
 npx wrangler d1 execute liplip-db --remote --file=migrations/0001_backend.sql
 npx wrangler d1 execute liplip-db --remote --file=migrations/0002_admin.sql
 npx wrangler d1 execute liplip-db --remote --file=migrations/0003_accounts_content.sql
+npx wrangler d1 execute liplip-db --remote --file=migrations/0004_social_auth.sql
 ```
 
-Migration `0003_accounts_content.sql` adds:
+Migration `0003_accounts_content.sql` adds account/auth-attempt/shared-content/audit structures. Migration `0004_social_auth.sql` adds `auth_identities`, `oauth_states`, and `whatsapp_otps`.
 
-- `user_accounts`
-- `auth_attempts`
-- `course_content`
-- `audit_log`
+The Pages project requires a D1 binding named exactly `DB` in Production and Preview.
 
-It also creates the initial `published` course-content row.
+## Cloudflare secrets and provider configuration
 
-## Cloudflare configuration
-
-The Pages project requires a D1 binding named exactly `DB` in both Production and Preview.
-
-Add the admin secret with Wrangler or the Pages dashboard:
+Admin:
 
 ```sh
 npx wrangler pages secret put ADMIN_PASSWORD --project-name <your-pages-project>
 ```
 
-Use a long unique password. Do not place it in git or frontend JavaScript.
-
-## Gemini learning services
-
-Set the Gemini API key as a Cloudflare Pages secret named exactly `GEMINI_API_KEY`:
+Gemini:
 
 ```sh
 npx wrangler pages secret put GEMINI_API_KEY --project-name <your-pages-project>
 ```
 
-The key remains server-side. The application uses it only through these Pages Functions:
+Google/Facebook/WhatsApp require their corresponding provider IDs/secrets/tokens referenced by the functions under `functions/api/oauth` and `functions/api/auth/whatsapp`.
 
-- `POST /api/gemini/speech`: Gemini TTS for `letter`, `number`, `word`, and `sentence` speech.
-- `POST /api/gemini/drawing`: Gemini visual judgment for `letter` and `number` handwriting.
+After changing bindings, variables, or secrets, redeploy the production commit.
 
-Optional non-secret overrides are `GEMINI_TTS_MODEL`, `GEMINI_TTS_VOICE`, and `GEMINI_DRAWING_MODEL`. Defaults are `gemini-3.8-flash-lite-tts`, `Kore`, and `gemini-3.5-flash`. After changing a Pages secret or variable, redeploy the current production commit so the new binding is active.
+## Gemini learning services
 
-After applying migrations and redeploying, verify:
+Server-side Gemini endpoints are:
 
-1. `GET /api/health` returns HTTP 200 and `database: "ok"`.
-2. Create a normal account through the website Sign Up form.
-3. Sign out, then sign back in from another browser and confirm the same progress is restored.
-4. Sign in through Admin access and verify the account appears in the users list.
-5. Change course content as admin and confirm another browser receives the published content.
+- `POST /api/gemini/speech` — TTS for `letter`, `number`, `word`, and `sentence`;
+- `POST /api/gemini/drawing` — handwriting/image judgment;
+- `POST /api/gemini/course-exam` — generated grammar/story/video exam questions.
 
-## State and content limits
+The API key stays server-side. Optional model/voice overrides are read from environment variables.
 
-- User state: 512 KiB per user.
-- Shared published content: 2 MiB.
-- Images/audio/video files must not be embedded as large base64 blobs in D1. Use URLs. A future media-upload layer should use Cloudflare R2.
+Current request validation includes source/type/location bounds and structured response validation. The course exam endpoint follows the deployed Study geometry: levels 1–5, boxes 1–50 within each level.
 
-## Security model
+**Current security gap:** Gemini endpoints reject browser requests explicitly marked cross-site, but they do not require a user session or enforce a durable server-side request quota. A direct HTTP client can omit browser fetch metadata, so these endpoints should not be considered protected against API-key quota abuse.
 
-- Password hashes are salted PBKDF2 hashes.
-- User and admin sessions are separate cookies.
-- Admin APIs require a server-validated admin session.
-- Account login failures are throttled.
-- State and content writes use optimistic concurrency revisions.
-- Content publishing records an audit event.
-- The backend does not expose account passwords, session tokens, or admin credentials through APIs.
+The v114 browser speech runtime uses native Web Speech first and only calls Gemini when native speech fails or code explicitly requests a prefetch.
 
-## Remaining external integrations
+## WhatsApp OTP
 
-The core application backend is now present. These features still require third-party provider configuration rather than additional local backend logic:
+- codes are random six-digit values stored only as a secret-bound SHA-256 hash;
+- codes expire after 10 minutes;
+- verification is limited to five wrong attempts for a phone number;
+- sending enforces a one-minute cooldown per destination phone.
 
-- Google/Facebook/WhatsApp OAuth login credentials and callback configuration.
-- Transactional email provider for email verification/password reset.
-- Cloudflare R2 binding if direct media uploads are required.
+**Current abuse gap:** send throttling is per phone number only. A client rotating destination numbers can still drive paid sends unless an additional client/network/account quota is added.
 
-Until an email provider is configured, account recovery and email verification should not be presented as active features.
+## OAuth/account-linking review notes
+
+Before treating social account linking as hardened production identity, address these audit items:
+
+- account lookup/linking by provider email should require an appropriately verified provider email claim;
+- the stored OAuth state `user_id` should be incorporated into/link-authorization semantics when an OAuth flow can attach identity to an existing session;
+- callback/public origin is currently hard-coded to `https://liplip.pages.dev`; deployments on another canonical origin need coordinated configuration.
+
+## Health verification
+
+After migrations and deployment:
+
+1. `GET /api/health` should return HTTP 200 with `database: "ok"` and schema `v3`.
+2. Create an account, sign out, and sign in again.
+3. Verify state synchronization from another browser/session.
+4. Sign in through Admin and verify users/content access.
+5. Publish content and confirm another client receives the new revision.
+6. Exercise configured social providers and WhatsApp on a non-production test account before enabling their UI broadly.
+
+## Media storage
+
+Do not place large image/audio/video base64 payloads in D1. Use URLs; direct media upload should use a dedicated object store such as Cloudflare R2.
