@@ -1,5 +1,5 @@
 import { cookie, error, json, readJson } from '../../_lib/http.js';
-import { createRegisteredSession, requireSession, revokeSession } from '../../_lib/auth.js';
+import { createRegisteredSession, REGISTERED_SESSION_DAYS, requireSession, revokeSession } from '../../_lib/auth.js';
 import { clearFailures, hashPassword, normalizeEmail, throttle, validEmail, validPassword } from '../../_lib/password.js';
 
 export async function onRequestPost(context){
@@ -47,5 +47,5 @@ export async function onRequestPost(context){
   }
   if(current)await revokeSession(context,current);
   await clearFailures(context,key);
-  return json({ok:true,user:{id:userId,kind:'registered',email}}, {status:201,headers:{'set-cookie':cookie('liplip_session',session.token,{maxAge:30*24*60*60})}});
+  return json({ok:true,user:{id:userId,kind:'registered',email}}, {status:201,headers:{'set-cookie':cookie('liplip_session',session.token,{maxAge:REGISTERED_SESSION_DAYS*24*60*60})}});
 }
