@@ -1,5 +1,7 @@
 import { getCookie, sha256 } from './http.js';
 
+export const REGISTERED_SESSION_DAYS = 365;
+
 export async function requireSession(context) {
   const token = getCookie(context.request, 'liplip_session');
   if (!token || !context.env.DB) return null;
@@ -15,7 +17,7 @@ export async function requireSession(context) {
     try{const account=await context.env.DB.prepare('SELECT email,status FROM user_accounts WHERE user_id=? LIMIT 1').bind(row.userId).first();email=account?.email||null;status=account?.status||null}catch{}
     if(status&&status!=='active')return null;
   }
-  return { userId: row.userId, tokenHash, kind: row.kind || 'anonymous', email };
+  return { userId: row.userId, tokenHash, kind: row.kind || 'anonymous', email, expiresAt:Number(row.expiresAt)||0 };
 }
 
 async function createSessionForUser(context,userId,{maxAgeDays=365}={}){
@@ -45,7 +47,7 @@ export async function createAnonymousSession(context) {
 
 export async function createRegisteredSession(context,userId){
   await context.env.DB.prepare('DELETE FROM sessions WHERE user_id=? AND expires_at<=?').bind(userId,Date.now()).run();
-  return createSessionForUser(context,userId,{maxAgeDays:30});
+  return createSessionForUser(context,userId,{maxAgeDays:REGISTERED_SESSION_DAYS});
 }
 
 export async function revokeSession(context,session){
