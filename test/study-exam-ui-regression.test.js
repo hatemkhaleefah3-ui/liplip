@@ -24,7 +24,7 @@ assert.match(redesign, /@media\s*\(max-width:390px\)/, 'Narrow mobile layouts mu
 
 const build = index.match(/<meta name="liplip-build" content="(\d+)" \/>/)?.[1];
 assert.ok(build, 'numeric site build is declared');
-assert.match(index, new RegExp(\`assets/liplip-v\${build}\\\\.css\`));
+assert.match(index, new RegExp(`assets/liplip-v${build}\\.css`));
 const localScripts = [...index.matchAll(/<script\s+src="([^"]+)"/g)].map(match => match[1]).filter(ref => !/^https?:/.test(ref));
 assert.ok(localScripts.every(ref => new URL(ref, 'https://liplip.invalid/').searchParams.get('v') === build), 'all local scripts use the active build version');
 
