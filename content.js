@@ -54,10 +54,12 @@ const LiplipContent = (() => {
     });
     return {title:data.title.trim(),goal:data.goal.trim(),words};
   }
-  function persist(){try{localStorage.setItem(KEY,JSON.stringify(edits));return true}catch{return false}}
-  function save(boxId,data){edits[boxId]=validate(boxId,data);return persist()}
-  function remove(boxId){if(!Number.isInteger(boxId)||boxId<1||boxId>1000)throw new Error('رقم الصندوق غير صحيح.');edits[boxId]=blank(boxId);return persist()}
-  function restore(boxId){if(!Number.isInteger(boxId)||boxId<1||boxId>1000)throw new Error('رقم الصندوق غير صحيح.');delete edits[boxId];return persist()}
+  function commit(next){
+    try{localStorage.setItem(KEY,JSON.stringify(next));edits=next;return true}catch{return false}
+  }
+  function save(boxId,data){const next={...edits,[boxId]:validate(boxId,data)};return commit(next)}
+  function remove(boxId){if(!Number.isInteger(boxId)||boxId<1||boxId>1000)throw new Error('رقم الصندوق غير صحيح.');const next={...edits,[boxId]:blank(boxId)};return commit(next)}
+  function restore(boxId){if(!Number.isInteger(boxId)||boxId<1||boxId>1000)throw new Error('رقم الصندوق غير صحيح.');const next={...edits};delete next[boxId];return commit(next)}
   function hasStarter(boxId){return Object.prototype.hasOwnProperty.call(STARTERS,boxId)}
   return {get,save,remove,restore,hasStarter,validate};
 })();
