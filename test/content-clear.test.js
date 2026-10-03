@@ -28,7 +28,7 @@ Z.start(1);
 click('control');
 assert.match(html(),/تحكّم بالمحتوى/);
 assert.match(html(),/مسح المحتوى/);
-assert.match(html(),/>English</);
+assert.match(html(),/>الإنجليزية</);
 assert.match(html(),/المستوى/);
 assert.match(html(),/الخطوة/);
 assert.match(html(),/الصندوق/);

@@ -22,62 +22,111 @@ export async function createOAuthState(context, provider) {
 export async function consumeOAuthState(context, provider, suppliedState) {
   const cookieState = getCookie(context.request, 'liplip_oauth_state');
   if (!suppliedState || !cookieState || suppliedState !== cookieState) return null;
-  const stateHash = await sha256(suppliedState);
+  const stateHash = await sha256(suppliedState),now=Date.now();
   const row = await context.env.DB.prepare(
     `SELECT provider,user_id AS userId,expires_at AS expiresAt FROM oauth_states WHERE state_hash=? LIMIT 1`
   ).bind(stateHash).first();
-  await context.env.DB.prepare('DELETE FROM oauth_states WHERE state_hash=?').bind(stateHash).run();
-  if (!row || row.provider !== provider || Number(row.expiresAt) <= Date.now()) return null;
-  return row;
+  if (!row || row.provider !== provider || Number(row.expiresAt) <= now) {
+    if (row) await context.env.DB.prepare('DELETE FROM oauth_states WHERE state_hash=?').bind(stateHash).run();
+    return null;
+  }
+  // SELECT provides the state payload; the conditional DELETE is the single-use claim.
+  // Parallel callbacks can both read the row, but only one can delete it and proceed.
+  const consumed=await context.env.DB.prepare(
+    'DELETE FROM oauth_states WHERE state_hash=? AND provider=? AND expires_at>?'
+  ).bind(stateHash,provider,now).run();
+  return (consumed.meta?.changes||0)===1?row:null;
 }
 
-export async function completeIdentityLogin(context, identity) {
-  const provider = String(identity.provider || '');
-  const subject = String(identity.subject || '');
-  if (!provider || !subject) throw new Error('invalid_social_identity');
+async function existingUser(context, userId) {
+  if (!userId) return null;
+  const row = await context.env.DB.prepare('SELECT id FROM users WHERE id=? LIMIT 1').bind(userId).first();
+  return row?.id || null;
+}
 
-  const now = Date.now();
-  let userId = null;
-  const existingIdentity = await context.env.DB.prepare(
-    'SELECT user_id AS userId FROM auth_identities WHERE provider=? AND subject=? LIMIT 1'
-  ).bind(provider, subject).first();
-  if (existingIdentity) userId = existingIdentity.userId;
+async function identityOwner(context,provider,subject){
+  const row=await context.env.DB.prepare('SELECT user_id AS userId FROM auth_identities WHERE provider=? AND subject=? LIMIT 1').bind(provider,subject).first();
+  return row?.userId||null;
+}
 
-  const current = await requireSession(context);
-  if (!userId && identity.email) {
-    const account = await context.env.DB.prepare('SELECT user_id AS userId FROM user_accounts WHERE email=? LIMIT 1').bind(String(identity.email).toLowerCase()).first();
-    if (account) userId = account.userId;
-  }
-  if (!userId && current) userId = current.userId;
-
-  if (!userId) {
-    userId = crypto.randomUUID();
-    await context.env.DB.batch([
-      context.env.DB.prepare("INSERT INTO users(id,kind,created_at,updated_at) VALUES(?,'registered',?,?)").bind(userId, now, now),
-      context.env.DB.prepare("INSERT INTO user_state(user_id,revision,data_json,updated_at) VALUES(?,0,'{}',?)").bind(userId, now)
-    ]);
-  } else {
-    await context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now, userId).run();
-  }
-
-  await context.env.DB.prepare(
+function identityInsert(context,userId,identity,now){
+  return context.env.DB.prepare(
     `INSERT INTO auth_identities(user_id,provider,subject,email,display_name,avatar_url,created_at,updated_at)
-     VALUES(?,?,?,?,?,?,?,?)
-     ON CONFLICT(provider,subject) DO UPDATE SET
-       email=excluded.email,display_name=excluded.display_name,avatar_url=excluded.avatar_url,updated_at=excluded.updated_at`
+     VALUES(?,?,?,?,?,?,?,?)`
   ).bind(
     userId,
-    provider,
-    subject,
+    String(identity.provider||''),
+    String(identity.subject||''),
     identity.email ? String(identity.email).toLowerCase() : null,
     identity.name || null,
     identity.picture || null,
     now,
     now
+  );
+}
+
+export async function completeIdentityLogin(context, identity, { userIdHint = null, useCurrentSession = true } = {}) {
+  const provider = String(identity.provider || '');
+  const subject = String(identity.subject || '');
+  if (!provider || !subject) throw new Error('invalid_social_identity');
+
+  const now = Date.now();
+  const current = await requireSession(context);
+  let userId = await identityOwner(context,provider,subject);
+
+  if (!userId && identity.email && identity.emailVerified === true) {
+    const account = await context.env.DB.prepare('SELECT user_id AS userId FROM user_accounts WHERE email=? LIMIT 1').bind(String(identity.email).toLowerCase()).first();
+    if (account) userId = account.userId;
+  }
+  if (!userId && userIdHint) userId = await existingUser(context, userIdHint);
+  if (!userId && useCurrentSession && current) userId = current.userId;
+
+  // Re-read immediately before claiming ownership. If another callback attached this identity
+  // after our first read, its owner is authoritative and replaces any candidate chosen above.
+  const ownerBeforeClaim=await identityOwner(context,provider,subject);
+  if(ownerBeforeClaim){
+    userId=ownerBeforeClaim;
+  }else{
+    const candidate=userId||crypto.randomUUID(),isNew=!userId;
+    try{
+      const statements=[];
+      if(isNew){
+        statements.push(
+          context.env.DB.prepare("INSERT INTO users(id,kind,created_at,updated_at) VALUES(?,'registered',?,?)").bind(candidate,now,now),
+          context.env.DB.prepare("INSERT INTO user_state(user_id,revision,data_json,updated_at) VALUES(?,0,'{}',?)").bind(candidate,now)
+        );
+      }else{
+        statements.push(context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now,candidate));
+      }
+      statements.push(identityInsert(context,candidate,identity,now));
+      // D1 batch() is transactional. If another callback claims this provider identity first,
+      // the UNIQUE(provider,subject) failure rolls back candidate creation/promotion as well.
+      await context.env.DB.batch(statements);
+      userId=candidate;
+    }catch(identityRace){
+      const owner=await identityOwner(context,provider,subject);
+      if(!owner)throw identityRace;
+      userId=owner;
+    }
+  }
+
+  // Existing identities, including a winner resolved after a race, retain their owner.
+  await context.env.DB.prepare("UPDATE users SET kind='registered',updated_at=? WHERE id=?").bind(now,userId).run();
+  await context.env.DB.prepare(
+    `UPDATE auth_identities SET email=?,display_name=?,avatar_url=?,updated_at=? WHERE provider=? AND subject=?`
+  ).bind(
+    identity.email ? String(identity.email).toLowerCase() : null,
+    identity.name || null,
+    identity.picture || null,
+    now,
+    provider,
+    subject
   ).run();
 
-  if (current) await revokeSession(context, current);
+  // Establish the replacement session before revoking the current one. A transient session
+  // insert failure should not turn an otherwise valid current session into an avoidable lockout.
   const session = await createRegisteredSession(context, userId);
+  if (current) await revokeSession(context, current);
   return { userId, session };
 }
 

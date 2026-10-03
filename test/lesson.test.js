@@ -9,7 +9,7 @@ const app={innerHTML:'',addEventListener:(name,fn)=>events[name]=fn};
 const storage=map=>({getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)});
 const context={document:{getElementById:id=>id==='app'?app:id==='zone-item-form'?editorForm:{textContent:''}},window:{scrollTo(){}},sessionStorage:storage(sessions),localStorage:storage(drafts),FormData:class{constructor(form){this.values=form.values||{}}get(k){return this.values[k]}has(k){return Object.hasOwn(this.values,k)}[Symbol.iterator](){return Object.entries(this.values)[Symbol.iterator]()}},Date,Number,String,Object,Set,Math};
 vm.createContext(context);
-for(const name of ['progress.js','content.js','zone.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context);
+for(const name of ['progress.js','content.js','zone.js','course.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context);
 vm.runInContext('this.P=LiplipProgress;this.Z=LiplipZone;',context);
 vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),context);
 const P=context.P,Z=context.Z;
@@ -26,7 +26,7 @@ assert.ok(!app.innerHTML.includes('class="topbar"'),'Zone replaces site header')
 assert.equal(P.snapshot(JSON.parse(sessions.get('liplip-preview')).progress).vocabularyCount,0);
 let heard=null;context.window.speechSynthesis={cancel(){},speak:u=>heard=u};context.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};
 click('zone','flip');assert.match(app.innerHTML,/مرحباً/);
-click('zone','next');click('zone','exit');assert.match(app.innerHTML,/ادخل صندوق التعلّم/);
+click('zone','next');click('zone','exit');assert.match(app.innerHTML,/course-map|course-levels/,'Exiting the focused legacy zone returns to the current Study map');
 click('action','study-box');assert.match(app.innerHTML,/البطاقة 2 من 5/,'Exit resumes current card');
 for(let i=1;i<5;i++){click('zone','flip');click('zone','next')}
 assert.match(app.innerHTML,/هل استقرّت الكلمات/,'Last next opens the vocabulary check');
@@ -66,7 +66,7 @@ assert.equal(heard.text,'goodbye');
 click('zone','audio-question',{process:'checkpointListen',index:'1'});
 assert.match(app.innerHTML,/aria-pressed="false"/);
 submit('zone-quiz-form',{cl1:'0',cl2:'1'});assert.match(app.innerHTML,/التحية والسؤال عن الحال/);
-assert.match(app.innerHTML,/بناء الجملة/);submit('zone-quiz-form',{gt:'0'});
+assert.match(app.innerHTML,/قانون تكوين الجملة العادية/);submit('zone-quiz-form',{gt:'0'});
 assert.match(app.innerHTML,/أثبت ما تعلّمته/);
 submit('zone-quiz-form',{e1:'1',e2:'0',e3:'hello'});
 assert.match(app.innerHTML,/تم إنجاز الصندوق/);

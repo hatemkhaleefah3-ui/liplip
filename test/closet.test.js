@@ -11,7 +11,7 @@ const click=(key,value)=>events.click({target:{closest:selector=>selector==='#no
 click('nav','خزانتي');
 assert.match(app.innerHTML,/دفتر الكلمات/);assert.match(app.innerHTML,/دفتر القواعد/);
 assert.match(app.innerHTML,/دفتر الكلمات[\s\S]*?<strong>2<\/strong>/);
-assert.match(app.innerHTML,/دفتر القواعد[\s\S]*?<strong>1<\/strong>/);
+assert.match(app.innerHTML,/دفتر القواعد[\s\S]*?<strong>3<\/strong>/,'completed-box content recovers missing sentence/question/negative rules into the closet');
 click('action','closet-words');assert.match(app.innerHTML,/مرحباً/);assert.match(app.innerHTML,/Hello, my name is Ali/);assert.match(app.innerHTML,/1 \/ 2/);
 click('action','closet-next');assert.match(app.innerHTML,/goodbye/);assert.match(app.innerHTML,/2 \/ 2/);
 click('action','closet-back');click('action','closet-grammar');assert.match(app.innerHTML,/تقديم النفس/);assert.match(app.innerHTML,/I \+ am \+ الاسم/);assert.match(app.innerHTML,/I am Ali/);

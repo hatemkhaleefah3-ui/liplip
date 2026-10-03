@@ -11,22 +11,30 @@ export async function onRequestPost(context) {
   const code = String(body.code || '').trim();
   if (!phone || !/^\d{6}$/.test(code)) return error(400, 'invalid_code', 'Enter the 6-digit verification code.');
 
-  const row = await context.env.DB.prepare(
-    'SELECT code_hash AS codeHash,attempts,expires_at AS expiresAt FROM whatsapp_otps WHERE phone=? LIMIT 1'
-  ).bind(phone).first();
-  if (!row || Number(row.expiresAt) <= Date.now()) return error(400, 'code_expired', 'The verification code expired. Request a new one.');
-  if (Number(row.attempts) >= 5) return error(429, 'too_many_attempts', 'Too many incorrect codes. Request a new code.');
-
+  const now = Date.now();
   const supplied = await sha256(`${phone}:${code}:${context.env.WHATSAPP_OTP_SECRET}`);
-  if (supplied !== row.codeHash) {
-    await context.env.DB.prepare('UPDATE whatsapp_otps SET attempts=attempts+1 WHERE phone=?').bind(phone).run();
-    return error(401, 'wrong_code', 'Incorrect verification code.');
+
+  // Consume a valid OTP atomically. Only one concurrent request can delete it.
+  const consumed = await context.env.DB.prepare(
+    'DELETE FROM whatsapp_otps WHERE phone=? AND code_hash=? AND expires_at>? AND attempts<5'
+  ).bind(phone, supplied, now).run();
+  if ((consumed.meta?.changes || 0) === 1) {
+    const login = await completeIdentityLogin(context, { provider: 'whatsapp', subject: phone, name: phone });
+    return json(
+      { ok: true, user: { id: login.userId, kind: 'registered', provider: 'whatsapp', phone } },
+      { headers: { 'set-cookie': cookie('liplip_session', login.session.token, { maxAge: 30 * 24 * 60 * 60 }) } }
+    );
   }
 
-  await context.env.DB.prepare('DELETE FROM whatsapp_otps WHERE phone=?').bind(phone).run();
-  const login = await completeIdentityLogin(context, { provider: 'whatsapp', subject: phone, name: phone });
-  return json(
-    { ok: true, user: { id: login.userId, kind: 'registered', provider: 'whatsapp', phone } },
-    { headers: { 'set-cookie': cookie('liplip_session', login.session.token, { maxAge: 30 * 24 * 60 * 60 }) } }
-  );
+  // Claim one failed attempt atomically. Parallel guesses cannot all observe the same attempt count.
+  const failed = await context.env.DB.prepare(
+    'UPDATE whatsapp_otps SET attempts=attempts+1 WHERE phone=? AND expires_at>? AND attempts<5'
+  ).bind(phone, now).run();
+  if ((failed.meta?.changes || 0) === 1) return error(401, 'wrong_code', 'Incorrect verification code.');
+
+  const row = await context.env.DB.prepare(
+    'SELECT attempts,expires_at AS expiresAt FROM whatsapp_otps WHERE phone=? LIMIT 1'
+  ).bind(phone).first();
+  if (!row || Number(row.expiresAt) <= now) return error(400, 'code_expired', 'The verification code expired. Request a new one.');
+  return error(429, 'too_many_attempts', 'Too many incorrect codes. Request a new code.');
 }

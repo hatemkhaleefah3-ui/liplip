@@ -1,3 +1,5 @@
+import { readJson } from '../../_lib/http.js';
+
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
@@ -60,7 +62,8 @@ export async function onRequestPost({ request, env }) {
   if (!env.GEMINI_API_KEY) return json({ error: 'gemini_not_configured' }, 503);
   if (request.headers.get('sec-fetch-site') === 'cross-site') return json({ error: 'forbidden' }, 403);
   let body;
-  try { body = await request.json(); } catch { return json({ error: 'invalid_json' }, 400); }
+  try { body = await readJson(request, 128 * 1024); }
+  catch (e) { return json({ error: e.code || 'invalid_json' }, e.status || 400); }
   const kind = String(body?.kind || '');
   const source = String(body?.source || '').trim();
   const level = Number(body?.level), box = Number(body?.box);
