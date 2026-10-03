@@ -119,7 +119,9 @@
 
     stop();
     try {
-      return await nativeVoice(value, { language, volume, kind });
+      const result = await nativeVoice(value, { language, volume, kind });
+      fetchGemini(value, { language, kind }).catch(() => {});
+      return result;
     } catch (nativeError) {
       console.warn('[liplip] native speech failed; using Gemini fallback', nativeError);
       return geminiFallback(value, { language, kind, volume });
