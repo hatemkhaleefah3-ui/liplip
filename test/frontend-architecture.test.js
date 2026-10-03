@@ -21,9 +21,10 @@ const backendPos = index.indexOf(`backend-client.js?v=${build}`);
 assert.ok(runtimePos > legacyPos, 'frontend runtime must load after legacy frontend scripts');
 assert.ok(backendPos > runtimePos, 'backend sync bridge must load after the frontend runtime');
 
-assert.match(headers, /\/frontend\/\*/);
 assert.match(headers, /\/\*\.js/);
 assert.match(headers, /\/\*\.css/);
+assert.match(headers, /X-Content-Type-Options: nosniff/);
+assert.match(headers, /Referrer-Policy: strict-origin-when-cross-origin/);
 
 assert.match(tokens, /--ui-accent:/);
 assert.match(tokens, /--ui-space-4:/);
