@@ -124,6 +124,7 @@ jobs:
           - test/image.test.js
           - test/import.test.js
           - test/lesson.test.js
+          - test/persistent-account-v121.test.js
           - test/progress.test.js
           - test/reception-learning.test.js
           - test/reception-template-v18.test.js
