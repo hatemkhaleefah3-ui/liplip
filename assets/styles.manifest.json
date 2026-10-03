@@ -1,5 +1,5 @@
 {
-  "build": 116,
+  "build": 117,
   "sources": [
     "frontend/styles/tokens.css",
     "styles.css",
@@ -31,6 +31,7 @@
     "study-treasure-path-v113.css",
     "progression-path-v114.css",
     "study-closet-v115.css",
-    "home-simple-milestones-v116.css"
+    "home-simple-milestones-v116.css",
+    "guest-study-corrections-v117.css"
   ]
 }
