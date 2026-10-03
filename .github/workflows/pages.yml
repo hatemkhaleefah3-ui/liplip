@@ -114,6 +114,7 @@ jobs:
       fail-fast: false
       matrix:
         file:
+          - test/audit-regressions.test.js
           - test/closet.test.js
           - test/content-clear.test.js
           - test/course.test.js
