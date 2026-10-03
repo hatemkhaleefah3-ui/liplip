@@ -22,7 +22,14 @@ async function googleIdentity(context, code, redirectUri) {
   });
   const profile = await profileRes.json().catch(() => ({}));
   if (!profileRes.ok || !profile.sub) throw new Error('google_profile_failed');
-  return { provider: 'google', subject: profile.sub, email: profile.email || null, name: profile.name || null, picture: profile.picture || null };
+  return {
+    provider: 'google',
+    subject: profile.sub,
+    email: profile.email || null,
+    emailVerified: profile.email_verified === true,
+    name: profile.name || null,
+    picture: profile.picture || null
+  };
 }
 
 async function facebookIdentity(context, code, redirectUri) {
@@ -45,6 +52,7 @@ async function facebookIdentity(context, code, redirectUri) {
     provider: 'facebook',
     subject: profile.id,
     email: profile.email || null,
+    emailVerified: false,
     name: profile.name || null,
     picture: profile.picture?.data?.url || null
   };
@@ -58,14 +66,18 @@ export async function onRequestGet(context) {
   if (url.searchParams.get('error')) return socialErrorRedirect(`${provider}_cancelled`);
   const code = String(url.searchParams.get('code') || '');
   const state = String(url.searchParams.get('state') || '');
-  if (!code || !(await consumeOAuthState(context, provider, state))) return socialErrorRedirect('oauth_state_invalid');
+  const oauthState = code ? await consumeOAuthState(context, provider, state) : null;
+  if (!code || !oauthState) return socialErrorRedirect('oauth_state_invalid');
   const redirectUri = `${PUBLIC_ORIGIN}/api/oauth/callback/${provider}`;
 
   try {
     const identity = provider === 'google'
       ? await googleIdentity(context, code, redirectUri)
       : await facebookIdentity(context, code, redirectUri);
-    const login = await completeIdentityLogin(context, identity);
+    const login = await completeIdentityLogin(context, identity, {
+      userIdHint: oauthState.userId || null,
+      useCurrentSession: false
+    });
     return socialRedirectResponse(login.session, provider);
   } catch (error) {
     console.error('[social auth]', provider, error);
