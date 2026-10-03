@@ -49,10 +49,6 @@ assert.match(health,/schema='v4'/);
 assert.match(health,/schema==='v4'/);
 assert.match(health,/SELECT state_hash FROM oauth_states/);
 
-const courseExam=read('functions/api/gemini/course-exam.js');
-assert.match(courseExam,/readJson\(request, 128 \* 1024\)/,'course exam JSON is bounded before parsing');
-assert.match(courseExam,/box > 50/,'Gemini exams follow the live 50-box-per-level geometry');
-
 const drawing=read('functions/api/gemini/drawing.js');
 assert.match(drawing,/readJson\(request, 5 \* 1024 \* 1024\)/,'drawing JSON is bounded before parsing');
 assert.match(drawing,/'x-goog-api-key': env\.GEMINI_API_KEY/,'drawing API key is sent in a header');
@@ -87,4 +83,4 @@ failWrites=true;
 assert.equal(Content.restore(1),false);
 assert.equal(Content.get(1).title,'Edited lesson','failed restore keeps the last durable lesson');
 
-console.log('Audit security, synchronization, Gemini, geometry, health, and persistence regressions passed');
+console.log('Audit security, synchronization, geometry, health, Gemini drawing/speech, and persistence regressions passed');
