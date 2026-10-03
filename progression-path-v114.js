@@ -43,6 +43,12 @@
     if (!value || value.version !== 1) { const created=initialState(); write(STORE,created); return created; }
     value.literacyLearn = value.literacyLearn || {letters:false,numbers:false};
     value.levels = value.levels || {};
+    // v82 literacy exams historically wrote their completion to the legacy
+    // progression record. Promote those passes into the unified source so an
+    // Exam completion is identical to finishing the full Learn flow.
+    const legacy=legacyMeta();let changed=false;
+    for(const mode of ['letters','numbers'])if(Boolean(legacy.literacy?.[mode])&&!value.literacyLearn[mode]){value.literacyLearn[mode]=true;changed=true;}
+    if(changed)save(value);
     return value;
   }
   function save(value) { write(STORE,value); }
@@ -60,10 +66,14 @@
   }
   function markLearnCompletion() {
     const literacy = window.LiplipLiteracy;
-    if (!literacy || !['letters','numbers'].includes(literacy.mode) || literacy._v74?.phase !== 'complete') return false;
+    const exam=window.LiplipLiteracyExam82;
+    const learnedMode=literacy&&['letters','numbers'].includes(literacy.mode)&&literacy._v74?.phase==='complete'?literacy.mode:null;
+    const examinedMode=exam&&['letters','numbers'].includes(exam.mode)&&exam.step==='complete'&&exam.items?.length>0&&exam.results?.length>=exam.items.length?exam.mode:null;
+    const mode=learnedMode||examinedMode;
+    if(!mode)return false;
     const value=load();
-    if (value.literacyLearn[literacy.mode]) return false;
-    value.literacyLearn[literacy.mode]=true; save(value); return true;
+    if (value.literacyLearn[mode]) return false;
+    value.literacyLearn[mode]=true; save(value); return true;
   }
   function snapshot() {
     const value=refreshFinals(load());

@@ -63,6 +63,29 @@ function boot(seed = {}) {
 }
 
 {
+  const { context, api } = boot();
+  context.window.LiplipLiteracyExam82 = {mode:'letters',step:'complete',items:Array(15).fill('A'),results:Array(15).fill(true)};
+  assert.equal(api.markLearnCompletion(),true,'finishing the Letters exam completes Letters');
+  assert.equal(api.snapshot().letters,true);
+  assert.equal(api.snapshot().study,false,'Letters exam alone does not unlock Study');
+  context.window.LiplipLiteracyExam82 = {mode:'numbers',step:'complete',items:Array(15).fill('1'),results:Array(15).fill(true)};
+  assert.equal(api.markLearnCompletion(),true,'finishing the Numbers exam completes Numbers');
+  assert.equal(api.snapshot().numbers,true);
+  assert.equal(api.snapshot().cefr,'A1','both foundation exams award A1');
+  assert.equal(api.snapshot().study,true,'both foundation exams unlock Study');
+  assert.equal(api.snapshot().fastWrite,false);
+}
+
+{
+  const { api } = boot({
+    'liplip-progression-v114': {version:1,migrated:true,literacyLearn:{letters:false,numbers:false},levels:{}},
+    'liplip-v45-progression': {literacy:{letters:true,numbers:false},exams:{},notified:{}}
+  });
+  assert.equal(api.snapshot().letters,true,'a valid older Letters exam completion is migrated');
+  assert.equal(api.snapshot().numbers,false);
+}
+
+{
   const { context, store, api } = boot({
     'liplip-v45-progression': { literacy: { letters: true, numbers: true }, exams: {}, notified: {} },
     'liplip-study-milestones-v113': { version: 1, baseline: {}, completed: { '1:final:50': true } }
@@ -93,3 +116,4 @@ assert.match(css, /\.v114-path\s*\{/);
 assert.match(css, /\.v114-locked/);
 assert.match(css, /@media \(max-width: 640px\)/);
 console.log('progression-path-v114 regression tests passed');
+
