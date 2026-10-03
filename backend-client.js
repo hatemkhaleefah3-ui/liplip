@@ -1,8 +1,8 @@
 /* Backend sync bridge for Cloudflare Pages Functions + D1. */
 (() => {
   const META_KEY = 'liplip-backend-meta-v1';
-  /* Only user-owned data belongs here. Course/fast-practice content is global and
-     is synchronized separately by backend-content-v49.js. */
+  /* Only durable user-owned data belongs here. Ephemeral session preview state is
+     intentionally excluded so a browser restart cannot delete the saved profile. */
   const KEYS = ['liplip-progress-v1', 'liplip-v45-progression', 'liplip-ui-language', 'liplip-profile-v1'];
   let activeSync = null;
   const stateFromStorage = () => {
@@ -11,18 +11,26 @@
       const value = localStorage.getItem(key);
       if (value !== null) out[key] = value;
     }
-    const preview = sessionStorage.getItem('liplip-preview');
-    if (preview !== null) out['liplip-preview'] = preview;
     return out;
+  };
+  const migrateProfile = data => {
+    if (localStorage.getItem('liplip-profile-v1')) return;
+    const preview = data && Object.prototype.hasOwnProperty.call(data, 'liplip-preview') ? data['liplip-preview'] : null;
+    if (preview == null) return;
+    try {
+      const parsed = typeof preview === 'string' ? JSON.parse(preview) : preview;
+      if (parsed?.profile && typeof parsed.profile === 'object') {
+        localStorage.setItem('liplip-profile-v1', JSON.stringify(parsed.profile));
+      }
+    } catch {}
   };
   const applyState = data => {
     if (!data || typeof data !== 'object') return;
+    migrateProfile(data);
     for (const key of KEYS) {
       if (Object.prototype.hasOwnProperty.call(data, key)) localStorage.setItem(key, String(data[key]));
       else localStorage.removeItem(key);
     }
-    if (Object.prototype.hasOwnProperty.call(data, 'liplip-preview')) sessionStorage.setItem('liplip-preview', String(data['liplip-preview']));
-    else sessionStorage.removeItem('liplip-preview');
   };
   const fingerprint = value => JSON.stringify(Object.keys(value).sort().reduce((o,k)=>(o[k]=value[k],o),{}));
   const readMeta = () => { try { return JSON.parse(localStorage.getItem(META_KEY) || '{}'); } catch { return {}; } };
@@ -42,11 +50,15 @@
       if (!(await ensureSession())) return { ok: false, reason: 'session' };
       const remote = await request('/api/state');
       if (!remote.res.ok) return { ok: false, reason: 'load', status: remote.res.status };
-      const meta = readMeta(), local = stateFromStorage(), localFp = fingerprint(local), lastFp = meta.fingerprint || '';
+      const meta = readMeta();
+      const lastFp = meta.fingerprint || '';
       const lastRevision = Number.isInteger(meta.revision) ? meta.revision : null;
       const remoteRevision = Number(remote.body.revision) || 0;
       const remoteData = remote.body.data && typeof remote.body.data === 'object' ? remote.body.data : {};
-      const remoteFp = fingerprint(remoteData);
+      migrateProfile(remoteData);
+      const local = stateFromStorage(), localFp = fingerprint(local), remoteComparable = {};
+      for (const key of KEYS) if (Object.prototype.hasOwnProperty.call(remoteData,key)) remoteComparable[key]=remoteData[key];
+      const remoteFp = fingerprint(remoteComparable);
       if (lastRevision === null) {
         if (remoteRevision === 0 && Object.keys(local).length) {
           const pushed = await request('/api/state', { method: 'PUT', body: JSON.stringify({ revision: 0, data: local }) });
@@ -54,7 +66,7 @@
           return { ok: pushed.res.ok, action: 'initial-push' };
         }
         if (remoteRevision > 0) {
-          applyState(remoteData); writeMeta({ revision: remoteRevision, fingerprint: remoteFp }); location.reload();
+          applyState(remoteData); writeMeta({ revision: remoteRevision, fingerprint: fingerprint(stateFromStorage()) }); location.reload();
           return { ok: true, action: 'initial-pull' };
         }
         writeMeta({ revision: remoteRevision, fingerprint: localFp });
@@ -62,8 +74,8 @@
       }
       const localChanged = localFp !== lastFp, remoteChanged = remoteRevision !== lastRevision;
       if (localChanged && remoteChanged) return { ok: false, reason: 'conflict', remoteRevision, localRevision: lastRevision };
-      if (remoteChanged) { applyState(remoteData); writeMeta({ revision: remoteRevision, fingerprint: remoteFp }); location.reload(); return { ok: true, action: 'pull' }; }
-      if (localChanged) {
+      if (remoteChanged) { applyState(remoteData); writeMeta({ revision: remoteRevision, fingerprint: fingerprint(stateFromStorage()) }); location.reload(); return { ok: true, action: 'pull' }; }
+      if (localChanged || remoteFp !== localFp) {
         const pushed = await request('/api/state', { method: 'PUT', body: JSON.stringify({ revision: lastRevision, data: local }) });
         if (pushed.res.ok) writeMeta({ revision: pushed.body.revision, fingerprint: localFp });
         return { ok: pushed.res.ok, action: pushed.res.ok ? 'push' : 'conflict', status: pushed.res.status };
