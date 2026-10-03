@@ -13,17 +13,24 @@ export async function onRequestPost(context) {
   if (!phone) return error(400, 'invalid_phone', 'Enter a valid phone number with country code, for example +9647...');
 
   const now = Date.now();
-  const existing = await context.env.DB.prepare('SELECT last_sent_at AS lastSentAt FROM whatsapp_otps WHERE phone=? LIMIT 1').bind(phone).first();
-  if (existing && now - Number(existing.lastSentAt) < 60_000) return error(429, 'otp_too_soon', 'Wait one minute before requesting another code.');
-
   const bytes = crypto.getRandomValues(new Uint32Array(1));
   const code = String(100000 + (bytes[0] % 900000));
   const codeHash = await sha256(`${phone}:${code}:${context.env.WHATSAPP_OTP_SECRET}`);
-  await context.env.DB.prepare(
+
+  // Claim the per-phone cooldown in the same statement that installs the OTP. Concurrent
+  // requests cannot both observe an old last_sent_at and send two codes.
+  const claimed = await context.env.DB.prepare(
     `INSERT INTO whatsapp_otps(phone,code_hash,attempts,created_at,expires_at,last_sent_at)
      VALUES(?,?,0,?,?,?)
-     ON CONFLICT(phone) DO UPDATE SET code_hash=excluded.code_hash,attempts=0,created_at=excluded.created_at,expires_at=excluded.expires_at,last_sent_at=excluded.last_sent_at`
-  ).bind(phone, codeHash, now, now + 10 * 60_000, now).run();
+     ON CONFLICT(phone) DO UPDATE SET
+       code_hash=excluded.code_hash,
+       attempts=0,
+       created_at=excluded.created_at,
+       expires_at=excluded.expires_at,
+       last_sent_at=excluded.last_sent_at
+     WHERE whatsapp_otps.last_sent_at <= ?`
+  ).bind(phone, codeHash, now, now + 10 * 60_000, now, now - 60_000).run();
+  if ((claimed.meta?.changes || 0) !== 1) return error(429, 'otp_too_soon', 'Wait one minute before requesting another code.');
 
   const version = String(context.env.META_GRAPH_VERSION || 'v24.0').replace(/^\/+/, '');
   const endpoint = `https://graph.facebook.com/${version}/${encodeURIComponent(context.env.WHATSAPP_PHONE_NUMBER_ID)}/messages`;
@@ -40,14 +47,26 @@ export async function onRequestPost(context) {
       ]
     }
   };
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${context.env.WHATSAPP_ACCESS_TOKEN}`, 'content-type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json().catch(() => ({}));
+
+  let response;
+  let result = {};
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${context.env.WHATSAPP_ACCESS_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    result = await response.json().catch(() => ({}));
+  } catch (sendError) {
+    await context.env.DB.prepare('DELETE FROM whatsapp_otps WHERE phone=? AND code_hash=?').bind(phone, codeHash).run();
+    console.error('[whatsapp otp]', sendError);
+    return error(502, 'whatsapp_send_failed', 'Could not send the WhatsApp verification code.');
+  }
+
   if (!response.ok) {
-    await context.env.DB.prepare('DELETE FROM whatsapp_otps WHERE phone=?').bind(phone).run();
+    // Only remove the OTP installed by this request. A very slow upstream failure must not
+    // delete a newer code that another request legitimately issued after the cooldown.
+    await context.env.DB.prepare('DELETE FROM whatsapp_otps WHERE phone=? AND code_hash=?').bind(phone, codeHash).run();
     console.error('[whatsapp otp]', result);
     return error(502, 'whatsapp_send_failed', 'Could not send the WhatsApp verification code.');
   }
