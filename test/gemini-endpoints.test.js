@@ -44,18 +44,18 @@ function loadEndpoint(relativePath, extraExpose = '') {
   };
   const validRequest = {
     headers: new Headers(),
-    json: async () => ({ kind:'grammar', source:'A grammar source.', level:5, box:200 })
+    json: async () => ({ kind:'grammar', source:'A grammar source.', level:5, box:50 })
   };
   const validResponse = await exam.handler({ request:validRequest, env:{ GEMINI_API_KEY:'test' } });
-  assert.equal(validResponse.status, 200, 'box 200 must be valid in each Study level');
+  assert.equal(validResponse.status, 200, 'box 50 must be valid in each active Study level');
   assert.equal((await validResponse.json()).questions.length, 5);
   assert.equal(examFetches, 1);
 
   const invalidLocation = await exam.handler({
-    request:{ headers:new Headers(), json:async()=>({ kind:'grammar', source:'x', level:5, box:201 }) },
+    request:{ headers:new Headers(), json:async()=>({ kind:'grammar', source:'x', level:5, box:51 }) },
     env:{ GEMINI_API_KEY:'test' }
   });
-  assert.equal(invalidLocation.status, 400, 'box 201 must be rejected');
+  assert.equal(invalidLocation.status, 400, 'box 51 must be rejected by the active 50-box curriculum');
   assert.equal(examFetches, 1, 'invalid locations must not call Gemini');
 
   const badIndex = structuredClone(questions);
